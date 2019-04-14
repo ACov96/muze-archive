@@ -1,6 +1,7 @@
 #ifndef _UTIL_H
 #define _UTIL_H
 
+// LINKED LIST 
 struct ll_st {
   void *val;
   struct ll_st *next;
@@ -21,5 +22,14 @@ ll_t ll_new();
  * Append data to the end of a linked list
  */
 void ll_append(ll_t l, void *data);
+
+// ERROR
+
+/* Print Error Message and Exit
+ * message - Message to print
+ * 
+ * Prints error message and exits program with exit code 1 
+ */
+void error_and_exit(char* message);
 
 #endif

@@ -9,4 +9,9 @@ int main(int argc, char* argv[]) {
     exit(1);
   }
   ll_t tokens = lex(argv[1]);
+  while (tokens) {
+    token_t t = tokens->val;
+    printf("%s ", t->val);
+    tokens = tokens->next;
+  }
 }

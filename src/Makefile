@@ -9,3 +9,6 @@ main.o: main.c
 
 build: util.o lexer.o main.o
 	gcc -o morph util.o lexer.o main.o
+
+clean:
+	rm -f *.o morph

@@ -4,8 +4,9 @@
 #include "util.h"
 
 enum token {
-            IF,
-            FI
+            IF, FI,
+            MOD, DOM,
+            IDENTIFIER
 };
 
 struct token_st {

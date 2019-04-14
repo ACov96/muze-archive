@@ -3,6 +3,6 @@
 #include "lexer.h"
 #include "util.h"
 
-ll_t lex(FILE *f) {
+ll_t lex(char* file_name) {
   return NULL;
 }

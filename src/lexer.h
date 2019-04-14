@@ -1,7 +1,6 @@
 #ifndef _LEXER_H
 #define _LEXER_H
 
-#include <stdio.h>
 #include "util.h"
 
 enum token {
@@ -17,10 +16,10 @@ struct token_st {
 typedef struct token_st* token_t;
 
 /* Lex A File
- * f - File to generate tokens from
+ * file_name - Name of file to generate tokens from
  *
  * Generates a linked list of tokens from the given input file f.
  */
-ll_t lex(FILE *f);
+ll_t lex(char* file_name);
 
 #endif

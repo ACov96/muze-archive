@@ -4,8 +4,14 @@
 #include "util.h"
 
 enum token {
-            IF, FI,
+            IF, FI, ELIF, ELSE, THEN,
+            FOR, ROF, LOOP, POOL, BREAK, CONTINUE, CYCLE,
+            CASE, ESAC,
+            FUN, NUF,
+            TYPE, EPYT, MU, UM
             MOD, DOM,
+            SEMICOLON, LBRACE, RBRACE, LBRACKET, RBRACKET, LPAREN, RPAREN,
+            INC, DEC, PLUS_EQ, PLUS, MINUS, MINUS_EQ, MULT, MULT_EQ, DIV, DIV_EQ,
             IDENTIFIER
 };
 

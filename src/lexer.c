@@ -84,6 +84,20 @@ ll_t generate_token_list(char* s) {
       if (i+1 < strlen(s) && s[i+1] == '=') {
         ll_append(token_list, new_token(DIV_EQ, "/="));
         i++;
+      } else if (s[i+1] == '*') {
+        // Allow for nested comments
+        int levels_deep = 0;
+        while (true) {
+          i++;
+          if (s[i] == '/' && s[i+1] == '*')
+            levels_deep++;
+          if (i+2 < strlen(s))
+            error_and_exit("Reached end of file in unclosed comment");
+          if (s[i+1] == '*' && s[i+2] == '/' && levels_deep == 0) {
+            i += 2;
+            break;
+          }
+        }
       } else
         ll_append(token_list, new_token(DIV, "/"));
     }

@@ -91,17 +91,16 @@ ll_t generate_token_list(char* s) {
         int levels_deep = 0;
         while (1) {
           i++;
-          if (s[i] == '/' && s[i+1] == '*')
-            levels_deep++;
           if (i+2 >= strlen(s))
-            error_and_exit("Reached end of file in unclosed comment");
+          error_and_exit("Reached end of file in unclosed comment");
+          if (s[i+1] == '/' && s[i+2] == '*')
+            levels_deep++;
           if (s[i+1] == '*' && s[i+2] == '/') {
             if (levels_deep == 0) {
               i += 2;
               break;
-            } else {
+            } else
               levels_deep--;
-            }
           }
         }
       }

@@ -14,4 +14,5 @@ int main(int argc, char* argv[]) {
     printf("%s ", t->val);
     tokens = tokens->next;
   }
+  printf("\n");
 }

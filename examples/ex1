@@ -1,2 +1,5 @@
 mod main
+  "this is a test"
+  1.2
+  1
 dom

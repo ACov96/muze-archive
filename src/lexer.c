@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <ctype.h>
 #include "lexer.h"
 #include "util.h"
 
@@ -104,10 +105,10 @@ ll_t generate_token_list(char* s) {
           }
         }
       }
-      else if (s[i+1] == '/') // Single line comments
-        do {
-            i++;
-        while (s[i] != '\n');
+      /* else if (s[i+1] == '/') // Single line comments */
+      /*   do { */
+      /*       i++; */
+      /*   while (s[i] != '\n'); */
       else
         ll_append(token_list, new_token(DIV, "/"));
     }
@@ -150,13 +151,24 @@ ll_t generate_token_list(char* s) {
         i++;
       }
       if (is_float == 1)
-        ll_append(token_list, new_token(REAL, atof(id)))
+        ll_append(token_list, new_token(REAL, id));
       else
-        ll_append(token_list, new_token(INT, atoi(id)))
+        ll_append(token_list, new_token(INT, id));
     }
     // Check for strings
     else if (c == '"') {
-
+      char *buf = NULL, *tmp = NULL;
+      unsigned int bufLen = 0; 
+      while(s[i] != '"') {
+        tmp = realloc(buf, bufLen+1);
+        buf = tmp;
+        buf[bufLen] = s[i];
+        bufLen++;
+        i++;
+      }
+      tmp = realloc(buf, bufLen+1);
+      buf = tmp;
+      ll_append(token_list, new_token(STRING_VAL, buf));
     }
 
     // Some weird character, error out
@@ -170,12 +182,20 @@ ll_t generate_token_list(char* s) {
 token_t token_from_word(char* s) {
   char* buf = malloc(strlen(s));
   strcpy(buf, s);
-  //module tokens
+
+  // Module tokens
   if (strcmp(buf, "mod") == 0)
     return new_token(MOD, "mod");
   else if (strcmp(buf, "dom") == 0)
     return new_token(DOM, "dom");
-  // if/elif/else/then tokens
+  else if (strcmp(buf, "from") == 0)
+    return new_token(FROM, "from");
+  else if (strcmp(buf, "import") == 0)
+    return new_token(IMPORT, "import");
+  else if (strcmp(buf, "extern") == 0)
+    return new_token(EXTERN, "extern");
+
+  // Conditional tokens
   else if (strcmp(buf, "if") == 0)
     return new_token(IF, "if");
   else if (strcmp(buf, "fi") == 0)
@@ -186,7 +206,12 @@ token_t token_from_word(char* s) {
     return new_token(ELSE, "else");
   else if (strcmp(buf, "then") == 0)
     return new_token(THEN, "then");
-   // loop tokens
+  else if (strcmp(buf, "st") == 0)
+    return new_token(ST, "st");
+  else if (strcmp(buf, "in") == 0)
+    return new_token(IN, "in");
+
+  // Loop tokens
   else if (strcmp(buf, "for") == 0)
     return new_token(FOR, "for");
   else if (strcmp(buf, "rof") == 0)
@@ -201,22 +226,64 @@ token_t token_from_word(char* s) {
     return new_token(CONTINUE, "continue");
   else if (strcmp(buf, "cycle") == 0)
     return new_token(CYCLE, "cycle");
-  // case tokens
+
+  // Case tokens
   else if (strcmp(buf, "case") == 0)
     return new_token(CASE, "case");
   else if (strcmp(buf, "esac") == 0)
     return new_token(ESAC, "esac");
-  // function tokens
+
+  // Function tokens
   else if (strcmp(buf, "fun") == 0)
     return new_token(FUN, "fun");
   else if (strcmp(buf, "nuf") == 0)
     return new_token(NUF, "nuf");
-  // type tokens
+
+  // Type tokens
   else if (strcmp(buf, "type") == 0)
     return new_token(TYPE, "type");
   else if (strcmp(buf, "mu") == 0)
     return new_token(MU, "mu");
-  // operator tokens
+
+  // Basic types
+  else if (strcmp(buf, "char") == 0)
+    return new_token(CHAR, "char");
+  else if (strcmp(buf, "string") == 0)
+    return new_token(STRING, "string");
+  else if (strcmp(buf, "integer") == 0)
+    return new_token(INTEGER, "integer");
+  else if (strcmp(buf, "real") == 0)
+    return new_token(REAL, "real");
+  else if (strcmp(buf, "boolean") == 0)
+    return new_token(BOOLEAN, "boolean");
+  else if (strcmp(buf, "bitset") == 0)
+    return new_token(BITSET, "bitset");
+  else if (strcmp(buf, "true") == 0)
+    return new_token(TRUE, "true");
+  else if (strcmp(buf, "false") == 0)
+    return new_token(FALSE, "false");
+
+  // Composite types
+  else if (strcmp(buf, "rec") == 0)
+    return new_token(REC, "rec");
+  else if (strcmp(buf, "array") == 0)
+    return new_token(ARRAY, "array");
+  else if (strcmp(buf, "tuple") == 0)
+    return new_token(TUPLE, "tuple");
+  else if (strcmp(buf, "hash") == 0)
+    return new_token(HASH, "hash");
+  else if (strcmp(buf, "set") == 0)
+    return new_token(SET, "set");
+  else if (strcmp(buf, "list") == 0)
+    return new_token(LIST, "list");
+
+  // Block tokens
+  else if (strcmp(buf, "begin") == 0)
+    return new_token(BEGIN, "begin");
+  else if (strcmp(buf, "end") == 0)
+    return new_token(END, "end");
+
+  // None of the above, so probably an identifier
   else
     return new_token(IDENTIFIER, buf);
 }
@@ -248,7 +315,8 @@ char** split_string(char* s, char* del, int *size) {
 token_t new_token(enum token t, char* val) {
   token_t tok = malloc(sizeof(struct token_st));
   tok->tok = t;
-  tok->val = val;
+  tok->val = malloc(strlen(val));
+  strcpy(tok->val, val);
   return tok;
 }
 

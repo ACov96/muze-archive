@@ -119,13 +119,13 @@ ll_t generate_token_list(char* s) {
     // Handles reserved words and identifiers
     // don't forget to check for periods and ticks
     else if (isalpha(c)) {
-      char id[256];
+      char *id = malloc(256);
       int j = 0;
-      id[j] = s[i];
-      while (isalpha(s[i+1]) || isdigit(s[i+1]) || s[i+1] == '_') {
+      /* id[j] = s[i]; */
+      while (isalpha(s[i]) || isdigit(s[i]) || s[i] == '_') {
         if (j > 254)
           error_and_exit("Variable name cannot exceed 254 characters.");
-        id[j] = s[i+1];
+        id[j] = s[i];
         j++;
         i++;
       }
@@ -135,30 +135,30 @@ ll_t generate_token_list(char* s) {
     // Check for digits
     // don't forget about periods for floats
     else if (isdigit(c)) {
-      char id[256];
+      char *id = malloc(256);
       int j = 0;
-      id[j] = s[i];
       int is_float = 0;
-      while (isdigit(s[i+1]) || s[i+1] == '.') {
-        if (s[i+1] == '.' && is_float == 1)
+      while (isdigit(s[i]) || s[i] == '.') {
+        if (s[i] == '.' && is_float == 1)
           error_and_exit("Invalid real.");
-        else if (s[i+1] == '.')
+        else if (s[i] == '.')
           is_float = 1;
         if (j > 254)
           error_and_exit("exceeded digit buffer.");
-        id[j] = s[i+1];
+        id[j] = s[i];
         j++;
         i++;
       }
       if (is_float == 1)
-        ll_append(token_list, new_token(REAL, id));
+        ll_append(token_list, new_token(REAL_VAL, id));
       else
-        ll_append(token_list, new_token(INT, id));
+        ll_append(token_list, new_token(INT_VAL, id));
     }
     // Check for strings
     else if (c == '"') {
       char *buf = NULL, *tmp = NULL;
       unsigned int bufLen = 0; 
+      i++;
       while(s[i] != '"') {
         tmp = realloc(buf, bufLen+1);
         buf = tmp;

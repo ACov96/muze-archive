@@ -85,6 +85,8 @@ ll_t generate_token_list(char* s) {
         ll_append(token_list, new_token(DIV_EQ, "/="));
         i++;
       } else if (s[i+1] == '*') {
+        /* Multi-line
+         * comments */
         // Allow for nested comments
         int levels_deep = 0;
         while (true) {
@@ -98,7 +100,10 @@ ll_t generate_token_list(char* s) {
             break;
           }
         }
-      } else
+      }
+      else if (s[i+1] == '/') // Single line comments
+        i++;
+      else
         ll_append(token_list, new_token(DIV, "/"));
     }
 

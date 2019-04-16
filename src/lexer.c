@@ -92,7 +92,7 @@ ll_t generate_token_list(char* s) {
         while (1) {
           i++;
           if (i+2 >= strlen(s))
-          error_and_exit("Reached end of file in unclosed comment");
+            error_and_exit("Reached end of file in unclosed comment");
           if (s[i+1] == '/' && s[i+2] == '*')
             levels_deep++;
           else if (s[i+1] == '*' && s[i+2] == '/') {
@@ -105,7 +105,9 @@ ll_t generate_token_list(char* s) {
         }
       }
       else if (s[i+1] == '/') // Single line comments
-        i++;
+        do {
+            i++;
+        while (s[i] != '\n');
       else
         ll_append(token_list, new_token(DIV, "/"));
     }

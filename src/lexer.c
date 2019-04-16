@@ -95,7 +95,7 @@ ll_t generate_token_list(char* s) {
           error_and_exit("Reached end of file in unclosed comment");
           if (s[i+1] == '/' && s[i+2] == '*')
             levels_deep++;
-          if (s[i+1] == '*' && s[i+2] == '/') {
+          else if (s[i+1] == '*' && s[i+2] == '/') {
             if (levels_deep == 0) {
               i += 2;
               break;

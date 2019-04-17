@@ -11,7 +11,15 @@ int main(int argc, char* argv[]) {
   ll_t tokens = lex(argv[1]);
   while (tokens) {
     token_t t = tokens->val;
-    printf("%s ", t->val);
+    if (t->tok == STRING_VAL)
+      printf("\"%s\"\n", t->val);
+    else if (t->tok == INT_VAL)
+      printf("<%s>\n", t->val);
+    else if (t->tok == REAL_VAL)
+      printf("$%s$\n", t->val);
+    else
+      printf("%s\n", t->val);
     tokens = tokens->next;
   }
+  printf("\n");
 }

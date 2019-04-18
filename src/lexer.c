@@ -36,6 +36,8 @@ ll_t generate_token_list(char* s) {
     // {, }, ), ), ;, [, ]
     if (c == ';')
       ll_append(token_list, new_token(SEMICOLON, ";"));
+    else if (c == ':')
+      ll_append(token_list, new_token(COLON, ":"));
     else if (c == '{')
       ll_append(token_list, new_token(LBRACE, "{"));
     else if (c == '}')
@@ -51,7 +53,7 @@ ll_t generate_token_list(char* s) {
 
 
 
-    // operators (all cases)
+    // arithmetic operators (all cases)
     else if (c == '+') {
       if (i+1 < strlen(s) && s[i+1] == '+') {
         ll_append(token_list, new_token(INC, "++"));
@@ -111,6 +113,55 @@ ll_t generate_token_list(char* s) {
       /*   while (s[i] != '\n'); */
       else
         ll_append(token_list, new_token(DIV, "/"));
+    }
+
+    // misc operators
+    else if (c == '.') {
+      if (i + 1 < strlen(s) && s[i + 1] == '.') {
+        ll_append(token_list, new_token(DOTDOT, ".."));
+        i++;
+      } else
+        ll_append(token_list, new_token(DOT, "."));
+    }
+    else if (c == '\'') {
+      // Assume for now (since the syntax is undecided) that chars will either
+      // be a single character literal or some sort of escaped sequence
+
+      // escaped case
+      // this is terrible and not how it should be done, but will eat the
+      // correct characters for now until we can decide exactly how to deal
+      // with character literals.
+      if (i + 1 < strlen(s) && s[i + 1] == '\\') {
+        char *buf = NULL;
+        char *tmp = NULL;
+
+        int size = 1;
+
+        for (i++; s[i] != '\''; i++, size++) {
+          tmp = realloc(buf, size);
+          buf = tmp;
+          tmp[size - 1] = s[i];
+        }
+
+        tmp = realloc(buf, size);
+        buf = tmp;
+        tmp[size - 1] = '\0';
+        ll_append(token_list, new_token(CHAR_VAL, buf));
+      }
+
+      // literal case
+      else if (i + 2 < strlen(s) && s[i + 2] == '\'') {
+        char *buf = malloc(sizeof(char) * 2);
+        buf[0] = s[i + 1];
+        buf[1] = '\0';
+        ll_append(token_list, new_token(CHAR_VAL, buf));
+        i += 2;
+      }
+
+      // Not a char at all, it's an attribute
+      else {
+        ll_append(token_list, new_token(TICK, "'"));
+      }
     }
 
     // check for alpha character.

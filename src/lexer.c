@@ -128,6 +128,8 @@ ll_t generate_token_list(char* s) {
       // be a single character literal or some sort of escaped sequence
 
       // escaped case
+      //
+      // TODO
       // this is terrible and not how it should be done, but will eat the
       // correct characters for now until we can decide exactly how to deal
       // with character literals.

@@ -107,10 +107,10 @@ ll_t generate_token_list(char* s) {
           }
         }
       }
-      /* else if (s[i+1] == '/') // Single line comments */
-      /*   do { */
-      /*       i++; */
-      /*   while (s[i] != '\n'); */
+      else if (s[i+1] == '/') // Single line comments
+         do {
+             i++;
+         } while (s[i] != '\n');
       else
         ll_append(token_list, new_token(DIV, "/"));
     }
@@ -210,7 +210,7 @@ ll_t generate_token_list(char* s) {
     // Check for strings
     else if (c == '"') {
       char *buf = NULL, *tmp = NULL;
-      unsigned int bufLen = 0; 
+      unsigned int bufLen = 0;
       i++;
       while(s[i] != '"') {
         tmp = realloc(buf, bufLen+1);

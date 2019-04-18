@@ -5,8 +5,7 @@ OBJS = util.o lexer.o main.o
 
 VPATH = src
 
-util.o   : util.h
-lexer.o  : lexer.h util.h
+include SOURCEDEPS
 
 morph : $(OBJS)
 	$(CC) $(CFLAGS) -o $@ $^

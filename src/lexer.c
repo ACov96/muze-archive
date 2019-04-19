@@ -4,6 +4,7 @@
 #include <ctype.h>
 #include "lexer.h"
 #include "util.h"
+#include "limits.h"
 
 // Peek n characters beyond the current character
 #define peek(n) (i + n < strlen(s) ? s[i + n] : '\0')
@@ -121,10 +122,35 @@ ll_t generate_token_list(char* s) {
     // Comparison operators
     else if (c == '<') {
       if (peek(1) == '=') {
-        ll_append(token_list, new_token(
-      }
+        i++;
+        ll_append(token_list, new_token(LT_EQUAL, "<="));
+      } else 
+        ll_append(token_list, new_token(LT, "<"));
     }
 
+    else if (c == '>') {
+      if (peek(1) == '=') {
+        i++;
+        ll_append(token_list, new_token(GT_EQUAL, ">="));
+      } else 
+        ll_append(token_list, new_token(GT, ">"));
+    }
+
+    else if (c == '!') {
+      if (peek(1) == '=') {
+        i++;
+        ll_append(token_list, new_token(NOT_EQUAL, "!="));
+      } else 
+        ll_append(token_list, new_token(NOT, "!"));
+    }
+    
+    else if (c == '=') {
+      if (peek(1) == '=') {
+        i++;
+        ll_append(token_list, new_token(EQ_EQ, "=="));
+      } else 
+        ll_append(token_list, new_token(EQ, "="));
+    }
     // misc operators
     else if (c == '.') {
       if (peek(1) == '.') {

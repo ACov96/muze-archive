@@ -12,6 +12,9 @@ enum token {
             MOD, DOM,
             COLON, SEMICOLON, LBRACE, RBRACE, LBRACKET, RBRACKET, LPAREN, RPAREN,
             INC, DEC, PLUS_EQ, PLUS, MINUS, MINUS_EQ, MULT, MULT_EQ, DIV, DIV_EQ,
+            EQUAL, LT, GT, NOT_EQUAL, LT_EQUAL, GT_EQUAL, // comparison
+            NOT, AND, OR, XOR, // boolean
+            BIT_NOT, BIT_AND, BIT_OR, BIT_XOR, // bitwise
             CHAR, STRING, INTEGER, REAL, BOOLEAN,
             CHAR_VAL, STRING_VAL, INT_VAL, REAL_VAL,
             REC, ARRAY, TUPLE, HASH, SET, LIST,

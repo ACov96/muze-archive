@@ -5,6 +5,9 @@
 #include "lexer.h"
 #include "util.h"
 
+// Peek n characters beyond the current character
+#define peek(n) (i + n < strlen(s) ? s[i + n] : '\0')
+
 /* PROTOTYPES */
 char* file_to_string(FILE *f);
 token_t new_token(enum token t, char* val);
@@ -55,36 +58,36 @@ ll_t generate_token_list(char* s) {
 
     // arithmetic operators (all cases)
     else if (c == '+') {
-      if (i+1 < strlen(s) && s[i+1] == '+') {
+      if (peek(1) == '+') {
         ll_append(token_list, new_token(INC, "++"));
         i++;
       }
-      else if (i+1 < strlen(s) && s[i+1] == '=') {
+      else if (peek(1) == '=') {
         ll_append(token_list, new_token(PLUS_EQ, "+="));
         i++;
       } else
         ll_append(token_list, new_token(PLUS, "+"));
     }
     else if (c == '-') {
-      if (i+1 < strlen(s) && s[i+1] == '-') {
+      if (peek(1) == '-') {
         ll_append(token_list, new_token(DEC, "--"));
         i++;
       }
-      else if (i+1 < strlen(s) && s[i+1] == '=') {
+      else if (peek(1) == '=') {
         ll_append(token_list, new_token(MINUS_EQ, "-="));
         i++;
       } else
         ll_append(token_list, new_token(MINUS, "-"));
     }
     else if (c == '*') {
-      if (i+1 < strlen(s) && s[i+1] == '=') {
+      if (peek(1) == '=') {
         ll_append(token_list, new_token(MULT_EQ, "*="));
         i++;
       } else
         ll_append(token_list, new_token(MULT, "*"));
     }
     else if (c == '/') {
-      if (i+1 < strlen(s) && s[i+1] == '=') {
+      if (peek(1) == '=') {
         ll_append(token_list, new_token(DIV_EQ, "/="));
         i++;
       } else if (s[i+1] == '*') {
@@ -94,11 +97,11 @@ ll_t generate_token_list(char* s) {
         int levels_deep = 0;
         while (1) {
           i++;
-          if (i+2 >= strlen(s))
+          if (peek(2))
             error_and_exit("Reached end of file in unclosed comment");
-          if (s[i+1] == '/' && s[i+2] == '*')
+          if (peek(1) == '/' && peek(2) == '*')
             levels_deep++;
-          else if (s[i+1] == '*' && s[i+2] == '/') {
+          else if (peek(1) == '*' && peek(2) == '/') {
             if (levels_deep == 0) {
               i += 2;
               break;
@@ -107,63 +110,32 @@ ll_t generate_token_list(char* s) {
           }
         }
       }
-      else if (s[i+1] == '/') // Single line comments
+      else if (peek(1) == '/') // Single line comments
          do {
              i++;
-         } while (s[i] != '\n');
+         } while (s[i] != '\n' && s[i] != '\0');
       else
         ll_append(token_list, new_token(DIV, "/"));
     }
 
+    // Comparison operators
+    else if (c == '<') {
+      if (peek(1) == '=') {
+        ll_append(token_list, new_token(
+      }
+    }
+
     // misc operators
     else if (c == '.') {
-      if (i + 1 < strlen(s) && s[i + 1] == '.') {
+      if (peek(1) == '.') {
         ll_append(token_list, new_token(DOTDOT, ".."));
         i++;
       } else
         ll_append(token_list, new_token(DOT, "."));
     }
+    
     else if (c == '\'') {
-      // Assume for now (since the syntax is undecided) that chars will either
-      // be a single character literal or some sort of escaped sequence
-
-      // escaped case
-      //
-      // TODO
-      // this is terrible and not how it should be done, but will eat the
-      // correct characters for now until we can decide exactly how to deal
-      // with character literals.
-      if (i + 1 < strlen(s) && s[i + 1] == '\\') {
-        char *buf = NULL;
-        char *tmp = NULL;
-
-        int size = 1;
-
-        for (i++; s[i] != '\''; i++, size++) {
-          tmp = realloc(buf, size);
-          buf = tmp;
-          tmp[size - 1] = s[i];
-        }
-
-        tmp = realloc(buf, size);
-        buf = tmp;
-        tmp[size - 1] = '\0';
-        ll_append(token_list, new_token(CHAR_VAL, buf));
-      }
-
-      // literal case
-      else if (i + 2 < strlen(s) && s[i + 2] == '\'') {
-        char *buf = malloc(sizeof(char) * 2);
-        buf[0] = s[i + 1];
-        buf[1] = '\0';
-        ll_append(token_list, new_token(CHAR_VAL, buf));
-        i += 2;
-      }
-
-      // Not a char at all, it's an attribute
-      else {
-        ll_append(token_list, new_token(TICK, "'"));
-      }
+      ll_append(token_list, new_token(TICK, "'"));
     }
 
     // check for alpha character.
@@ -172,23 +144,27 @@ ll_t generate_token_list(char* s) {
     // Handles reserved words and identifiers
     // don't forget to check for periods and ticks
     else if (isalpha(c)) {
-      char *id = malloc(256);
+      char *id = malloc(MAX_IDENTIFIER_SIZE + 1);
+      memset(id, 0, (MAX_IDENTIFIER_SIZE + 1) * sizeof(char));
       int j = 0;
       /* id[j] = s[i]; */
       while (isalpha(s[i]) || isdigit(s[i]) || s[i] == '_') {
-        if (j > 254)
-          error_and_exit("Variable name cannot exceed 254 characters.");
+        if (j > MAX_IDENTIFIER_SIZE - 1)
+          error_and_exit("Variable name cannot exceed 255 characters.");
         id[j] = s[i];
         j++;
         i++;
       }
+
       ll_append(token_list, token_from_word(id));
     }
 
     // Check for digits
     // don't forget about periods for floats
     else if (isdigit(c)) {
-      char *id = malloc(256);
+      char *id = malloc(MAX_NUMBER_SIZE + 1);
+      memset(id, 0, (MAX_NUMBER_SIZE + 1) * sizeof(char));
+
       int j = 0;
       int is_float = 0;
       while (isdigit(s[i]) || s[i] == '.') {
@@ -196,7 +172,7 @@ ll_t generate_token_list(char* s) {
           error_and_exit("Invalid real.");
         else if (s[i] == '.')
           is_float = 1;
-        if (j > 254)
+        if (j > MAX_NUMBER_SIZE - 1)
           error_and_exit("exceeded digit buffer.");
         id[j] = s[i];
         j++;

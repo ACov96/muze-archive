@@ -4,7 +4,4 @@
 #define MAX_IDENTIFIER_SIZE 0xff
 #define MAX_NUMBER_SIZE 0xff
 
-#endif // ndef _LIMITS_H
-
-&& || ! ^^
-
+#endif // def _LIMITS_H

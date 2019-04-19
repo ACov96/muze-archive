@@ -40,8 +40,6 @@ ll_t generate_token_list(char* s) {
     // {, }, ), ), ;, [, ]
     if (c == ';')
       ll_append(token_list, new_token(SEMICOLON, ";"));
-    else if (c == ':')
-      ll_append(token_list, new_token(COLON, ":"));
     else if (c == '{')
       ll_append(token_list, new_token(LBRACE, "{"));
     else if (c == '}')
@@ -55,7 +53,18 @@ ll_t generate_token_list(char* s) {
     else if (c == ']')
       ll_append(token_list, new_token(RBRACKET, "]"));
 
-
+    else if (c == ':') {
+      if (peek(1) == ':') {
+        ll_append(token_list, new_token(COLON_COLON, "::"));
+        i++;
+      }
+      else if (peek(1) == '=') {
+        ll_append(token_list, new_token(COLON_EQ, ":="));
+      }
+      else {
+        ll_append(token_list, new_token(COLON, ":"));
+      }
+    }
 
     // arithmetic operators (all cases)
     else if (c == '+') {
@@ -123,7 +132,7 @@ ll_t generate_token_list(char* s) {
     else if (c == '<') {
       if (peek(1) == '=') {
         i++;
-        ll_append(token_list, new_token(LT_EQUAL, "<="));
+        ll_append(token_list, new_token(LT_EQ, "<="));
       } else 
         ll_append(token_list, new_token(LT, "<"));
     }
@@ -131,7 +140,7 @@ ll_t generate_token_list(char* s) {
     else if (c == '>') {
       if (peek(1) == '=') {
         i++;
-        ll_append(token_list, new_token(GT_EQUAL, ">="));
+        ll_append(token_list, new_token(GT_EQ, ">="));
       } else 
         ll_append(token_list, new_token(GT, ">"));
     }
@@ -139,7 +148,7 @@ ll_t generate_token_list(char* s) {
     else if (c == '!') {
       if (peek(1) == '=') {
         i++;
-        ll_append(token_list, new_token(NOT_EQUAL, "!="));
+        ll_append(token_list, new_token(NOT_EQ, "!="));
       } else 
         ll_append(token_list, new_token(NOT, "!"));
     }
@@ -151,11 +160,53 @@ ll_t generate_token_list(char* s) {
       } else 
         ll_append(token_list, new_token(EQ, "="));
     }
-    // misc operators
+
+    // boolean
+    else if (c == '&') {
+      if (peek(1) == '&') {
+        ll_append(token_list, new_token(AND, "&&"));
+        i++;
+      }
+      else {
+        ll_append(token_list, new_token(BIT_AND, "&"));
+      }
+    }
+
+    else if (c == '|') {
+      if (peek(1) == '|') {
+        ll_append(token_list, new_token(OR, "||"));
+        i++;
+      }
+      else {
+        ll_append(token_list, new_token(BIT_OR, "|"));
+      }
+    }
+
+    else if (c == '^') {
+      if (peek(1) == '^') {
+        ll_append(token_list, new_token(XOR, "^^"));
+        i++;
+      }
+      else {
+        ll_append(token_list, new_token(BIT_XOR, "^"));
+      }
+    }
+
+    else if (c == '~') {
+      ll_append(token_list, new_token(BIT_NOT, "~"));
+    }
+
+    // dots
     else if (c == '.') {
       if (peek(1) == '.') {
-        ll_append(token_list, new_token(DOTDOT, ".."));
-        i++;
+        if (peek(2) == '.') {
+          ll_append(token_list, new_token(DOT_DOT_DOT, "..."));
+          i += 2;
+        }
+        else {
+          ll_append(token_list, new_token(DOT_DOT, ".."));
+          i++;
+        }
       } else
         ll_append(token_list, new_token(DOT, "."));
     }
@@ -271,6 +322,10 @@ token_t token_from_word(char* s) {
     return new_token(FOR, "for");
   else if (strcmp(buf, "rof") == 0)
     return new_token(ROF, "rof");
+  else if (strcmp(buf, "fa") == 0)
+    return new_token(FA, "fa");
+  else if (strcmp(buf, "af") == 0)
+    return new_token(AF, "af");
   else if (strcmp(buf, "loop") == 0)
     return new_token(LOOP, "loop");
   else if (strcmp(buf, "pool") == 0)
@@ -287,6 +342,8 @@ token_t token_from_word(char* s) {
     return new_token(CASE, "case");
   else if (strcmp(buf, "esac") == 0)
     return new_token(ESAC, "esac");
+  else if (strcmp(buf, "of") == 0)
+    return new_token(OF, "of");
 
   // Function tokens
   else if (strcmp(buf, "fun") == 0)

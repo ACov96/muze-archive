@@ -73,13 +73,22 @@ mod Scratch
   type celsius = integer
     // maybe put a 'bijective' keyword on functions which are a single
     // expression and only call other bijective functions
+    //
+    // maybe call it 'invertible' instead?
     mu bijective fahrenheit
-      5/9 * celsius + 32 ;
+      fahrenheit = 5/9 * celsius + 32 ;
     um
   epyt
 
-  type fahrenheit = not integer
-  epyt
+  a : fahrenheit ;
+  b : celsius ;
+
+  // Do type aliases really need the explicit morph? It's the same layout in memory
+  a := 10 ;
+  //-vs-
+  a = 10 ;
+
+  b := a ;
 
   // Do we want a 'type alias', like the following, to NOT deep copy when morphed?
   

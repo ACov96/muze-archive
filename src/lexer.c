@@ -224,7 +224,6 @@ ll_t generate_token_list(char* s) {
       char *id = malloc(MAX_IDENTIFIER_SIZE + 1);
       memset(id, 0, (MAX_IDENTIFIER_SIZE + 1) * sizeof(char));
       int j = 0;
-      /* id[j] = s[i]; */
       while (isalpha(s[i]) || isdigit(s[i]) || s[i] == '_') {
         if (j > MAX_IDENTIFIER_SIZE - 1)
           error_and_exit("Variable name cannot exceed 255 characters.");
@@ -232,7 +231,7 @@ ll_t generate_token_list(char* s) {
         j++;
         i++;
       }
-
+      i--;
       ll_append(token_list, token_from_word(id));
     }
 
@@ -255,6 +254,7 @@ ll_t generate_token_list(char* s) {
         j++;
         i++;
       }
+      i--;
       if (is_float == 1)
         ll_append(token_list, new_token(REAL_VAL, id));
       else

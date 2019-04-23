@@ -25,6 +25,8 @@ enum token {
             MOD, DOM, FROM, IMPORT, EXTERN,
             // colons
             COLON, SEMICOLON,
+            // comma
+            COMMA,
             // parentheses
             LBRACE, RBRACE, LBRACKET, RBRACKET, LPAREN, RPAREN,
             // assignment
@@ -51,6 +53,7 @@ enum token {
 struct token_st {
   enum token tok;
   char* val;
+  int line_no;
 };
 
 typedef struct token_st* token_t;

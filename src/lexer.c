@@ -8,38 +8,47 @@
 
 // Peek n characters beyond the current character
 #define peek(n) (i + n < strlen(s) ? s[i + n] : '\0')
+#define new_token(t, val) _new_token(t, val, line_no)
+#define inc(n) i+= n; for (int i=1; i<=n; i++) if (peek(i) == '\n') line_no++; else break;
 
 /* PROTOTYPES */
 char* file_to_string(FILE *f);
-token_t new_token(enum token t, char* val);
+token_t _new_token(enum token t, char* val, int line_no);
 ll_t generate_token_list(char* s);
 char** split_string(char* s, char* del, int* size);
 token_t token_from_word(char* s);
 
+int line_no = 0;
+
 ll_t lex(char* file_name) {
   FILE *f = fopen(file_name, "r");
   if (f == NULL)
-    error_and_exit("Cannot open file");
+    error_and_exit("Cannot open file", line_no);
 
   char* content = file_to_string(f);
   return generate_token_list(content);
 }
 
 ll_t generate_token_list(char* s) {
-  int numLines = 0;
   ll_t token_list = ll_new();
   // Loop through file
   for (int i = 0; i < strlen(s); i++) {
     // set current character to c
     char c = s[i];
     // Whitespace, tab, new line
-    if (c == ' ' || c == '\t' || c == '\n')
+    if (c == ' ' || c == '\t')
       continue;
+    else if (c == '\n') {
+      line_no++;
+      continue;
+    }
 
     // check for (definite) single character symbols
     // {, }, ), ), ;, [, ]
     if (c == ';')
       ll_append(token_list, new_token(SEMICOLON, ";"));
+    else if (c == ',')
+      ll_append(token_list, new_token(COMMA, ","));
     else if (c == '{')
       ll_append(token_list, new_token(LBRACE, "{"));
     else if (c == '}')
@@ -108,7 +117,7 @@ ll_t generate_token_list(char* s) {
         while (1) {
           i++;
           if (peek(2))
-            error_and_exit("Reached end of file in unclosed comment");
+            error_and_exit("Reached end of file in unclosed comment", line_no);
           if (peek(1) == '/' && peek(2) == '*')
             levels_deep++;
           else if (peek(1) == '*' && peek(2) == '/') {
@@ -122,7 +131,7 @@ ll_t generate_token_list(char* s) {
       }
       else if (peek(1) == '/') // Single line comments
          do {
-             i++;
+             inc(1);
          } while (s[i] != '\n' && s[i] != '\0');
       else
         ll_append(token_list, new_token(DIV, "/"));
@@ -226,7 +235,7 @@ ll_t generate_token_list(char* s) {
       int j = 0;
       while (isalpha(s[i]) || isdigit(s[i]) || s[i] == '_') {
         if (j > MAX_IDENTIFIER_SIZE - 1)
-          error_and_exit("Variable name cannot exceed 255 characters.");
+          error_and_exit("Variable name cannot exceed 255 characters.", line_no);
         id[j] = s[i];
         j++;
         i++;
@@ -243,13 +252,13 @@ ll_t generate_token_list(char* s) {
 
       int j = 0;
       int is_float = 0;
-      while (isdigit(s[i]) || s[i] == '.') {
+      while (isdigit(s[i]) || (s[i] == '.' && peek(1) == '.')) {
         if (s[i] == '.' && is_float == 1)
-          error_and_exit("Invalid real.");
+          error_and_exit("Invalid real.", line_no);
         else if (s[i] == '.')
           is_float = 1;
         if (j > MAX_NUMBER_SIZE - 1)
-          error_and_exit("exceeded digit buffer.");
+          error_and_exit("exceeded digit buffer.", line_no);
         id[j] = s[i];
         j++;
         i++;
@@ -279,7 +288,7 @@ ll_t generate_token_list(char* s) {
 
     // Some weird character, error out
     else {
-      error_and_exit("Unrecognized character");
+      error_and_exit("Unrecognized character", line_no);
     }
   }
   return token_list;
@@ -424,11 +433,12 @@ char** split_string(char* s, char* del, int *size) {
   return strings;
 }
 
-token_t new_token(enum token t, char* val) {
+token_t _new_token(enum token t, char* val, int line_no) {
   token_t tok = malloc(sizeof(struct token_st));
   tok->tok = t;
   tok->val = malloc(strlen(val));
   strcpy(tok->val, val);
+  tok->line_no = line_no;
   return tok;
 }
 

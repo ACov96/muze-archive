@@ -30,6 +30,6 @@ void ll_append(ll_t l, void *data);
  * 
  * Prints error message and exits program with exit code 1 
  */
-void error_and_exit(char* message);
+void error_and_exit(char* message, int line_no);
 
 #endif

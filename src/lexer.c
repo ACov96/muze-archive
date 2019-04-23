@@ -9,7 +9,7 @@
 // Peek n characters beyond the current character
 #define peek(n) (i + n < strlen(s) ? s[i + n] : '\0')
 #define new_token(t, val) _new_token(t, val, line_no)
-#define inc(n) i+= n; for (int i=1; i<=n; i++) if (peek(i) == '\n') line_no++; else break;
+#define inc(n) for (int j=i+1; j<=i+n; j++) {if (peek(i) == '\n') line_no++;} i+= n;
 
 /* PROTOTYPES */
 char* file_to_string(FILE *f);
@@ -42,7 +42,6 @@ ll_t generate_token_list(char* s) {
       line_no++;
       continue;
     }
-
     // check for (definite) single character symbols
     // {, }, ), ), ;, [, ]
     if (c == ';')

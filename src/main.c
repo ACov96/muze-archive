@@ -18,7 +18,7 @@ int main(int argc, char* argv[]) {
     else if (t->tok == REAL_VAL)
       printf("$%s$\n", t->val);
     else
-      printf("%s\n", t->val);
+      printf("%d:%s\n", t->line_no, t->val);
     tokens = tokens->next;
   }
   printf("\n");

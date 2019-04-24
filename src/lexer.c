@@ -9,7 +9,7 @@
 // Peek n characters beyond the current character
 #define peek(n) (i + n < strlen(s) ? s[i + n] : '\0')
 #define new_token(t, val) _new_token(t, val, line_no)
-#define inc(n) for (int j=i+1; j<=i+n; j++) {if (peek(i) == '\n') line_no++;} i+= n;
+#define inc(n) for (int j=i+1; j<=i+n; j++) {if (peek(j) == '\n') line_no++;} i+= n;
 
 /* PROTOTYPES */
 char* file_to_string(FILE *f);

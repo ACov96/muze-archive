@@ -9,7 +9,7 @@
 // Peek n characters beyond the current character
 #define peek(n) (i + n < strlen(s) ? s[i + n] : '\0')
 #define new_token(t, val) _new_token(t, val, line_no)
-#define inc(n) for (int j=i+1; j<=i+n; j++) {if (peek(j) == '\n') line_no++;} i+= n;
+#define inc(n) for (int j=1; j<=n; j++) {if (peek(j) == '\n') line_no++;} i+= n;
 
 /* PROTOTYPES */
 char* file_to_string(FILE *f);
@@ -18,7 +18,7 @@ ll_t generate_token_list(char* s);
 char** split_string(char* s, char* del, int* size);
 token_t token_from_word(char* s);
 
-int line_no = 0;
+int line_no = 1;
 
 ll_t lex(char* file_name) {
   FILE *f = fopen(file_name, "r");

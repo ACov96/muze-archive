@@ -47,7 +47,9 @@ enum token {
             // qualifiers
             DOT_DOT, DOT_DOT_DOT, ST, IN,
             // identifiers
-            IDENTIFIER
+            IDENTIFIER,
+            // For use by parser
+            LEXEOF,
 };
 
 struct token_st {

@@ -1,7 +1,7 @@
 CC = gcc
 CFLAGS = -g -Wall
 
-OBJS = util.o lexer.o main.o
+OBJS = util.o lexer.o main.o parser.o
 
 VPATH = src
 

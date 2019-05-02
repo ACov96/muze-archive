@@ -1,44 +1,70 @@
+#include <stdlib.h>
 #include <stdio.h>
-#include <stdbool.h>
 
 #include "ast.h"
 #include "lexer.h"
 
-enum token current_token;
+#define MATCH_FUN(fn, res, ll) \
+  (res = fn(ll))
 
-#define call(fn, ll) \
-  if (!fn(ll)) \
-    return false; \
+#define MATCH_TOK(t, ll) \
+  (BEGET(ll)->tok == t)
+
+#define EXPECT_FUN(fn, res, ll) \
+  if (!MATCH_FUN(fn, res, ll)) \
+    return NULL; \
+  NEXT(ll);
+
+#define EXPECT_TOK(t, ll) \
+  if (!MATCH_TOK(t, ll)) { \
+    snprintf(last_mismatch, BUFSIZ, "Expected %s, got %s", \
+        token_names[t], token_names[BEGET(ll)->tok]); \
+    return NULL; \
+  } \
+  NEXT(ll);
+
+// Gets the current token
+#define BEGET(ll) \
+  ((token_t)(ll->val))
+
+#define NEXT(ll) \
   ll = ll->next;
 
-#define match(t, ll) \
-  if (beget(ll)->tok != t) \
-    return false; \
-  ll = ll->next;
+// most recent mismatch
+static char last_mismatch[BUFSIZ];
 
-#define beget(ll) \
-   ((token_t)(ll->val))
+// Prototypes
+static decl_t parse_decl(ll_t tokens);
+static mod_t parse_module_decl(ll_t tokens);
 
-bool parse_decl(ll_t tokens) {
-  return true;
+static decl_t parse_decl(ll_t tokens) {
+  decl_t decl;
+  decl = malloc(sizeof(decl_t));
+
+  MATCH_FUN(parse_module_decl, decl->mods, tokens);
+
+  return decl;
 }
 
-bool parse_module(ll_t tokens) {
-  if (LEXEOF) {
-  }
-  return true;
+static mod_t parse_module_decl(ll_t tokens) {
+  mod_t mod;
+  mod = malloc(sizeof(mod_t));
+
+  EXPECT_TOK(MOD, tokens);
+  EXPECT_FUN(parse_decl, mod->decl, tokens);
+  EXPECT_TOK(DOM, tokens);
+
+  MATCH_FUN(parse_module_decl, mod->next, tokens);
+
+  return mod;
 }
 
-bool parse_module_inner(ll_t tokens) {
-  match(MOD, tokens);
-  call(parse_decl, tokens);
-  match(DOM, tokens);
-  //call(parse_module,tokens);
-  return true;
-}
+root_t parse(ll_t tokens) {
+  root_t root;
+  root = malloc(sizeof(root));
 
-bool parse(ll_t tokens) {
-  parse_module_inner(tokens);
-  return true;
+  EXPECT_FUN(parse_module_decl, root->mods, tokens);
+
+  return root;
 }
 

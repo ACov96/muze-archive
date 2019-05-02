@@ -1,35 +1,44 @@
 #include <stdio.h>
-
+#include <stdbool.h>
 
 #include "ast.h"
 #include "lexer.h"
 
-
-ll_t tokens = NULL; // TODO: should be set in main
-
-char token_names[][12] = {
-  "IF", "END OF FILE"
-};
-
 enum token current_token;
 
-enum token next_token() {
-  if (tokens) {
-    enum token t = (enum token)tokens->val;
-    tokens = tokens->next;
-    return t;
-  }
-  return LEXEOF;
+#define call(fn, ll) \
+  if (!fn(ll)) \
+    return false; \
+  ll = ll->next;
+
+#define match(t, ll) \
+  if (beget(ll)->tok != t) \
+    return false; \
+  ll = ll->next;
+
+#define beget(ll) \
+   ((token_t)(ll->val))
+
+bool parse_decl(ll_t tokens) {
+  return true;
 }
-/* Check that current_token matches argument
-  and get next token. */
-void match(enum token tok) {
-  if (current_token == tok) {
-    current_token = next_token();
-  } else {
-    // what the fuck:
-    fprintf(stderr, "%u: expected token %d: %s\n",
-        ((token_t)tokens->val)->line_no, tok, token_names[tok]);
+
+bool parse_module(ll_t tokens) {
+  if (LEXEOF) {
   }
+  return true;
+}
+
+bool parse_module_inner(ll_t tokens) {
+  match(MOD, tokens);
+  call(parse_decl, tokens);
+  match(DOM, tokens);
+  //call(parse_module,tokens);
+  return true;
+}
+
+bool parse(ll_t tokens) {
+  parse_module_inner(tokens);
+  return true;
 }
 

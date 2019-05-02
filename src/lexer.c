@@ -1,3 +1,5 @@
+#define _LEXER_C
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>

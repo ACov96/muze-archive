@@ -1,4 +1,4 @@
-#define _LEXER_C
+#define _LEXER_C_
 
 #include <stdio.h>
 #include <stdlib.h>

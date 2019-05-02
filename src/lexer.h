@@ -44,7 +44,7 @@ struct token_st {
   int line_no;
 };
 
-#ifndef _LEXER_C
+#ifndef _LEXER_C_
 extern const char *token_names[];
 #else
 const char *token_names[] = {

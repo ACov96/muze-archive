@@ -10,6 +10,9 @@
 #define MATCH_TOK(t, ll) \
   (BEGET(ll)->tok == t)
 
+#define GET_VAL(ll) \
+  BEGET(ll)->val
+
 #define EXPECT_FUN(fn, res, ll) \
   if (!MATCH_FUN(fn, res, ll)) \
     return NULL; \

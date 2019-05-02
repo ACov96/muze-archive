@@ -4,69 +4,112 @@
 #include "ast.h"
 #include "lexer.h"
 
-#define MATCH_FUN(fn, res, ll) \
-  (res = fn(ll))
+#define LL_NAME tokens
+#define LL_OUT tok_out
 
-#define MATCH_TOK(t, ll) \
-  (BEGET(ll)->tok == t)
+#define MATCH_FUN(fn, res) \
+  (res = fn(LL_NAME, &LL_NAME))
 
-#define GET_VAL(ll) \
-  BEGET(ll)->val
+#define MATCH_TOK(t) \
+  (BEGET->tok == t)
 
-#define EXPECT_FUN(fn, res, ll) \
-  if (!MATCH_FUN(fn, res, ll)) \
+#define EXPECT_FUN(fn, res) \
+  if (!MATCH_FUN(fn, res)) \
     return NULL; \
-  NEXT(ll);
+  NEXT;
 
-#define EXPECT_TOK(t, ll) \
-  if (!MATCH_TOK(t, ll)) { \
+#define EXPECT_TOK(t) \
+  if (!MATCH_TOK(t)) { \
     snprintf(last_mismatch, BUFSIZ, "Expected %s, got %s", \
-        token_names[t], token_names[BEGET(ll)->tok]); \
+        token_names[t], token_names[BEGET->tok]); \
     return NULL; \
   } \
-  NEXT(ll);
+  NEXT;
+
+#define PARSE_RETURN(ret) \
+  *LL_OUT = LL_NAME; \
+  return ret;
 
 // Gets the current token
-#define BEGET(ll) \
-  ((token_t)(ll->val))
+#define BEGET \
+  ((token_t)(LL_NAME->val))
 
-#define NEXT(ll) \
-  ll = ll->next;
+#define NEXT \
+  LL_NAME = LL_NAME->next;
+
+#define PARSE_PARAMS ll_t LL_NAME, ll_t *LL_OUT
 
 // most recent mismatch
 static char last_mismatch[BUFSIZ];
 
 // Prototypes
-static decl_t parse_decl(ll_t tokens);
-static mod_t parse_module_decl(ll_t tokens);
+static decl_t parse_decl(PARSE_PARAMS);
+static mod_t parse_module_decl(PARSE_PARAMS);
+static type_t parse_type_decl(PARSE_PARAMS);
+static const_t parse_const_decl(PARSE_PARAMS);
+static fun_t parse_fun_decl(PARSE_PARAMS);
+static var_t parse_vars_decl(PARSE_PARAMS);
 
-static decl_t parse_decl(ll_t tokens) {
-  decl_t decl;
-  decl = malloc(sizeof(decl_t));
 
-  MATCH_FUN(parse_module_decl, decl->mods, tokens);
+static type_t parse_type_decl(PARSE_PARAMS) {
+  type_t type;
+  type = malloc(sizeof(struct type_st));
 
-  return decl;
+  EXPECT_TOK(TYPE);
+
+  type->name = BEGET->val;
+  EXPECT_TOK(IDENTIFIER);
+
+  EXPECT_TOK(parse_type, 
+
+  EXPECT_TOK(EPYT);
+
+  PARSE_RETURN(type);
 }
 
-static mod_t parse_module_decl(ll_t tokens) {
+static const_t parse_const_decl(PARSE_PARAMS) {
+  return NULL;
+}
+
+static fun_t parse_fun_decl(PARSE_PARAMS) {
+  return NULL;
+}
+
+static var_t parse_vars_decl(PARSE_PARAMS) {
+  return NULL;
+}
+
+static decl_t parse_decl(PARSE_PARAMS) {
+  decl_t decl;
+  decl = malloc(sizeof(struct decl_st));
+
+  MATCH_FUN(parse_type_decl, decl->types);
+  MATCH_FUN(parse_const_decl, decl->consts);
+  MATCH_FUN(parse_fun_decl, decl->funs);
+  MATCH_FUN(parse_vars_decl, decl->vars);
+  MATCH_FUN(parse_module_decl, decl->mods);
+
+  PARSE_RETURN(decl);
+}
+
+static mod_t parse_module_decl(PARSE_PARAMS) {
   mod_t mod;
   mod = malloc(sizeof(mod_t));
 
-  EXPECT_TOK(MOD, tokens);
-  EXPECT_FUN(parse_decl, mod->decl, tokens);
-  EXPECT_TOK(DOM, tokens);
+  EXPECT_TOK(MOD);
+  EXPECT_FUN(parse_decl, mod->decl);
+  EXPECT_TOK(DOM);
 
-  MATCH_FUN(parse_module_decl, mod->next, tokens);
+  MATCH_FUN(parse_module_decl, mod->next);
 
-  return mod;
+  PARSE_RETURN(mod);
 }
 
 root_t parse(ll_t tokens) {
   root_t root;
   root = malloc(sizeof(root));
 
-  EXPECT_FUN(parse_module_decl, root->mods, tokens);
+  EXPECT_FUN(parse_module_decl, root->mods);
 
   return root;
 }

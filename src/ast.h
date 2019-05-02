@@ -2,9 +2,9 @@ typedef struct root_st *root_t;
 typedef struct mod_st *mod_t;
 typedef struct decl_st *decl_t;
 typedef struct var_st *var_t;
-typedef struct type_st *type_t;
+typedef struct type_decl_st *type_decl_t;
 typedef struct const_st *const_t;
-typedef struct vars_st *vars_t;
+typedef struct var_st *var_t;
 typedef struct fun_st *fun_t;
 typedef struct expr_st * expr_t;
 typedef struct ident_st *ident_t;
@@ -15,6 +15,9 @@ typedef struct ternary_st *ternary_t;
 typedef struct call_st *call_t;
 typedef struct range_st * range_t;
 typedef struct morph_expr_st *morph_expr_t;
+
+typedef struct type_st *type_t;
+typedef struct morph_st *morph_t;
 
 struct root_st {
   mod_t mods;
@@ -28,23 +31,37 @@ struct mod_st {
 
 // 'a' denotes null terminated type array
 struct decl_st {
-  type_t types;
-  const_t consts; // this is a C keyword, so I threw on an underscore
+  type_decl_t types;
+  const_t consts;
   fun_t funs;
-  vars_t vars;
+  var_t vars;
   mod_t mods;
 };
 
-struct type_st {
+struct type_decl_st {
   char* name;
+  type_t type;
+  morph_t morphs;
 };
+
+struct type_st {
+  enum {
+    TY_NAME,
+    TY_REC,
+    TY_SIMPLE
+  } kind;
+};
+
+struct morph_st {
+  morph_t next;
+}
 
 struct const_st {
   char* name;
   expr_t expr;
 };
 
-struct vars_st {
+struct var_st {
   char* name;
   type_t type;
 };

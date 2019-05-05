@@ -1,4 +1,12 @@
+# binaries
 *.o
 morph
 
+# editor files
 *.swp
+
+# tex output
+*.pdf
+*.dvi
+*.aux
+

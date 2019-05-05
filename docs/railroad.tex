@@ -7,48 +7,15 @@
 \usetikzlibrary{arrows,positioning}
 \usetikzlibrary{shapes.misc}
 
-% style to apply some styles to each segment of a path
-% This was the original style I went with for the edges, but it proved to
-% look a little too busy
-\tikzset{
-  on each segment/.style={
-    decorate,
-    decoration={
-      show path construction,
-      moveto code={},
-      lineto code={
-        \path [#1]
-        (\tikzinputsegmentfirst) -- (\tikzinputsegmentlast);
-      },
-      curveto code={
-        \path [] (\tikzinputsegmentfirst)
-        .. controls
-        (\tikzinputsegmentsupporta) and (\tikzinputsegmentsupportb)
-        ..
-        (\tikzinputsegmentlast);
-      },
-      closepath code={
-        \path [#1]
-        (\tikzinputsegmentfirst) -- (\tikzinputsegmentlast);
-      },
-    },
-  },
-  % style to add an arrow in the middle of a path segment
-  mid arrow/.style={
-    postaction={
-      decorate,decoration={
-        markings,
-        mark=at position .5 with {\arrow[#1]{stealth'}}
-      }
-    }
-  }
-}
-
+% path styling
 \tikzset {
+  syntax path/.style = {
+    draw = black,
+    rounded corners = 2mm
+  },
   % path style adds an arrow to each segment
   arr/.style = {
-    draw = black,
-    rounded corners = 2mm,
+    syntax path,
     postaction = {
       decorate,
       decoration = {
@@ -58,31 +25,33 @@
         mark=at position 0.5 with {
           \fill (2pt,0)--(-2pt,2.31pt)--(-2pt,-2.31pt)--cycle;
         }
+% Uncomment (and comment above) for proper arrows. Note these are not centered
 %        mark=at position .5 with {\arrow[#1]{stealth'}}
       }
-% Uncomment here (and comment out above) to enable per segment arrows
-%      on each segment = {
-%        mid arrow = black
-%      }
     }
   },
   % path style with no arrows
   narr/.style = {
+    syntax path
+  }
+}
+
+% node styling
+\tikzset {
+  syntax node/.style = {
     draw = black,
-    rounded corners = 2mm
+    inner sep = 0.2cm
   },
   % terminal symbol
   term/.style = {
-    draw = black,
+    syntax node,
     rounded rectangle,
-    inner sep = .2cm,
     font = \ttfamily
   },
   % non-terminal symbol
   nterm/.style = {
-    draw = black,
+    syntax node,
     rectangle,
-    inner sep = .2cm,
     font = \itshape
   },
   % support node
@@ -109,7 +78,10 @@
   \centering
   \begin{tikzpicture}
     \node[entry] (start) {};
-    \node[term] (mod) [right=of start] {mod};
+
+    \coordinate[right=of start] (start-mod);
+
+    \node[term] (mod) [right=of start-mod] {mod};
     \node[nterm] (mod name) [right=of mod] {identifier};
 
     \coordinate[right=of mod name] (name-imports);
@@ -145,11 +117,18 @@
 
     \node[term] (dom) [left=of funcs-dom] {dom};
     \node[nterm] (mod name end) [left=of dom] {identifier};
-    \node[entry] (end) [left=of mod name end] {};
+
+    \node[term] (semi) [left=of mod name end] {;};
+
+    \coordinate[left=of semi] (semi-end);
+
+    \node[entry] (end) [left=of semi-end] {};
 
     % main line
-    \draw[arr] (start) -- (mod);
+    \draw[arr] (start) -- (start-mod);
+    \draw[narr] (start-mod) -- (mod);
     \draw[arr] (mod) -- (mod name);
+
     \draw[narr] (mod name) -- (name-imports);
     \draw[arr] (name-imports) -- (imports);
 
@@ -173,7 +152,21 @@
 
     \draw[arr] (dom) -- (mod name end);
 
-    \draw[arr] (mod name end) -- (end);
+    \draw[arr] (mod name end) -- (semi);
+
+    \draw[narr] (semi) -- (semi-end);
+
+    \draw[arr] (semi-end) -- (end);
+
+    % loop back to start
+    \draw[arr] (semi)
+    -- (semi-end)
+    -- ++(0, 1.5);
+
+    \draw[arr] (semi-end) + (0, 1.5)
+    -- ++(0, 2)
+    -| (start-mod)
+    -- (mod);
 
     % side rail
     \draw[arr] (mod name)
@@ -197,6 +190,7 @@
       -- (consts-types2)
       -- ++(-2,0)
       |- (types-vars1)
+
       -- (types-vars2);
 
     \draw[arr] (types-vars1)

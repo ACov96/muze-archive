@@ -5,6 +5,8 @@
 
 \usepackage{listings} % wg. source listings
 
+\usepackage{float} % wg. 'H' on figures (specify exact location)
+
 \usepackage{tikz}
 \usetikzlibrary{decorations.pathreplacing}
 \usetikzlibrary{decorations.markings}
@@ -12,7 +14,7 @@
 \usetikzlibrary{positioning} % wg. 'of' relative positioning
 \usetikzlibrary{shapes.misc} % wg. 'rounded rectangle'
 
-% style to apply some styles to each segment of a path
+% Styling to add arrows to paths
 \tikzset{
   on each segment/.style={
     decorate,
@@ -44,7 +46,7 @@
         markings,
         % Draw arrows manually to get them centered correctly, because this
         % isn't the default behavior for TIKZ
-        mark=at position 0.5 with {
+        mark=at position #1 with {
           \fill (2pt,0)--(-2pt,2.31pt)--(-2pt,-2.31pt)--cycle;
         }
       }
@@ -62,16 +64,14 @@
     syntax path,
     postaction = {
       on each segment = {
-        mid arrow
+        mid arrow = 0.5
       }
     }
   },
   % path style adds an arrow to each segment
   arr/.style = {
     syntax path,
-    postaction = {
-      mid arrow
-    }
+    mid arrow = 0.5
   },
   % path style with no arrows
   narr/.style = {
@@ -124,7 +124,7 @@
 
 A full program; the entry point of a parse.
 
-\begin{figure}[!h]
+\begin{figure}[H]
   \centering
 
   \begin{tikzpicture}
@@ -141,7 +141,7 @@ A full program; the entry point of a parse.
 
 One or more modules.
 
-\begin{figure}[!h]
+\begin{figure}[H]
   \centering
   \begin{tikzpicture}
     \node[entry] (entry) {};
@@ -180,7 +180,7 @@ One or more modules.
 
 A series of declarations
 
-\begin{figure}[!h]
+\begin{figure}[H]
   \centering
   \begin{tikzpicture}
     \node[entry] (entry) {};
@@ -274,7 +274,7 @@ A series of declarations
 
 One or more import declarations.
 
-\begin{figure}[!h]
+\begin{figure}[H]
   \centering
   \begin{tikzpicture}
     \node[entry] (entry) {};
@@ -308,16 +308,16 @@ One or more import declarations.
 
 \subsubsection{Import Qualifier}
 
-An qualifying series of identifiers for a module.
+A qualifying series of identifiers for a module.
 
-\begin{figure}[!h]
+\begin{figure}[H]
   \centering
   \begin{tikzpicture}
     \node[entry] (entry) {};
     \coordinate[right=of entry] (entry-name);
     \node[nterm] (name) [right=of entry-name] {Identifier};
     \coordinate[right=of name] (name-exit);
-    \node[exit] (exit) [right=of name-exit];
+    \node[exit] (exit) [right=of name-exit] {};
 
     \node[term, node distance = 0.2cm] (dot) [below=of name] {.};
 
@@ -329,148 +329,87 @@ An qualifying series of identifiers for a module.
 
     \draw[arr] (name-exit) -- (exit);
 
-    \draw[arr] (name)
+    \draw[narr, mid arrow = 0.35] (name)
       -- (name-exit)
       |- (dot);
 
-    \draw[arr] (dot)
+    \draw[narr, mid arrow = 0.65] (dot)
       -| (entry-name)
       -- (name);
   \end{tikzpicture}
 \end{figure}
 
-\newpage
-\section*{Earlier version of Module Block}
+\subsection{Constant Block}
 
-\begin{figure}[!h]
+One or more constant declarations.
+
+\begin{figure}[H]
   \centering
   \begin{tikzpicture}
     \node[entry] (entry) {};
+    \node[term] (const) [right=of entry] {const};
+    \coordinate[right=of const] (const-name);
+    \node[nterm] (name) [right=of const-name] {Identifier};
+    \node[term] (colon) [right=of name] {:};
+    \node[nterm] (type) [right=of colon] {Type Expression};
+    \node[term] (eq) [below left=0.5cm and 0cm of type] {=};
+    \node[nterm] (literal) [left=of eq] {Literal};
+    \node[term] (semi) [left=of literal] {;};
+    \node[exit] (exit) [left=1.2cm of semi] {};
 
-    \coordinate[right=of entry] (entry-mod);
+    \draw[arrs] (entry) -- (const);
+    \draw[narr, mid arrow = 0.25] (const) -- (name);
+    \draw[arrs] (name)
+      -- (colon)
+      -- (type);
 
-    \node[term] (mod) [right=of entry-mod] {mod};
-    \node[nterm] (mod name) [right=of mod] {identifier};
+    \draw[narr, mid arrow = 0.6] (type) |- (eq);
 
-    \coordinate[right=of mod name] (name-imports);
+    \draw[arrs] (eq)
+      -- (literal)
+      -- (semi);
 
-    \node[nterm] (imports) [right=of name-imports] {import block};
+    \draw[narr, mid arrow = 0.75] (semi) -- (exit);
+    
+    \draw[arr] (semi) -| (const-name) -- (name);
 
-    \coordinate[below=of imports] (imports-mods1);
-    \coordinate[below=of imports-mods1] (imports-mods2);
+  \end{tikzpicture}
+\end{figure}
 
-    \node[nterm] (mods) [below=of imports-mods2] {module block};
+\subsection{Variable Block}
 
-    \coordinate[below=of mods] (mods-consts1);
-    \coordinate[below=of mods-consts1] (mods-consts2);
+One or more variable declarations.
 
-    \node[nterm] (consts) [below=of mods-consts2] {constant block};
+\begin{figure}[H]
+  \centering
+  \begin{tikzpicture}
+    \node[entry] (entry) {};
+    \node[term] (var) [right=of entry] {var};
+    \coordinate[right=of var] (var-name);
+    \node[nterm] (name) [right=of var-name] {Identifier};
+    \node[term] (colon) [right=of name] {:};
+    \node[nterm] (type) [right=of colon] {Type Expression};
+    \node[term] (eq) [below left=0.5cm and -0.5cm of type] {=};
+    \node[nterm] (expr) [left=of eq] {Expression};
+    \node[term] (semi) [left=of expr] {;};
+    \node[exit] (exit) [left=1cm of semi] {};
 
-    \coordinate[below=of consts] (consts-types1);
-    \coordinate[below=of consts-types1] (consts-types2);
+    \draw[arrs] (entry) -- (var);
+    \draw[narr, mid arrow = 0.25] (var) -- (name);
+    \draw[arrs] (name)
+      -- (colon)
+      -- (type);
 
-    \node[nterm] (types) [below=of consts-types2] {type block};
+    \draw[narr, mid arrow = 0.75] (type) |- (eq);
 
-    \coordinate[below=of types] (types-vars1);
-    \coordinate[below=of types-vars1] (types-vars2);
+    \draw[arrs] (eq)
+      -- (expr)
+      -- (semi);
 
-    \node[nterm] (vars) [below=of types-vars2] {variable block};
+    \draw[narr, mid arrow = 0.75] (semi) -- (exit);
+    
+    \draw[arr] (semi) -| (var-name) -- (name);
 
-    \coordinate[below=of vars] (vars-funcs1);
-    \coordinate[below=of vars-funcs1] (vars-funcs2);
-
-    \node[nterm] (funcs) [below=of vars-funcs2] {function block};
-
-    \coordinate[left=of funcs] (funcs-dom);
-
-    \node[term] (dom) [left=of funcs-dom] {dom};
-    \node[nterm] (mod name exit) [left=of dom] {identifier};
-
-    \node[term] (semi) [left=of mod name exit] {;};
-
-    \coordinate[left=of semi] (semi-exit);
-
-    \node[entry] (exit) [left=of semi-exit] {};
-
-    % main line
-    \draw[arr] (entry) -- (entry-mod);
-    \draw[narr] (entry-mod) -- (mod);
-    \draw[arr] (mod) -- (mod name);
-
-    \draw[narr] (mod name) -- (name-imports);
-    \draw[arr] (name-imports) -- (imports);
-
-    \draw[arr] (imports) -- (imports-mods1);
-    \draw[arr] (imports-mods2) -- (mods);
-
-    \draw[arr] (mods) -- (mods-consts1);
-    \draw[arr] (mods-consts2) -- (consts);
-
-    \draw[arr] (consts) -- (consts-types1);
-    \draw[arr] (consts-types2) -- (types);
-
-    \draw[arr] (types) -- (types-vars1);
-    \draw[arr] (types-vars2) -- (vars);
-
-    \draw[arr] (vars) -- (vars-funcs1);
-    \draw[arr] (vars-funcs2) -- (funcs);
-
-    \draw[arr] (funcs) -- (funcs-dom);
-    \draw[narr] (funcs-dom) -- (dom);
-
-    \draw[arr] (dom) -- (mod name exit);
-
-    \draw[arr] (mod name exit) -- (semi);
-
-    \draw[narr] (semi) -- (semi-exit);
-
-    \draw[arr] (semi-exit) -- (exit);
-
-    % loop back to entry
-    \draw[arr] (semi)
-    -- (semi-exit)
-    -- ++(0, 1.5);
-
-    \draw[arr] (semi-exit) + (0, 1.5)
-    -- ++(0, 2)
-    -| (entry-mod)
-    -- (mod);
-
-    % side rail
-    \draw[arr] (mod name)
-      -- (name-imports)
-      |- (imports-mods1)
-      -- (imports-mods2);
-
-    \draw[arr] (imports-mods1)
-      -- (imports-mods2)
-      -- ++(-2,0)
-      |- (mods-consts1)
-      -- (mods-consts2);
-
-    \draw[arr] (mods-consts1)
-      -- (mods-consts2)
-      -- ++(-2,0)
-      |- (consts-types1)
-      -- (consts-types2);
-
-    \draw[arr] (consts-types1)
-      -- (consts-types2)
-      -- ++(-2,0)
-      |- (types-vars1)
-
-      -- (types-vars2);
-
-    \draw[arr] (types-vars1)
-      -- (types-vars2)
-      -- ++(-2,0)
-      |- (vars-funcs1)
-      -- (vars-funcs2);
-
-    \draw[arr] (vars-funcs1)
-      -- (vars-funcs2)
-      -| (funcs-dom)
-      -- (dom);
   \end{tikzpicture}
 \end{figure}
 

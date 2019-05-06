@@ -122,9 +122,9 @@
 
 \subsection{Program}
 
-A full program; the entrying point of a parse.
+A full program; the entry point of a parse.
 
-\begin{figure}[h]
+\begin{figure}[!h]
   \centering
 
   \begin{tikzpicture}
@@ -141,7 +141,7 @@ A full program; the entrying point of a parse.
 
 One or more modules.
 
-\begin{figure}[h]
+\begin{figure}[!h]
   \centering
   \begin{tikzpicture}
     \node[entry] (entry) {};
@@ -180,7 +180,7 @@ One or more modules.
 
 A series of declarations
 
-\begin{figure}[h]
+\begin{figure}[!h]
   \centering
   \begin{tikzpicture}
     \node[entry] (entry) {};
@@ -270,10 +270,79 @@ A series of declarations
   \end{tikzpicture}
 \end{figure}
 
+\subsection{Import Block}
+
+One or more import declarations.
+
+\begin{figure}[!h]
+  \centering
+  \begin{tikzpicture}
+    \node[entry] (entry) {};
+    \node[term] (import) [right=of entry] {import};
+    \coordinate[right=of import] (import-qualifier);
+    \node[nterm] (qualifier) [right=of import-qualifier] {Import Qualifier};
+    \node[term] (semi) [right=of qualifier] {;};
+    \coordinate[right=of semi] (semi-exit);
+    \node[exit] (exit) [right=of semi-exit] {};
+
+    \draw[arrs] (entry)
+      -- (import)
+      -- (import-qualifier);
+
+    \draw[narr] (import-qualifier)
+      -- (qualifier);
+
+    \draw[arr] (qualifier) -- (semi);
+
+    \draw[narr] (semi) -- (semi-exit);
+
+    \draw[arr] (semi-exit) -- (exit);
+
+    \draw[arr] (semi)
+      -- (semi-exit)
+      -- ++(0, -0.75)
+      -| (import-qualifier)
+      -- (qualifier);
+  \end{tikzpicture}
+\end{figure}
+
+\subsubsection{Import Qualifier}
+
+An qualifying series of identifiers for a module.
+
+\begin{figure}[!h]
+  \centering
+  \begin{tikzpicture}
+    \node[entry] (entry) {};
+    \coordinate[right=of entry] (entry-name);
+    \node[nterm] (name) [right=of entry-name] {Identifier};
+    \coordinate[right=of name] (name-exit);
+    \node[exit] (exit) [right=of name-exit];
+
+    \node[term, node distance = 0.2cm] (dot) [below=of name] {.};
+
+    \draw[arr] (entry) -- (entry-name);
+    
+    \draw[narr] (entry-name)
+      -- (name)
+      -- (name-exit);
+
+    \draw[arr] (name-exit) -- (exit);
+
+    \draw[arr] (name)
+      -- (name-exit)
+      |- (dot);
+
+    \draw[arr] (dot)
+      -| (entry-name)
+      -- (name);
+  \end{tikzpicture}
+\end{figure}
+
 \newpage
 \section*{Earlier version of Module Block}
 
-\begin{figure}[h]
+\begin{figure}[!h]
   \centering
   \begin{tikzpicture}
     \node[entry] (entry) {};

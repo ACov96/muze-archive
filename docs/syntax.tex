@@ -387,18 +387,22 @@ One or more variable declarations.
     \node[term] (var) [right=of entry] {var};
     \coordinate[right=of var] (var-name);
     \node[nterm] (name) [right=of var-name] {Identifier};
+    \node[term] (comma) [above=of name] {,};
     \node[term] (colon) [right=of name] {:};
     \node[nterm] (type) [right=of colon] {Type Expression};
     \node[term] (eq) [below left=0.5cm and -0.5cm of type] {=};
     \node[nterm] (expr) [left=of eq] {Expression};
     \node[term] (semi) [left=of expr] {;};
     \node[exit] (exit) [left=1cm of semi] {};
-
+    
     \draw[arrs] (entry) -- (var);
     \draw[narr, mid arrow = 0.25] (var) -- (name);
     \draw[arrs] (name)
       -- (colon)
       -- (type);
+
+    \draw[arr] (name) -- (comma) ;
+    \draw[arr] (comma) -| (var-name) -- (name);
 
     \draw[narr, mid arrow = 0.75] (type) |- (eq);
 
@@ -412,6 +416,42 @@ One or more variable declarations.
 
   \end{tikzpicture}
 \end{figure}
+
+\subsection{Type Block}
+
+One or more type declarations
+
+\begin{figure}[H]
+  \centering
+  \begin{tikzpicture}
+    \node[entry] (entry) {};
+    \node[term] (type) [right=of entry] {type};
+    \coordinate [right=of type] (type-name);
+    \node[nterm] (name) [right=of type-name] {Identifier};
+    \node[term] (equals) [right=of name] {=};
+    \node[nterm] (typexp) [right=of equals] {Type Expression};
+    \node[nterm] (morphs) [right=of typexp] {Morphs};
+    \coordinate[right=of morphs] (morph-exit);
+    \node[exit] (exit) [right=of morph-exit] {};
+
+    \draw[arrs] (entry)
+    -- (type)
+    -- (type-name)
+    -- (name)
+    -- (equals)
+    -- (typexp)
+    -- (morphs)
+    -- (morph-exit)
+    -- (exit);
+
+    \draw[arr] (morphs)
+    -- (morph-exit)
+    |- ++(0, -.75)
+    -| (type-name)
+    -- (name);
+  \end{tikzpicture}
+\end{figure}
+
 
 \end{document}
 

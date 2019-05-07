@@ -452,6 +452,32 @@ One or more type declarations
   \end{tikzpicture}
 \end{figure}
 
+\subsection{Type Expression}
+
+Specifying a type.
+
+\begin{figure}[H]
+  \centering
+  \begin{tikzpicture}
+    \node[entry] (entry) {};
+    \coordinate [right=of entry] (entry-choices);
+    \node[nterm] (record) [right=of entry-choices] {Record Declaration};
+    \node[nterm] (id) [below=of record] {Identifier};
+    \node[nterm] (chain) [below=of id] {Morph Chain};
+    \coordinate [right=of record] (choices-exit);
+    \node[exit] (exit) [right=of choices-exit] {};
+
+    \draw[arr] (entry) -- (entry-choices);
+    \draw[arr] (entry-choices) -- (record);
+    \draw[arr] (entry-choices) |- (id);
+    \draw[arr] (entry-choices) |- (chain);
+    \draw[arr] (record) -- (choices-exit);
+    \draw[arr] (id) -| (choices-exit);
+    \draw[arr] (chain) -| (choices-exit);
+    \draw[arr] (choices-exit) -- (exit);
+  \end{tikzpicture}
+\end{figure}
+
 
 \end{document}
 

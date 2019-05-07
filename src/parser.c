@@ -49,6 +49,7 @@ static type_t parse_type_decl(PARSE_PARAMS);
 static const_t parse_const_decl(PARSE_PARAMS);
 static fun_t parse_fun_decl(PARSE_PARAMS);
 static var_t parse_vars_decl(PARSE_PARAMS);
+static expr_t parse_expr(PARSE_PARAMS);
 
 
 static type_t parse_type_decl(PARSE_PARAMS) {
@@ -68,6 +69,17 @@ static type_t parse_type_decl(PARSE_PARAMS) {
 }
 
 static const_t parse_const_decl(PARSE_PARAMS) {
+  const_t constant;
+  constant = malloc(sizeof(struct const_st));
+
+  EXPECT_TOK(CONST);
+  constant->name = BEGET->val;
+  EXPECT_TOK(IDENTIFIER);
+  EXPECT_TOK(COLON):
+  //MATCH_FUN(, ); need to handle type expressions somehow
+  EXPECT_TOK(EQ);
+  MATCH_FUN(parse_literal, constant->expr)
+  EXPECT_TOK(SEMICOLON);
   return NULL;
 }
 
@@ -79,14 +91,31 @@ static var_t parse_vars_decl(PARSE_PARAMS) {
   return NULL;
 }
 
+ static expr_t parse_expr(PARSE_PARAMS) {
+   expr_t ex;
+   ex = malloc(sizeof(struct expr_t));
+   if (MATCH_TOK(STRING)){
+     
+   }else if (MATCH_TOK(INTEGER)){
+     
+   }else if (MATCH_TOK(REAL)){
+     
+   }else if (MATCH_TOK(BOOLEAN)){
+     
+   }else if (MATCH_TOK()){
+     
+   }
+   return NULL;
+ }
+
 static decl_t parse_decl(PARSE_PARAMS) {
   decl_t decl;
   decl = malloc(sizeof(struct decl_st));
 
-  MATCH_FUN(parse_type_decl, decl->types);
   MATCH_FUN(parse_const_decl, decl->consts);
-  MATCH_FUN(parse_fun_decl, decl->funs);
+  MATCH_FUN(parse_type_decl, decl->types);
   MATCH_FUN(parse_vars_decl, decl->vars);
+  MATCH_FUN(parse_fun_decl, decl->funs;
   MATCH_FUN(parse_module_decl, decl->mods);
 
   PARSE_RETURN(decl);

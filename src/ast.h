@@ -1,3 +1,8 @@
+#ifndef _AST_H
+#define _AST_H
+
+#include "util.h"
+
 typedef struct root_st *root_t;
 typedef struct mod_st *mod_t;
 typedef struct decl_st *decl_t;
@@ -45,16 +50,19 @@ struct type_decl_st {
 };
 
 struct type_st {
+  char* kind;
+  /*
   enum {
     TY_NAME,
     TY_REC,
     TY_SIMPLE
   } kind;
+  */
 };
 
 struct morph_st {
   morph_t next;
-}
+};
 
 struct const_st {
   char* name;
@@ -107,10 +115,10 @@ struct ternary_st {
 
 struct literal_st {
   enum {
-    STRING,
-    INTEGER,
-    REAL,
-    BOOLEAN
+    STRING_LIT,
+    INTEGER_LIT,
+    REAL_LIT,
+    BOOLEAN_LIT
   } kind;
   union {
     char* str;
@@ -122,3 +130,8 @@ struct literal_st {
 struct morph_expr_st {
   // something wild
 };
+
+// prototypes
+root_t parse(ll_t ll_tokens);
+
+#endif

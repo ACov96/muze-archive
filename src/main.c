@@ -2,15 +2,21 @@
 #include <stdlib.h>
 #include "lexer.h"
 #include "util.h"
+#include "ast.h"
 
 int main(int argc, char* argv[]) {
   if (argc < 2) {
     fprintf(stderr, "Missing file argument\n");
     exit(1);
   }
+  // lex
   ll_t tokens = lex(argv[1]);
-  while (tokens) {
-    token_t t = tokens->val;
+  ll_t toks = tokens;
+  
+  // print lexed tokens
+  while (toks) {
+    token_t t = toks->val;
+    printf("%s : ", token_names[t->tok]);
     if (t->tok == STRING_VAL)
       printf("\"%s\"\n", t->val);
     else if (t->tok == INT_VAL)
@@ -19,7 +25,12 @@ int main(int argc, char* argv[]) {
       printf("$%s$\n", t->val);
     else
       printf("%d:%s\n", t->line_no, t->val);
-    tokens = tokens->next;
-  }
+    toks = toks->next;
+  }  
   printf("\n");
+  
+  // parse
+  printf("initializing parse\n");
+  root_t root;
+  root = parse(tokens);
 }

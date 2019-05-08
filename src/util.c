@@ -24,3 +24,4 @@ void error_and_exit(char* message, int line_no) {
   fprintf(stderr, "%d:%s\n", line_no, message);
   exit(1);
 }
+

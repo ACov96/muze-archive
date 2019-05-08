@@ -107,9 +107,15 @@ struct ternary_st {
 
 struct literal_st {
   enum {
-    INT,
+    STRING,
+    INTEGER,
+    REAL,
+    BOOLEAN
   } kind;
   union {
+    char* str;
+    int integer;
+    double real;
   } u;
 };
 

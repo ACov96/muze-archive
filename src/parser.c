@@ -45,25 +45,74 @@ static char last_mismatch[BUFSIZ];
 // Prototypes
 static decl_t parse_decl(PARSE_PARAMS);
 static mod_t parse_module_decl(PARSE_PARAMS);
-static type_t parse_type_decl(PARSE_PARAMS);
+static type_decl_t parse_type_decl(PARSE_PARAMS);
 static const_t parse_const_decl(PARSE_PARAMS);
 static fun_t parse_fun_decl(PARSE_PARAMS);
 static var_t parse_vars_decl(PARSE_PARAMS);
 static expr_t parse_expr(PARSE_PARAMS);
+static type_t parse_type_expr(PARSE_PARAMS);
+static morph_t parse_morph_chain(PARSE_PARAMS);
 
-static type_t parse_type_decl(PARSE_PARAMS) {
-  type_decl_t type;
-  type = malloc(sizeof(struct type_decl_st));
+static expr_t parse_expr(PARSE_PARAMS) {
+  
+  return NULL;
+ }
+
+static type_t parse_type_expr(PARSE_PARAMS) {
+  type_t ty = malloc(sizeof(struct type_st));
+
+  printf("inside parse_type_expr()\n");
+
+  if (MATCH_TOK(STRING))
+   ty->kind = TY_STRING;
+  else if (MATCH_TOK(INTEGER))
+    ty->kind = TY_INTEGER;
+  else if (MATCH_TOK(REAL))
+    ty->kind = TY_REAL;
+  else if (MATCH_TOK(BOOLEAN))
+    ty->kind = TY_BOOLEAN;
+  else if (MATCH_TOK(ARRAY))
+    ty->kind = TY_ARRAY;
+  else if (MATCH_TOK(REC))
+    ty->kind = TY_REC;
+  else if (MATCH_TOK(HASH))
+    ty->kind = TY_HASH;
+  else if (MATCH_TOK(LIST))
+    ty->kind = TY_LIST;
+  else if (MATCH_TOK(IDENTIFIER))
+    ty->kind = TY_NAME;
+
+  return ty;
+}
+
+static morph_t parse_morph_chain(PARSE_PARAMS) {
+  morph_t morph = malloc(sizeof(struct morph_st));
+
+  printf("inside parse_morph_chain()\n");
+  
+  EXPECT_FUN(parse_type_expr, morph->ty);
+  if(MATCH_TOK(DOT_DOT_DOT)){
+    NEXT;
+    MATCH_FUN(parse_morph_chain, morph->next);
+  }
+  return morph;
+}
+
+static type_decl_t parse_type_decl(PARSE_PARAMS) {
+  type_decl_t ty = malloc(sizeof(struct type_decl_st));
 
   printf("inside parse_type_decl()\n");
 
   EXPECT_TOK(TYPE);
-  type->name = BEGET->val;
+  ty->name = BEGET->val;
   EXPECT_TOK(IDENTIFIER);
-  type_t t = malloc(sizeof(struct type_st));
-  t->kind = BEGET->val;
-  
-  EXPECT_TOK(IDENTIFIER);
+  EXPECT_TOK(EQ);
+  EXPECT_FUN(parse_type_expr, ty->type);
+  // check if type dec has a morph chain
+  if (MATCH_TOK(DOT_DOT_DOT)){
+    NEXT;
+    EXPECT_FUN(parse_morph_chain, ty->morphs);
+  }
   EXPECT_TOK(SEMICOLON);
   if (MATCH_TOK(MU)){
     //some morph stuff
@@ -71,7 +120,7 @@ static type_t parse_type_decl(PARSE_PARAMS) {
     EXPECT_TOK(UM);
   }
   
-  PARSE_RETURN(type);
+  PARSE_RETURN(ty);
 }
 
 static const_t parse_const_decl(PARSE_PARAMS) {
@@ -99,25 +148,6 @@ static var_t parse_vars_decl(PARSE_PARAMS) {
   return NULL;
 }
 
- static expr_t parse_expr(PARSE_PARAMS) {
-   /*
-   expr_t ex;
-   ex = malloc(sizeof(struct expr_t));
-   
-   if (MATCH_TOK(STRING)){
-     
-   }else if (MATCH_TOK(INTEGER)){
-     
-   }else if (MATCH_TOK(REAL)){
-     
-   }else if (MATCH_TOK(BOOLEAN)){
-     
-   }else if (MATCH_TOK()){
-     
-   }
-   */
-   return NULL;
- }
 
 static decl_t parse_decl(PARSE_PARAMS) {
   decl_t decl;
@@ -139,7 +169,7 @@ static mod_t parse_module_decl(PARSE_PARAMS) {
 
   printf("begining mod parse\n");
   EXPECT_TOK(MOD);
-  printf("parsed MOD token\n");
+  EXPECT_TOK(IDENTIFIER);
   EXPECT_FUN(parse_decl, mod->decl);
   EXPECT_TOK(DOM);
 

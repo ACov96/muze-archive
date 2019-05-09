@@ -50,17 +50,21 @@ struct type_decl_st {
 };
 
 struct type_st {
-  char* kind;
-  /*
-  enum {
-    TY_NAME,
+  enum{
+    TY_STRING,
+    TY_INTEGER,
+    TY_REAL,
+    TY_BOOLEAN,
+    TY_ARRAY,
     TY_REC,
-    TY_SIMPLE
+    TY_HASH,
+    TY_LIST,    
+    TY_NAME
   } kind;
-  */
 };
 
 struct morph_st {
+  type_t ty;
   morph_t next;
 };
 

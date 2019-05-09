@@ -783,13 +783,14 @@ A declaration of a function.
     \coordinate [below=of close-paren] (paren-below);
     \node[term] (colon) [below=of paren-below] {:};
     \node[nterm] (return-type) [left=of colon] {Type Expression};
-    \coordinate [left=of return-type] (type-statements);
-    \node[nterm] (statements) [left=of type-statements] {Statement List};
-    \coordinate [above=of return-type] (type-above);
-    \coordinate [left=of type-above] (statements-above);
-    \node[term] (nuf) [left=of statements] {nuf};
-    \node[nterm] (name-end) [left=of nuf] {Identifier};
-    \node[exit] (exit) [left=of name-end] {};
+    \coordinate [left=of return-type] (type-decl);
+    \node[nterm] (declarations) [left=of type-decl] {Declaration Block};
+    \coordinate [left=of declarations] (decl-begin);
+    \node[term] (begin) [left=of decl-begin] {begin};
+    \node[nterm] (statements) [below=of declarations] {Statement List};
+    \node[term] (nuf) [right=of statements] {nuf};
+    \node[nterm] (name-end) [right=of nuf] {Identifier};
+    \node[exit] (exit) [right=of name-end] {};
 
     \draw[arrs] (entry)
     -- (fun)
@@ -810,17 +811,28 @@ A declaration of a function.
     -- (paren-below)
     -- (colon)
     -- (return-type)
-    -- (type-statements)
-    -- (statements)
+    -- (type-decl)
+    -- (declarations)
+    -- (decl-begin)
+    -- (begin);
+
+    \draw[arr] (close-paren)
+    -- (paren-below)
+    -| (type-decl)
+    -- (declarations);
+
+    \draw[arr] (close-paren)
+    -- (paren-below)
+    -| (decl-begin)
+    -- (begin);
+
+    \draw[arr] (begin)
+    |- (statements);
+
+    \draw[arrs] (statements)
     -- (nuf)
     -- (name-end)
     -- (exit);
-
-    \draw[arr] (close-paren)
-    |- (type-above)
-    -- (statements-above)
-    -| (type-statements)
-    -- (statements);
   \end{tikzpicture}
 \end{figure}
 

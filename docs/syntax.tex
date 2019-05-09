@@ -160,9 +160,122 @@ This is the result of a normal identifier not including certain keywords, which 
 
 \subsection{String Literal}
 
+A literal value representing a string. It should be noted that \textit{Character} is any UTF-8 character, as well as the standard escape characters. \textbf{WE NEED TO DEFINE STANDARD ESCAPE CHARACTERS AT SOME POINT}.
+
+\begin{figure}[H]
+  \centering
+
+  \begin{tikzpicture}
+    \node[entry] (entry) {};
+    \node[term] (quote) [right=of entry] {"};
+    \coordinate [right=of quote] (quote-character);
+    \node[nterm] (character) [right=of quote-character] {Character};
+    \coordinate [right=of character] (character-endquote);
+    \coordinate [above=of character] (character-above);
+    \coordinate [below=of character] (character-below);
+    \node[term] (endquote) [right=of character-endquote] {"};
+    \node[exit] (exit) [right=of endquote] {};
+
+    \draw[arrs] (entry)
+    -- (quote)
+    -- (quote-character)
+    -- (character)
+    -- (character-endquote)
+    -- (endquote)
+    -- (exit);
+
+    \draw[arr] (character)
+    -- (character-endquote)
+    |- (character-above)
+    -| (quote-character)
+    -- (character);
+
+    \draw[arr] (quote)
+    -- (quote-character)
+    |- (character-below)
+    -| (character-endquote)
+    -- (endquote);
+  \end{tikzpicture}
+\end{figure}
+
+
 \subsection{Integer Literal}
 
+A literal value representing an integer. \textit{Digit} is any single digit from the set \{0, 1, 2, 3, 4, 5, 6, 7, 8 , 9\}.
+
+\begin{figure}[H]
+  \centering
+  \begin{tikzpicture}
+    \node[entry] (entry) {};
+    \coordinate [right=of entry] (entry-digit);
+    \node[nterm] (digit) [right=of entry-digit] {Digit};
+    \coordinate [above=of digit] (digit-above);
+    \coordinate [right=of digit] (digit-exit);
+    \node[exit] (exit) [right=of digit-exit] {};
+
+    \draw[arrs] (entry)
+    -- (entry-digit)
+    -- (digit)
+    -- (digit-exit)
+    -- (exit);
+    \draw[arr] (digit)
+    -- (digit-exit)
+    |- (digit-above)
+    -| (entry-digit)
+    -- (digit);
+  \end{tikzpicture}
+\end{figure}
+
 \subsection{Real Literal}
+
+A literal value representing an real. \textit{Digit} is any single digit from the set \{0, 1, 2, 3, 4, 5, 6, 7, 8 , 9\}.
+
+\begin{figure}[H]
+  \centering
+  \begin{tikzpicture}
+    \node[entry] (entry) {};
+    \coordinate [right=of entry] (entry-digit);
+    \node[nterm] (digit) [right=of entry-digit] {Digit};
+    \coordinate [above=of digit] (digit-above);
+    \coordinate [below=of digit] (digit-below);
+    \coordinate [right=of digit] (digit-decimal);
+    \node[term] (decimal) [right=of digit-decimal] {.};
+    \coordinate [right=of decimal] (decimal-digit);
+    \node[nterm] (second-digit) [right=of decimal-digit] {Digit};
+    \coordinate [above=of second-digit] (second-above);
+    \coordinate [right=of second-digit] (second-exit);
+    \node[exit] (exit) [right=of second-exit] {};
+
+    \draw[arrs] (entry)
+    -- (entry-digit)
+    -- (digit)
+    -- (digit-decimal)
+    -- (decimal)
+    -- (decimal-digit)
+    -- (second-digit)
+    -- (second-exit)
+    -- (exit);
+
+    \draw[arr] (digit)
+    -- (digit-exit)
+    |- (digit-above)
+    -| (entry-digit)
+    -- (digit);
+
+    \draw[arr] (entry)
+    -- (entry-digit)
+    |- (digit-below)
+    -| (digit-decimal)
+    -- (decimal);
+
+    \draw[arr] (second-digit)
+    -- (second-exit)
+    |- (second-above)
+    -| (decimal-digit)
+    -- (second-digit);
+  \end{tikzpicture}
+\end{figure}
+
 
 \newpage
 \section{Declaration Blocks}
@@ -648,5 +761,67 @@ A specification of a morph path. May be used for explicit morphs or as a type.
   \end{tikzpicture}
 \end{figure}
 
+\newpage
+\section{Functions}
+
+\subsection{Function Block}
+
+A declaration of a function.
+
+\begin{figure}[H]
+  \centering
+  \begin{tikzpicture}
+    \node[entry] (entry) {};
+    \node[term] (fun) [right=of entry] {fun};
+    \node[nterm] (name) [right=of fun] {Identifier};
+    \node[term] (open-paren) [right=of name] {(};
+    \coordinate [right=of open-paren] (paren-args);
+    \node[nterm] (args) [right=of paren-args] {Argument List};
+    \coordinate [above=of args] (args-above);
+    \coordinate [right=of args] (args-paren);
+    \node[term] (close-paren) [right=of args-paren] {)};
+    \coordinate [below=of close-paren] (paren-below);
+    \node[term] (colon) [below=of paren-below] {:};
+    \node[nterm] (return-type) [left=of colon] {Type Expression};
+    \coordinate [left=of return-type] (type-statements);
+    \node[nterm] (statements) [left=of type-statements] {Statement List};
+    \coordinate [above=of return-type] (type-above);
+    \coordinate [left=of type-above] (statements-above);
+    \node[term] (nuf) [left=of statements] {nuf};
+    \node[nterm] (name-end) [left=of nuf] {Identifier};
+    \node[exit] (exit) [left=of name-end] {};
+
+    \draw[arrs] (entry)
+    -- (fun)
+    -- (name)
+    -- (open-paren)
+    -- (paren-args)
+    -- (args)
+    -- (args-paren)
+    -- (close-paren);
+
+    \draw[arr] (open-paren)
+    -- (paren-args)
+    |- (args-above)
+    -| (args-paren)
+    -- (close-paren);
+
+    \draw[arrs] (close-paren)
+    -- (paren-below)
+    -- (colon)
+    -- (return-type)
+    -- (type-statements)
+    -- (statements)
+    -- (nuf)
+    -- (name-end)
+    -- (exit);
+
+    \draw[arr] (close-paren)
+    |- (type-above)
+    -- (statements-above)
+    -| (type-statements)
+    -- (statements);
+  \end{tikzpicture}
+\end{figure}
 \end{document}
 

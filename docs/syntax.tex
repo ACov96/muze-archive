@@ -591,8 +591,9 @@ One or more type declarations
     \node[term] (equals) [right=of name] {=};
     \node[nterm] (typexp) [right=of equals] {Type Expression};
     \node[nterm] (morphs) [right=of typexp] {Morphs};
-    \coordinate[right=of morphs] (morph-exit);
-    \node[exit] (exit) [right=of morph-exit] {};
+    \node[term] (semi) [right=of morphs] {;};
+    \coordinate[right=of semi] (semi-exit);
+    \node[exit] (exit) [right=of semi-exit] {};
 
     \draw[arrs] (entry)
     -- (type)
@@ -601,11 +602,12 @@ One or more type declarations
     -- (equals)
     -- (typexp)
     -- (morphs)
-    -- (morph-exit)
+    -- (semi)
+    -- (semi-exit)
     -- (exit);
 
-    \draw[arr] (morphs)
-    -- (morph-exit)
+    \draw[arr] (semi)
+    -- (semi-exit)
     |- ++(0, -.75)
     -| (type-name)
     -- (name);
@@ -613,7 +615,7 @@ One or more type declarations
 \end{figure}
 
 \newpage
-\section{Type Constructions}
+\section{Types}
 
 \subsection{Type Expression}
 
@@ -622,22 +624,21 @@ Specifying a type.
 \begin{figure}[H]
   \centering
   \begin{tikzpicture}
-    \node[entry] (entry) {};
-    \coordinate [right=of entry] (entry-choices);
-    \node[nterm] (record) [right=of entry-choices] {Record Declaration};
-    \node[nterm] (id) [below=of record] {Right Identifier};
-    \node[nterm] (chain) [below=of id] {Morph Chain};
-    \coordinate [right=of record] (choices-exit);
-    \node[exit] (exit) [right=of choices-exit] {};
+    \coordinate (mid);
+    \coordinate[left=2cm of mid] (left);
+    \coordinate[right=2cm of mid] (right);
 
-    \draw[narr, mid arrow = 0.75] (entry) -- (record);
-    \draw[narr, mid arrow = 0.25] (record) -- (exit);
+    \node[entry] (entry) [left=1cm of left] {};
+    \node[exit] (exit) [right=1cm of right] {};
 
-    \draw[narr, mid arrow = 0.7] (entry) -- (entry-choices) |- (id);
-    \draw[narr, mid arrow = 0.3] (id) -| (choices-exit) -- (exit);
+    \node[nterm] (rec) [above=0.25cm of mid] {Record Declaration};
+    \node[nterm] (morph) [below=0.25cm of mid] {Morph Chain};
 
-    \draw[narr, mid arrow = 0.85] (entry) -- (entry-choices) |- (chain);
-    \draw[narr, mid arrow = 0.15] (chain) -| (choices-exit) -- (exit);
+    \draw[narr, mid arrow = 0.25] (entry) -- (left) |- (rec);
+    \draw[narr] (entry) -- (left) |- (morph);
+
+    \draw[narr, mid arrow = 0.75] (rec) -| (right) -- (exit);
+    \draw[narr] (morph) -| (right) -- (exit);
   \end{tikzpicture}
 \end{figure}
 
@@ -663,7 +664,7 @@ The specification of a record's layout.
     \draw[narr, mid arrow = 0.25] (rec) -- (id);
     \draw[arrs] (id) -- (colon) -- (type) -- (semi);
     \draw[narr, mid arrow = 0.75] (semi) -- (cer);
-    \draw[arr] (cer) -- (exit);
+    \draw[narr] (cer) -- (exit);
     \draw[arr] (semi) -- (semi-cer) -- ++(0, -1) -| (rec-id) -- (id);
   \end{tikzpicture}
 \end{figure}
@@ -677,7 +678,7 @@ A specification of a morph path. May be used for explicit morphs or as a type.
   \begin{tikzpicture}
     \coordinate (mid);
     \coordinate[above=1.25cm of mid] (top);
-    \coordinate[below=1.25cm of mid] (bot);
+    \coordinate[below=1cm of mid] (bot);
 
     \coordinate[left=3cm of top] (top-left);
     \coordinate[right=3cm of top] (top-right);
@@ -694,7 +695,7 @@ A specification of a morph path. May be used for explicit morphs or as a type.
     \coordinate[right=of exit-choices] (exit-loop);
     \node[exit] (exit) [right=of exit-loop] {};
 
-    \node[nterm] (id) [below=0.25cm of top] {Identifier};
+    \node[nterm] (id) [below=0.25cm of top] {Right Identifier};
 
     \node[nterm] (inner) [above=0.25cm of top] {Morph Chain};
     \node[term] (lparen) [left=of inner] {(};
@@ -703,7 +704,7 @@ A specification of a morph path. May be used for explicit morphs or as a type.
     \node[term] (dotdot) [above=0.25cm of bot] {..};
     \node[term] (dotdotdot) [below=0.25cm of bot] {...};
 
-    \draw [arr] (entry-loop) -| (bot-right-right) -- +(-0.85, 0);
+    \draw [arr] (entry) -| (bot-right-right) -- +(-0.05, 0);
 
     \draw [arr] (entry) -- (entry-loop);
 
@@ -843,7 +844,7 @@ A list of arguments to a function.
 \begin{figure}[H]
   \centering
   \begin{tikzpicture}
-    \node[entry] (entry);
+    \node[entry] (entry) {};
     \coordinate [right=of entry] (entry-name);
     \node[nterm] (name) [right=of entry-name] {Identifier};
     \node[term] (comma) [above=of name] {,};

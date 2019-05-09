@@ -387,18 +387,22 @@ One or more variable declarations.
     \node[term] (var) [right=of entry] {var};
     \coordinate[right=of var] (var-name);
     \node[nterm] (name) [right=of var-name] {Identifier};
+    \node[term] (comma) [above=of name] {,};
     \node[term] (colon) [right=of name] {:};
     \node[nterm] (type) [right=of colon] {Type Expression};
     \node[term] (eq) [below left=0.5cm and -0.5cm of type] {=};
     \node[nterm] (expr) [left=of eq] {Expression};
     \node[term] (semi) [left=of expr] {;};
     \node[exit] (exit) [left=1cm of semi] {};
-
+    
     \draw[arrs] (entry) -- (var);
     \draw[narr, mid arrow = 0.25] (var) -- (name);
     \draw[arrs] (name)
       -- (colon)
       -- (type);
+
+    \draw[arr] (name) -- (comma) ;
+    \draw[arr] (comma) -| (var-name) -- (name);
 
     \draw[narr, mid arrow = 0.75] (type) |- (eq);
 
@@ -410,6 +414,158 @@ One or more variable declarations.
     
     \draw[arr] (semi) -| (var-name) -- (name);
 
+  \end{tikzpicture}
+\end{figure}
+
+\subsection{Type Block}
+
+One or more type declarations
+
+\begin{figure}[H]
+  \centering
+  \begin{tikzpicture}
+    \node[entry] (entry) {};
+    \node[term] (type) [right=of entry] {type};
+    \coordinate [right=of type] (type-name);
+    \node[nterm] (name) [right=of type-name] {Identifier};
+    \node[term] (equals) [right=of name] {=};
+    \node[nterm] (typexp) [right=of equals] {Type Expression};
+    \node[nterm] (morphs) [right=of typexp] {Morphs};
+    \coordinate[right=of morphs] (morph-exit);
+    \node[exit] (exit) [right=of morph-exit] {};
+
+    \draw[arrs] (entry)
+    -- (type)
+    -- (type-name)
+    -- (name)
+    -- (equals)
+    -- (typexp)
+    -- (morphs)
+    -- (morph-exit)
+    -- (exit);
+
+    \draw[arr] (morphs)
+    -- (morph-exit)
+    |- ++(0, -.75)
+    -| (type-name)
+    -- (name);
+  \end{tikzpicture}
+\end{figure}
+
+\newpage
+\section{Type Constructions}
+
+\subsection{Type Expression}
+
+Specifying a type.
+
+\begin{figure}[H]
+  \centering
+  \begin{tikzpicture}
+    \node[entry] (entry) {};
+    \coordinate [right=of entry] (entry-choices);
+    \node[nterm] (record) [right=of entry-choices] {Record Declaration};
+    \node[nterm] (id) [below=of record] {Identifier};
+    \node[nterm] (chain) [below=of id] {Morph Chain};
+    \coordinate [right=of record] (choices-exit);
+    \node[exit] (exit) [right=of choices-exit] {};
+
+    \draw[narr, mid arrow = 0.75] (entry) -- (record);
+    \draw[narr, mid arrow = 0.25] (record) -- (exit);
+
+    \draw[narr, mid arrow = 0.7] (entry) -- (entry-choices) |- (id);
+    \draw[narr, mid arrow = 0.3] (id) -| (choices-exit) -- (exit);
+
+    \draw[narr, mid arrow = 0.85] (entry) -- (entry-choices) |- (chain);
+    \draw[narr, mid arrow = 0.15] (chain) -| (choices-exit) -- (exit);
+  \end{tikzpicture}
+\end{figure}
+
+\subsection{Morph Chain}
+
+\begin{figure}[H]
+  \centering
+  \begin{tikzpicture}
+    \coordinate (mid);
+    \coordinate[above=1cm of mid] (top);
+    \coordinate[below=1cm of mid] (bot);
+
+    \coordinate[left=3cm of top] (top-left);
+    \coordinate[right=3cm of top] (top-right);
+
+    \coordinate[left=3cm of bot] (bot-left);
+    \coordinate[right=3cm of bot] (bot-right);
+
+    \coordinate[left=4cm of mid] (entry-choices);
+    \coordinate[left=of entry-choices] (entry-loop);
+    \node[entry] (entry) [left=of entry-loop] {};
+
+    \coordinate[right=4cm of mid] (exit-choices);
+    \coordinate[right=of exit-choices] (exit-loop);
+    \node[exit] (exit) [right=of exit-loop] {};
+
+    \node[nterm] (id) [below=0.25cm of top] {Identifier};
+
+    \node[nterm] (inner) [above=0.25cm of top] {Morph Chain};
+    \node[term] (lparen) [left=of inner] {(};
+    \node[term] (rparen) [right=of inner] {)};
+
+    \node[term] (dotdot) [above=0.25cm of bot] {..};
+    \node[term] (dotdotdot) [below=0.25cm of bot] {...};
+
+    \draw [arr] (entry) -- (entry-loop);
+
+    \draw [arr]
+      (entry-choices) + (-0.2, 0)
+      -- (entry-choices)
+      |- (top-left)
+      |- (lparen);
+
+    \draw [narr, mid arrow = 0.8]
+      (entry-loop)
+      -- (entry-choices)
+      |- (top-left)
+      |- (id);
+
+    \draw [arr]
+      (rparen)
+      -| (top-right)
+      -| (exit-choices)
+      -- (exit-loop);
+
+    \draw [narr, mid arrow = 0.2]
+      (id)
+      -| (top-right)
+      -| (exit-choices)
+      -- ++(0.2, 0);
+
+    \draw [narr, mid arrow = 0.2, mid arrow = 0.7]
+      (dotdot)
+      -| (bot-left)
+      -| (entry-loop)
+      -- ++(0.2, 0);
+
+    \draw [narr, mid arrow = 0.2]
+      (dotdotdot)
+      -| (bot-left)
+      -| (entry-loop)
+      -- ++(0.2, 0);
+
+    \draw [narr, mid arrow = 0.8, mid arrow = 0.3]
+      (exit-loop) + (-0.2, 0)
+      -- (exit-loop)
+      |- (bot-right)
+      |- (dotdot);
+
+    \draw [narr, mid arrow = 0.8]
+      (exit-loop) + (-0.2, 0)
+      -- (exit-loop)
+      |- (bot-right)
+      |- (dotdotdot);
+
+    \draw [arr] (exit-loop) -- (exit);
+
+    \draw [arrs] (lparen) -- (inner) -- (rparen);
   \end{tikzpicture}
 \end{figure}
 

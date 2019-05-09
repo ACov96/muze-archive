@@ -774,7 +774,8 @@ A declaration of a function.
   \begin{tikzpicture}
     \node[entry] (entry) {};
     \node[term] (fun) [right=of entry] {fun};
-    \node[nterm] (name) [right=of fun] {Identifier};
+    \coordinate [right=of fun] (fun-name);
+    \node[nterm] (name) [right=of fun-name] {Identifier};
     \node[term] (open-paren) [right=of name] {(};
     \coordinate [right=of open-paren] (paren-args);
     \node[nterm] (args) [right=of paren-args] {Argument List};
@@ -788,13 +789,17 @@ A declaration of a function.
     \node[nterm] (declarations) [left=of type-decl] {Declaration Block};
     \coordinate [left=of declarations] (decl-begin);
     \node[term] (begin) [left=of decl-begin] {begin};
+    \coordinate [left=of begin] (begin-left);
+    \coordinate [above=of begin] (begin-above);
     \node[nterm] (statements) [below=of declarations] {Statement List};
-    \node[term] (nuf) [right=of statements] {nuf};
-    \node[nterm] (name-end) [right=of nuf] {Identifier};
-    \node[exit] (exit) [right=of name-end] {};
+    \coordinate [below=of statements] (statements-below);
+    \node[term] (end) [right=of statements] {end};
+    \coordinate [right=of end] (end-exit);
+    \node[exit] (exit) [right=of end-exit] {};
 
     \draw[arrs] (entry)
     -- (fun)
+    -- (fun-name)
     -- (name)
     -- (open-paren)
     -- (paren-args)
@@ -831,9 +836,17 @@ A declaration of a function.
     |- (statements);
 
     \draw[arrs] (statements)
-    -- (nuf)
-    -- (name-end)
+    -- (end)
+    -- (end-exit)
     -- (exit);
+
+    \draw[arr] (end)
+    -- (end-exit)
+    |- (statements-below)
+    -| (begin-left)
+    |- (begin-above)
+    -| (fun-name)
+    -- (name);
   \end{tikzpicture}
 \end{figure}
 

@@ -823,5 +823,50 @@ A declaration of a function.
     -- (statements);
   \end{tikzpicture}
 \end{figure}
+
+\subsection{Argument List}
+
+A list of arguments to a function.
+
+\begin{figure}[H]
+  \centering
+  \begin{tikzpicture}
+    \node[entry] (entry);
+    \coordinate [right=of entry] (entry-name);
+    \node[nterm] (name) [right=of entry-name] {Identifier};
+    \node[term] (comma) [above=of name] {,};
+    \coordinate [right=of name] (name-colon);
+    \node[term] (colon) [right=of name-colon] {:};
+    \node[nterm] (type) [right=of colon] {Type Expression};
+    \coordinate [right=of type] (type-exit);
+    \node[exit] (exit) [right=of type-exit] {};
+    \node[term] (semicolon) [below=of type] {;};
+
+    \draw[arrs] (entry)
+    -- (entry-name)
+    -- (name)
+    -- (name-colon)
+    -- (colon)
+    -- (type)
+    -- (type-exit)
+    -- (exit);
+
+    \draw[arr] (name)
+    -- (name-colon)
+    |- (comma);
+
+    \draw[arr] (comma)
+    -| (entry-name)
+    -- (name);
+
+    \draw[arr] (type)
+    -- (type-exit)
+    |- (semicolon);
+
+    \draw[arr] (semicolon)
+    -| (entry-name)
+    -- (name);
+  \end{tikzpicture}
+\end{figure}
 \end{document}
 

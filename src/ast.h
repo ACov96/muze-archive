@@ -47,6 +47,7 @@ struct type_decl_st {
   char* name;
   type_t type;
   morph_t morphs;
+  type_decl_t next;
 };
 
 struct type_st {

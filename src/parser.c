@@ -103,7 +103,6 @@ static type_decl_t parse_type_decl(PARSE_PARAMS) {
 
   printf("inside parse_type_decl()\n");
 
-  EXPECT_TOK(TYPE);
   ty->name = BEGET->val;
   EXPECT_TOK(IDENTIFIER);
   EXPECT_TOK(EQ);
@@ -119,6 +118,9 @@ static type_decl_t parse_type_decl(PARSE_PARAMS) {
     printf("inside MU block\n");
     EXPECT_TOK(UM);
   }
+
+  if (MATCH_TOK(IDENTIFIER))
+    EXPECT_FUN(parse_type_decl,ty->next);
   
   PARSE_RETURN(ty);
 }
@@ -128,7 +130,6 @@ static const_t parse_const_decl(PARSE_PARAMS) {
   constant = malloc(sizeof(struct const_st));
 
   printf("inside parse_const_decl()\n");
-  EXPECT_TOK(CONST);
   constant->name = BEGET->val;
   EXPECT_TOK(IDENTIFIER);
   EXPECT_TOK(COLON);
@@ -154,8 +155,14 @@ static decl_t parse_decl(PARSE_PARAMS) {
   decl = malloc(sizeof(struct decl_st));
 
   printf("inside parse_decl()\n");
-  MATCH_FUN(parse_const_decl, decl->consts);
-  MATCH_FUN(parse_type_decl, decl->types);
+  if (MATCH_TOK(CONST)){
+    NEXT;
+    EXPECT_FUN(parse_const_decl, decl->consts);
+  }
+  if (MATCH_TOK(TYPE)){
+    NEXT;
+    MATCH_FUN(parse_type_decl, decl->types);
+  }
   MATCH_FUN(parse_vars_decl, decl->vars);
   MATCH_FUN(parse_fun_decl, decl->funs);
   MATCH_FUN(parse_module_decl, decl->mods);

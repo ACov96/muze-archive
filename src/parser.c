@@ -28,7 +28,7 @@
 
 #define PARSE_RETURN(ret) \
   *LL_OUT = LL_NAME; \
-  return ret;
+  return ret; 
 
 // Gets the current token
 #define BEGET \
@@ -54,34 +54,70 @@ static expr_t parse_expr(PARSE_PARAMS);
 static morph_t parse_morph_chain(PARSE_PARAMS);
 static char* parse_math_expr(PARSE_PARAMS);
 static literal_t parse_literal(PARSE_PARAMS);
+static boolean_t parse_boolean(PARSE_PARAMS);
 
 static expr_t parse_expr(PARSE_PARAMS) {
   expr_t ex = malloc(sizeof(struct expr_st));
+
+  printf("inside parse_expr()\n");
   
   if (MATCH_TOK(STRING_VAL) 
      || MATCH_TOK(INT_VAL) 
      || MATCH_TOK(REAL_VAL)   
      || MATCH_TOK(IDENTIFIER)) {
     if (MATCH_FUN(parse_math_expr, ex->u.math)){
-       ex->kind = MATHEMATICAL;
-       NEXT;
-    } else if(MATCH_TOK(IDENTIFIER)){
-      ex->kind = ID;
-      ex->u.id = BEGET->val;
-      NEXT;
-    } 
-    else if (MATCH_FUN(parse_literal, ex->u.literal)){
-       ex->kind = LITERAL;
+       ex->kind = MATHEMATICAL_EX;
        NEXT;
     }
+    else if(MATCH_TOK(IDENTIFIER)){
+      ex->kind = ID_EX;
+      ex->u.id = BEGET->val;
+      NEXT;
+    }
+    else if (MATCH_FUN(parse_literal, ex->u.literal)){
+       ex->kind = LITERAL_EX;
+       NEXT;
+    }
+  }
+  else if (MATCH_TOK(TRUE) || MATCH_TOK(FALSE)){
+    ex->kind = BOOLEAN;
+    EXPECT_FUN(parse_boolean, ex->u.boolean)
   }
   PARSE_RETURN(ex);
  }
 
+static boolean_t parse_boolean(PARSE_PARAMS) {
+  boolean_t bool = malloc(sizeof(struct boolean_st));
+
+  printf("inside parse_boolean\n");
+  
+  if (MATCH_TOK(TRUE))
+    bool->val = TRUE_BOOL;
+  else if (MATCH_TOK(FALSE))
+    bool->val = FALSE_BOOL;
+  
+  PARSE_RETURN(bool);
+}
+
 static literal_t parse_literal(PARSE_PARAMS) {
   literal_t lit = malloc(sizeof(struct literal_st));
 
-  return lit;
+  printf("inside parse_literal()\n");
+  
+  if (MATCH_TOK(STRING_VAL)){
+    lit->kind = STRING_LIT;
+    lit->u.str = BEGET->val;
+  }
+  else if (MATCH_TOK(INT_VAL)) {
+    lit->kind = INTEGER_LIT;
+    lit->u.integer = atoi(BEGET->val);
+  }
+  else if (MATCH_TOK(REAL_VAL)) {
+    lit->kind = REAL_LIT;
+    lit->u.real = atof(BEGET->val);
+  }
+  
+  PARSE_RETURN(lit);
 }
 
 static char* parse_math_expr(PARSE_PARAMS) {
@@ -168,10 +204,10 @@ static const_t parse_const_decl(PARSE_PARAMS) {
   EXPECT_TOK(COLON);
   EXPECT_FUN(parse_type_expr, con->ty);
   EXPECT_TOK(EQ);
-  //EXPECT_FUN(parse_expr, constant->expr);
+  EXPECT_FUN(parse_expr, con->expr);
   EXPECT_TOK(SEMICOLON);
   
-  return con;
+  PARSE_RETURN(con);
 }
 
 static fun_t parse_fun_decl(PARSE_PARAMS) {

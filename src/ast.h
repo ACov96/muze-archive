@@ -86,8 +86,8 @@ struct expr_st {
   //type_t type; // boolean, integer, string, real, list/range, record
 
   enum {
-    ID, LITERAL, UNARY, BINARY, TERNARY,
-    CALL, RANGE, MATHEMATICAL
+    ID_EX, LITERAL_EX, UNARY_EX, BINARY_EX, TERNARY_EX,
+    CALL_EX, RANGE_EX, BOOLEAN_EX, MATHEMATICAL_EX
   } kind;
 
   union {
@@ -99,6 +99,7 @@ struct expr_st {
     call_t call;
     range_t range;
     char* math;
+    boolean_t boolean;
     morph_expr_t morph_expr;
   } u;
 };
@@ -127,7 +128,7 @@ struct literal_st {
     char* str;
     int integer;
     double real;
-    boolean_t bool;
+    boolean_t boolean;
   } u;
 };
 
@@ -137,7 +138,7 @@ struct morph_expr_st {
 
 struct boolean_st {
   enum {
-    True_BOOL, FALSE_BOOL
+    TRUE_BOOL, FALSE_BOOL
   } val;
 };
   

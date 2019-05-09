@@ -20,9 +20,9 @@ typedef struct ternary_st *ternary_t;
 typedef struct call_st *call_t;
 typedef struct range_st * range_t;
 typedef struct morph_expr_st *morph_expr_t;
-
 typedef struct type_st *type_t;
 typedef struct morph_st *morph_t;
+typedef struct boolean_st *boolean_t;
 
 struct root_st {
   mod_t mods;
@@ -47,31 +47,30 @@ struct type_decl_st {
   char* name;
   type_t type;
   morph_t morphs;
-  type_decl_t next;
+  type_decl_t next; // points to next type declarations in the block
 };
 
 struct type_st {
   enum{
-    TY_STRING,
-    TY_INTEGER,
-    TY_REAL,
-    TY_BOOLEAN,
-    TY_ARRAY,
-    TY_REC,
-    TY_HASH,
-    TY_LIST,    
-    TY_NAME
+    TY_STRING, TY_INTEGER, TY_REAL, TY_BOOLEAN,
+    TY_ARRAY, TY_REC, TY_HASH, TY_LIST, TY_NAME
   } kind;
+  
+  union {
+    char* name; // used for user defined types (TY_NAME)
+  };
 };
 
 struct morph_st {
   type_t ty;
-  morph_t next;
+  morph_t next; // points to next morph in chain
 };
 
 struct const_st {
   char* name;
+  type_t ty;
   expr_t expr;
+  const_t next; // points to next constant declaration in block
 };
 
 struct var_st {
@@ -84,21 +83,22 @@ struct fun_st {
 };
 
 struct expr_st {
-  type_t type; // boolean, integer, string, real, list/range, record
+  //type_t type; // boolean, integer, string, real, list/range, record
 
   enum {
-    ID, LITERAL, 
-    UNARY, BINARY, TERNARY,
+    ID, LITERAL, UNARY, BINARY, TERNARY,
+    CALL, RANGE, MATHEMATICAL
   } kind;
 
   union {
-    ident_t id;
+    char* id;
     literal_t literal;
     unary_t unary;
     binary_t binary;
     ternary_t ternary;
     call_t call;
     range_t range;
+    char* math;
     morph_expr_t morph_expr;
   } u;
 };
@@ -120,15 +120,14 @@ struct ternary_st {
 
 struct literal_st {
   enum {
-    STRING_LIT,
-    INTEGER_LIT,
-    REAL_LIT,
+    STRING_LIT, INTEGER_LIT,REAL_LIT,
     BOOLEAN_LIT
   } kind;
   union {
     char* str;
     int integer;
     double real;
+    boolean_t bool;
   } u;
 };
 
@@ -136,6 +135,12 @@ struct morph_expr_st {
   // something wild
 };
 
+struct boolean_st {
+  enum {
+    True_BOOL, FALSE_BOOL
+  } val;
+};
+  
 // prototypes
 root_t parse(ll_t ll_tokens);
 

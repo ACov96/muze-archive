@@ -49,14 +49,46 @@ static type_decl_t parse_type_decl(PARSE_PARAMS);
 static const_t parse_const_decl(PARSE_PARAMS);
 static fun_t parse_fun_decl(PARSE_PARAMS);
 static var_t parse_vars_decl(PARSE_PARAMS);
-static expr_t parse_expr(PARSE_PARAMS);
 static type_t parse_type_expr(PARSE_PARAMS);
+static expr_t parse_expr(PARSE_PARAMS);
 static morph_t parse_morph_chain(PARSE_PARAMS);
+static char* parse_math_expr(PARSE_PARAMS);
+static literal_t parse_literal(PARSE_PARAMS);
 
 static expr_t parse_expr(PARSE_PARAMS) {
+  expr_t ex = malloc(sizeof(struct expr_st));
   
-  return NULL;
+  if (MATCH_TOK(STRING_VAL) 
+     || MATCH_TOK(INT_VAL) 
+     || MATCH_TOK(REAL_VAL)   
+     || MATCH_TOK(IDENTIFIER)) {
+    if (MATCH_FUN(parse_math_expr, ex->u.math)){
+       ex->kind = MATHEMATICAL;
+       NEXT;
+    } else if(MATCH_TOK(IDENTIFIER)){
+      ex->kind = ID;
+      ex->u.id = BEGET->val;
+      NEXT;
+    } 
+    else if (MATCH_FUN(parse_literal, ex->u.literal)){
+       ex->kind = LITERAL;
+       NEXT;
+    }
+  }
+  PARSE_RETURN(ex);
  }
+
+static literal_t parse_literal(PARSE_PARAMS) {
+  literal_t lit = malloc(sizeof(struct literal_st));
+
+  return lit;
+}
+
+static char* parse_math_expr(PARSE_PARAMS) {
+  char* ex;
+
+  return NULL;
+}
 
 static type_t parse_type_expr(PARSE_PARAMS) {
   type_t ty = malloc(sizeof(struct type_st));
@@ -82,7 +114,8 @@ static type_t parse_type_expr(PARSE_PARAMS) {
   else if (MATCH_TOK(IDENTIFIER))
     ty->kind = TY_NAME;
 
-  return ty;
+  PARSE_RETURN(ty);
+
 }
 
 static morph_t parse_morph_chain(PARSE_PARAMS) {
@@ -126,19 +159,19 @@ static type_decl_t parse_type_decl(PARSE_PARAMS) {
 }
 
 static const_t parse_const_decl(PARSE_PARAMS) {
-  const_t constant;
-  constant = malloc(sizeof(struct const_st));
+  const_t con;
+  con = malloc(sizeof(struct const_st));
 
   printf("inside parse_const_decl()\n");
-  constant->name = BEGET->val;
+  con->name = BEGET->val;
   EXPECT_TOK(IDENTIFIER);
   EXPECT_TOK(COLON);
-  //MATCH_FUN(, ); need to handle type expressions somehow
+  EXPECT_FUN(parse_type_expr, con->ty);
   EXPECT_TOK(EQ);
-  //MATCH_FUN(parse_expr, constant->expr)
+  //EXPECT_FUN(parse_expr, constant->expr);
   EXPECT_TOK(SEMICOLON);
   
-  return NULL;
+  return con;
 }
 
 static fun_t parse_fun_decl(PARSE_PARAMS) {
@@ -163,9 +196,18 @@ static decl_t parse_decl(PARSE_PARAMS) {
     NEXT;
     MATCH_FUN(parse_type_decl, decl->types);
   }
-  MATCH_FUN(parse_vars_decl, decl->vars);
-  MATCH_FUN(parse_fun_decl, decl->funs);
-  MATCH_FUN(parse_module_decl, decl->mods);
+  if (MATCH_TOK(VAR)){
+    NEXT;
+    MATCH_FUN(parse_vars_decl, decl->vars);
+  }
+  if (MATCH_TOK(FUN)){
+    NEXT;
+    MATCH_FUN(parse_fun_decl, decl->funs);\
+  }
+  if (MATCH_TOK(MOD)){
+    NEXT;
+    MATCH_FUN(parse_module_decl, decl->mods);
+  }
 
   PARSE_RETURN(decl);
 }

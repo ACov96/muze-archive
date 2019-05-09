@@ -118,6 +118,53 @@
 
 \maketitle
 
+\section{Primative Elements}
+
+\subsection{Identifier}
+
+\subsection{Right Identifier}
+
+An identifier which may be used on the right side of a context.
+This is the result of a normal identifier not including certain keywords, which may be valid in other contexts.
+
+\begin{figure}[h]
+  \centering
+  \begin{tikzpicture}
+    \node[entry] (entry) {};
+    \coordinate[right=of entry] (choice);
+    \node[nterm] (id) [right=of choice] {Identifier};
+    \node[term] (integer) [below=of id] {integer};
+    \node[term] (real) [below=of integer] {real};
+    \node[term] (boolean) [below=of real] {boolean};
+    \node[term] (string) [below=of boolean] {string};
+    \node[term] (array) [below=of string] {array};
+    \node[term] (map) [below=of array] {map};
+    \node[term] (set) [below=of map] {set};
+
+    \coordinate[right=1cm of set] (aggr);
+    \node[exit] (exit) [right=of aggr] {};
+
+    \draw[narr] (entry) -- (id) -| (aggr) -- (exit);
+    \draw[narr] (entry) -- (choice) |- (integer) -| (aggr) -- (exit);
+    \draw[narr] (entry) -- (choice) |- (real) -| (aggr) -- (exit);
+    \draw[narr] (entry) -- (choice) |- (boolean) -| (aggr) -- (exit);
+    \draw[narr] (entry) -- (choice) |- (string) -| (aggr) -- (exit);
+    \draw[narr] (entry) -- (choice) |- (array) -| (aggr) -- (exit);
+    \draw[narr] (entry) -- (choice) |- (map) -| (aggr) -- (exit);
+    \draw[narr] (entry) -- (choice) |- (set) -- (exit);
+
+    \draw[arr] (entry) -- (choice);
+    \draw[arr] (aggr) -- (exit);
+  \end{tikzpicture}
+\end{figure}
+
+\subsection{String Literal}
+
+\subsection{Integer Literal}
+
+\subsection{Real Literal}
+
+\newpage
 \section{Declaration Blocks}
 
 \subsection{Program}
@@ -465,7 +512,7 @@ Specifying a type.
     \node[entry] (entry) {};
     \coordinate [right=of entry] (entry-choices);
     \node[nterm] (record) [right=of entry-choices] {Record Declaration};
-    \node[nterm] (id) [below=of record] {Identifier};
+    \node[nterm] (id) [below=of record] {Right Identifier};
     \node[nterm] (chain) [below=of id] {Morph Chain};
     \coordinate [right=of record] (choices-exit);
     \node[exit] (exit) [right=of choices-exit] {};
@@ -481,20 +528,50 @@ Specifying a type.
   \end{tikzpicture}
 \end{figure}
 
+\subsection{Record Declaration}
+
+The specification of a record's layout.
+
+\begin{figure}[H]
+  \centering
+  \begin{tikzpicture}
+    \node[entry] (entry) {};
+    \node[term] (rec) [right=of entry] {rec};
+    \coordinate[right=of rec] (rec-id);
+    \node[nterm] (id) [right=of rec-id] {Identifier};
+    \node[term] (colon) [right=of id] {:};
+    \node[nterm] (type) [right=of colon] {Type Expression};
+    \node[term] (semi) [right=of type] {;};
+    \coordinate[right=of semi] (semi-cer);
+    \node[term] (cer) [right=of semi-cer] {cer};
+    \node[exit] (exit) [right=of cer] {};
+
+    \draw[arr] (entry) -- (rec);
+    \draw[narr, mid arrow = 0.25] (rec) -- (id);
+    \draw[arrs] (id) -- (colon) -- (type) -- (semi);
+    \draw[narr, mid arrow = 0.75] (semi) -- (cer);
+    \draw[arr] (cer) -- (exit);
+    \draw[arr] (semi) -- (semi-cer) -- ++(0, -1) -| (rec-id) -- (id);
+  \end{tikzpicture}
+\end{figure}
+
 \subsection{Morph Chain}
+
+A specification of a morph path. May be used for explicit morphs or as a type.
 
 \begin{figure}[H]
   \centering
   \begin{tikzpicture}
     \coordinate (mid);
-    \coordinate[above=1cm of mid] (top);
-    \coordinate[below=1cm of mid] (bot);
+    \coordinate[above=1.25cm of mid] (top);
+    \coordinate[below=1.25cm of mid] (bot);
 
     \coordinate[left=3cm of top] (top-left);
     \coordinate[right=3cm of top] (top-right);
 
-    \coordinate[left=3cm of bot] (bot-left);
-    \coordinate[right=3cm of bot] (bot-right);
+    \coordinate[left=1cm of bot] (bot-left);
+    \coordinate[right=1cm of bot] (bot-right);
+    \coordinate[right=2cm of bot] (bot-right-right);
 
     \coordinate[left=4cm of mid] (entry-choices);
     \coordinate[left=of entry-choices] (entry-loop);
@@ -513,6 +590,8 @@ Specifying a type.
     \node[term] (dotdot) [above=0.25cm of bot] {..};
     \node[term] (dotdotdot) [below=0.25cm of bot] {...};
 
+    \draw [arr] (entry-loop) -| (bot-right-right) -- +(-0.85, 0);
+
     \draw [arr] (entry) -- (entry-loop);
 
     \draw [arr]
@@ -527,7 +606,7 @@ Specifying a type.
       |- (top-left)
       |- (id);
 
-    \draw [arr]
+    \draw [narr, mid arrow = 0.45]
       (rparen)
       -| (top-right)
       -| (exit-choices)
@@ -539,25 +618,25 @@ Specifying a type.
       -| (exit-choices)
       -- ++(0.2, 0);
 
-    \draw [narr, mid arrow = 0.2, mid arrow = 0.7]
+    \draw [arr]
       (dotdot)
       -| (bot-left)
       -| (entry-loop)
       -- ++(0.2, 0);
 
-    \draw [narr, mid arrow = 0.2]
+    \draw [narr]
       (dotdotdot)
       -| (bot-left)
       -| (entry-loop)
       -- ++(0.2, 0);
 
-    \draw [narr, mid arrow = 0.8, mid arrow = 0.3]
+    \draw [narr]
       (exit-loop) + (-0.2, 0)
       -- (exit-loop)
       |- (bot-right)
       |- (dotdot);
 
-    \draw [narr, mid arrow = 0.8]
+    \draw [arr]
       (exit-loop) + (-0.2, 0)
       -- (exit-loop)
       |- (bot-right)

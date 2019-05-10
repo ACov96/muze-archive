@@ -52,7 +52,7 @@ static var_t parse_vars_decl(PARSE_PARAMS);
 static type_t parse_type_expr(PARSE_PARAMS);
 static expr_t parse_expr(PARSE_PARAMS);
 static morph_t parse_morph_chain(PARSE_PARAMS);
-static char* parse_math_expr(PARSE_PARAMS);
+static char* parse_arithmetic_expr(PARSE_PARAMS);
 static literal_t parse_literal(PARSE_PARAMS);
 static boolean_t parse_boolean(PARSE_PARAMS);
 
@@ -120,7 +120,7 @@ static literal_t parse_literal(PARSE_PARAMS) {
   PARSE_RETURN(lit);
 }
 
-static char* parse_math_expr(PARSE_PARAMS) {
+static char* parse_arithmetic_expr(PARSE_PARAMS) {
   char* ex;
 
   return NULL;
@@ -167,6 +167,15 @@ static morph_t parse_morph_chain(PARSE_PARAMS) {
   return morph;
 }
 
+static fun_t parse_fun_decl(PARSE_PARAMS) {
+  return NULL;
+}
+
+static var_t parse_vars_decl(PARSE_PARAMS) {
+  return NULL;
+}
+
+// parse type declarations
 static type_decl_t parse_type_decl(PARSE_PARAMS) {
   type_decl_t ty = malloc(sizeof(struct type_decl_st));
 
@@ -194,6 +203,7 @@ static type_decl_t parse_type_decl(PARSE_PARAMS) {
   PARSE_RETURN(ty);
 }
 
+// parse constant declarations
 static const_t parse_const_decl(PARSE_PARAMS) {
   const_t con;
   con = malloc(sizeof(struct const_st));
@@ -206,19 +216,14 @@ static const_t parse_const_decl(PARSE_PARAMS) {
   EXPECT_TOK(EQ);
   EXPECT_FUN(parse_expr, con->expr);
   EXPECT_TOK(SEMICOLON);
+
+  if (MATCH_TOK(IDENTIFIER))
+    EXPECT_FUN(parse_const_decl,con->next);
   
   PARSE_RETURN(con);
 }
 
-static fun_t parse_fun_decl(PARSE_PARAMS) {
-  return NULL;
-}
-
-static var_t parse_vars_decl(PARSE_PARAMS) {
-  return NULL;
-}
-
-
+// parse declarations
 static decl_t parse_decl(PARSE_PARAMS) {
   decl_t decl;
   decl = malloc(sizeof(struct decl_st));
@@ -248,6 +253,7 @@ static decl_t parse_decl(PARSE_PARAMS) {
   PARSE_RETURN(decl);
 }
 
+// parse module decalarations
 static mod_t parse_module_decl(PARSE_PARAMS) {
   mod_t mod;
   mod = malloc(sizeof(mod_t));
@@ -263,6 +269,7 @@ static mod_t parse_module_decl(PARSE_PARAMS) {
   PARSE_RETURN(mod);
 }
 
+// start parse
 root_t parse(ll_t tokens) {
   root_t root;
   root = malloc(sizeof(root));

@@ -83,11 +83,10 @@ struct fun_st {
 };
 
 struct expr_st {
-  //type_t type; // boolean, integer, string, real, list/range, record
-
+  type_t type;
   enum {
     ID_EX, LITERAL_EX, UNARY_EX, BINARY_EX, TERNARY_EX,
-    CALL_EX, RANGE_EX, BOOLEAN_EX, MATHEMATICAL_EX
+    CALL_EX, RANGE_EX
   } kind;
 
   union {
@@ -98,8 +97,6 @@ struct expr_st {
     ternary_t ternary;
     call_t call;
     range_t range;
-    char* math;
-    boolean_t boolean;
     morph_expr_t morph_expr;
   } u;
 };
@@ -121,7 +118,7 @@ struct ternary_st {
 
 struct literal_st {
   enum {
-    STRING_LIT, INTEGER_LIT,REAL_LIT,
+    STRING_LIT, INTEGER_LIT, REAL_LIT,
     BOOLEAN_LIT
   } kind;
   union {

@@ -1,3 +1,5 @@
+#define _LEXER_C_
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -290,6 +292,10 @@ ll_t generate_token_list(char* s) {
       error_and_exit("Unrecognized character", line_no);
     }
   }
+
+  // Get an ending token
+  ll_append(token_list, new_token(LEXEOF, ""));
+
   return token_list;
 }
 

@@ -1062,5 +1062,26 @@ Conditional statement.
     -| (else);
   \end{tikzpicture}
 \end{figure}
+
+\subsection{Loop Statement}
+
+Basic loop. The only way to exit is to use a \textit{Break} statement.
+
+\begin{figure}[H]
+  \centering
+  \begin{tikzpicture}
+    \node[entry] (entry) {};
+    \node[term] (loop) [right=of entry] {loop};
+    \node[nterm] (statements) [right=of loop] {Statement List};
+    \node[term] (pool) [right=of statements] {pool};
+    \node[exit] (exit) [right=of pool] {};
+
+    \draw[arrs] (entry)
+    -- (loop)
+    -- (statements)
+    -- (pool)
+    -- (exit);
+  \end{tikzpicture}
+\end{figure}
 \end{document}
 

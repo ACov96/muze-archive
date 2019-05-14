@@ -44,12 +44,7 @@ struct decl_st {
   fun_t funs;
   mod_t mods;
 };
-/*
-struct const_decl_st {
-  const_t curr;
-  const_t next;
-}
-*/
+
 struct const_st {
   char* name;
   type_t ty;
@@ -125,8 +120,8 @@ struct ternary_st {
 
 struct literal_st {
   enum {
-    STRING_LIT, INTEGER_LIT, REAL_LIT,
-    BOOLEAN_LIT
+    String_lit, Integer_lit, Real_lit,
+    Boolean_lit
   } kind;
   union {
     char* str;

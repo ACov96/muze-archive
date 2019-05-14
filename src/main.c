@@ -3,6 +3,7 @@
 #include "lexer.h"
 #include "util.h"
 #include "ast.h"
+#include "print_tree.h"
 
 int main(int argc, char* argv[]) {
   if (argc < 2) {
@@ -30,7 +31,7 @@ int main(int argc, char* argv[]) {
   printf("\n");
   
   // parse
-  printf("initializing parse\n");
   root_t root;
   root = parse(tokens);
+  print_tree(stdout, root, 1);
 }

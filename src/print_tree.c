@@ -8,21 +8,25 @@ static void indent(FILE *out, int d) {
 }
 
 void print_tree(FILE *out, root_t root, int d) {
-  printf("-----Abstract Syntax Tree-----\n");
-  //root_t r = root;
+  printf("\n-----Abstract Syntax Tree-----\n");
+  // print mod blocks
   mod_t mods = root->mods;
   while(mods) {
     fprintf(out, "mod: %s\n", mods->name);
     decl_t decl = mods->decl;
+    // print const declarations
     const_t cons = decl->constants;
-    //fprintf(out, "CONST: %s\n", cons->name);
     while(cons) {
       indent(out, d);
-      fprintf(out, "CONST: %s", cons->name);
-      if (cons->next == NULL)
-        break;
-      else
-        cons = cons->next;
+      fprintf(out, "CONST: %s\n", cons->name);
+      cons = cons->next;
+    }
+    // print type declarations
+    type_decl_t types = decl->types;
+    while(types){
+      indent(out, d);
+      fprintf(out, "Type: %s\n", types->name);
+      types = types->next;
     }
     mods = mods->next;
   }

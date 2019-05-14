@@ -930,5 +930,137 @@ Sequential statements.
     -- (statement);
   \end{tikzpicture}
 \end{figure}
+
+\subsection{Statement}
+
+A singular statement.
+
+\begin{figure}[H]
+  \centering
+  \begin{tikzpicture}
+    \node[entry] at (-3, 0) (entry) {};
+    \coordinate [right=of entry] (entry-list);
+    \node[exit] at (3, 0) (exit)  {};
+    \coordinate [left=of exit] (list-exit);
+    \node[nterm] at (0, 1) (fa)  {For All};
+    \node[nterm] at (0, 3) (loop)  {Loop};
+    \node[nterm] at (0, 5) (if)  {Conditional};
+    \node[nterm] at (0, -1) (case)  {Case};
+    \node[nterm] at (0, -3) (assign)  {Assignment};
+    \node[nterm] at (0, -5) (expr)  {Expression Statement};
+
+    \draw[arr] (entry)
+    -- (entry-list)
+    |- (if);
+    \draw[arr] (entry)
+    -- (entry-list)
+    |- (loop);
+    \draw[arr] (entry)
+    -- (entry-list)
+    |- (fa);
+    \draw[arr] (entry)
+    -- (entry-list)
+    |- (case);
+    \draw[arr] (entry)
+    -- (entry-list)
+    |- (assign);
+    \draw[arr] (entry)
+    -- (entry-list)
+    |- (expr);
+
+    \draw[arr] (if)
+    -| (list-exit)
+    -- (exit);
+    \draw[arr] (loop)
+    -| (list-exit)
+    -- (exit);
+    \draw[arr] (fa)
+    -| (list-exit)
+    -- (exit);
+    \draw[arr] (case)
+    -| (list-exit)
+    -- (exit);
+    \draw[arr] (assign)
+    -| (list-exit)
+    -- (exit);
+    \draw[arr] (expr)
+    -| (list-exit)
+    -- (exit);
+  \end{tikzpicture}
+\end{figure}
+
+\subsection{Conditional}
+
+Conditional statement.
+
+\begin{figure}[H]
+  \centering
+  \begin{tikzpicture}
+    \node[entry] (entry) {};
+    \node[term] (if) [right=of entry] {if};
+    \node[nterm] (if-expr) [right=of if] {Expression};
+    \node[term] (if-then) [right=of if-expr] {then};
+    \node[nterm] (if-statements) [right=of if-then] {Statement List};
+    \coordinate [below=of if] (if-below);
+    \node[term] (elif) [below=of if-below] {elif};
+    \coordinate [left=of elif] (elif-left);
+    \node[nterm] (elif-expr) [right=of elif] {Expression};
+    \node[term] (elif-then) [right=of elif-expr] {then};
+    \node[nterm] (elif-statements) [right=of elif-then] {Statement List};
+    \coordinate [below=of elif-statements] (elif-statements-below);
+    \coordinate [below=of elif] (elif-below);
+    \node[term] (else) [below=of elif-below] {else};
+    \coordinate [below=of else] (else-below);
+    \coordinate [left=of else] (else-left);
+    \node[nterm] (else-statements) [right=of else] {Statement List};
+    \coordinate [right=of else-statements] (statements-fi);
+    \node[term] (fi) [right=of statements-fi] {fi};
+    \node[exit] (exit) [right=of fi] {};
+
+    \draw[arrs] (entry)
+    -- (if)
+    -- (if-expr)
+    -- (if-then)
+    -- (if-statements);
+
+    \draw[arrs] (elif)
+    -- (elif-expr)
+    -- (elif-then)
+    -- (elif-statements);
+
+    \draw[arrs] (else)
+    -- (else-statements)
+    -- (statements-fi)
+    -- (fi)
+    -- (exit);
+
+    \draw[arr] (if-statements)
+    |- (if-below)
+    -| (elif-left)
+    -- (elif);
+
+    \draw[arr] (if-below)
+    -| (elif-left)
+    |- (else);
+
+    \draw[arr] (elif-left)
+    |- (else-below)
+    -| (statements-fi)
+    -- (fi);
+
+    \draw[arr] (elif-statements)
+    -- (elif-statements-below)
+    -| (statements-fi)
+    -- (fi);
+
+    \draw[arr] (elif-statements)
+    -- (elif-statements-below)
+    -| (elif);
+
+    \draw[arr] (elif-statements)
+    -- (elif-statements-below)
+    -| (else);
+  \end{tikzpicture}
+\end{figure}
 \end{document}
 

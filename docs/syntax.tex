@@ -773,7 +773,8 @@ A declaration of a function.
   \centering
   \begin{tikzpicture}
     \node[entry] (entry) {};
-    \node[term] (fun) [right=of entry] {fun};
+    \coordinate [right=of entry] (entry-fun);
+    \node[term] (fun) [right=of entry-fun] {fun};
     \coordinate [right=of fun] (fun-name);
     \node[nterm] (name) [right=of fun-name] {Identifier};
     \node[term] (open-paren) [right=of name] {(};
@@ -793,9 +794,10 @@ A declaration of a function.
     \coordinate [above=of begin] (begin-above);
     \node[nterm] (statements) [below=of declarations] {Statement List};
     \coordinate [below=of statements] (statements-below);
-    \node[term] (end) [right=of statements] {end};
-    \coordinate [right=of end] (end-exit);
-    \node[exit] (exit) [right=of end-exit] {};
+    \node[term] (end) [right=of statements] {nuf};
+    \node[nterm] (name-close) [right=of end] {Identifier};
+    \coordinate [right=of name-close] (name-exit);
+    \node[exit] (exit) [right=of name-exit] {};
 
     \draw[arrs] (entry)
     -- (fun)
@@ -837,16 +839,17 @@ A declaration of a function.
 
     \draw[arrs] (statements)
     -- (end)
-    -- (end-exit)
+    -- (name-close)
+    -- (name-exit)
     -- (exit);
 
     \draw[arr] (end)
-    -- (end-exit)
+    -- (name-close)
+    -- (name-exit)
     |- (statements-below)
     -| (begin-left)
-    |- (begin-above)
-    -| (fun-name)
-    -- (name);
+    -| (entry-fun)
+    -- (fun);
   \end{tikzpicture}
 \end{figure}
 
@@ -892,6 +895,39 @@ A list of arguments to a function.
     \draw[arr] (semicolon)
     -| (entry-name)
     -- (name);
+  \end{tikzpicture}
+\end{figure}
+
+\newpage
+\section{Statements}
+
+\subsection{Statement List}
+
+Sequential statements.
+
+\begin{figure}[H]
+  \centering
+  \begin{tikzpicture}
+    \node[entry] (entry) {};
+    \coordinate [right=of entry] (entry-statements);
+    \node[nterm] (statement) [right=of entry-statements] {Statement};
+    \coordinate [right=of statement] (statements-exit);
+    \coordinate [above=of statement] (statement-above);
+    \node[exit] (exit) [right=of statements-exit] {};
+
+    \draw[arr] (entry)
+    -- (entry-statements)
+    -- (statement);
+
+    \draw[arr] (statement)
+    -- (statements-exit)
+    -- (exit);
+
+    \draw[arr] (statement)
+    -- (statements-exit)
+    |- (statement-above)
+    -| (entry-statements)
+    -- (statement);
   \end{tikzpicture}
 \end{figure}
 \end{document}

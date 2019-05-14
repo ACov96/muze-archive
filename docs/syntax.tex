@@ -1211,5 +1211,34 @@ There are various types of expressions that can be evaluated.
 
   \end{tikzpicture}
 \end{figure}
+
+\subsection{Literal Expression}
+
+An expression that immediately evaluates to a literal value.
+
+\begin{figure}[H]
+  \centering
+  \begin{tikzpicture}
+    \node[entry] (entry) {};
+    \coordinate [right=of entry] (entry-list);
+    \node[nterm] (string) [right=of entry-list] {String Literal};
+    \node[nterm] (integer) [below=of string] {Integer Literal};
+    \node[nterm] (real) [below=of integer] {Real Literal};
+    \node[nterm] (boolean) [below=of real] {Boolean Literal};
+    \coordinate [right=of boolean] (list-exit);
+    \node[exit] (exit) [right=of list-exit] {};
+
+    \draw[arr] (entry) -- (string);
+    \draw[arr] (boolean) -- (exit);
+    \draw[arr] (entry) -- (entry-list) |- (integer);
+    \draw[arr] (entry) -- (entry-list) |- (real);
+    \draw[arr] (entry) -- (entry-list) |- (boolean);
+
+    \draw[arr] (string) -| (list-exit) -- (exit);
+    \draw[arr] (integer) -| (list-exit) -- (exit);
+    \draw[arr] (real) -| (list-exit) -- (exit);
+  \end{tikzpicture}
+\end{figure}
+
 \end{document}
 

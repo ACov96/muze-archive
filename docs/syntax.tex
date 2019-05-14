@@ -1131,7 +1131,7 @@ Possible targets of an assignment.
     \coordinate [right=of entry] (entry-id);
     \node[nterm] (id) [right=of entry-id] {Identifier};
     \coordinate [right=of id] (id-bracket);
-    \coordinate [above=of id-bracked] (id-bracket-above);
+    \coordinate [above=of id-bracket] (id-bracket-above);
     \node[term] (left) [right=of id-bracket] {[};
     \node[nterm] (expr) [right=of left] {Expression};
     \node[term] (right) [right=of expr] {]};
@@ -1147,6 +1147,68 @@ Possible targets of an assignment.
     \draw[arr] (right) |- (exit);
     \draw[arr] (right) |- (dot);
     \draw[arr] (id) -- (left);
+  \end{tikzpicture}
+\end{figure}
+
+\subsection{Expression Statement}
+
+A statement that evaluates an expression.
+
+\begin{figure}[H]
+  \centering
+  \begin{tikzpicture}
+    \node[entry] (entry) {};
+    \node[nterm] (expr) [right=of entry] {Expression};
+    \node[term] (semicolon) [right=of expr] {;};
+    \node[exit] (exit) [right=of semicolon] {};
+
+    \draw[arrs] (entry) -- (expr) -- (semicolon) -- (exit);
+  \end{tikzpicture}
+\end{figure}
+
+\newpage
+\section{Expressions}
+
+\subsection{Expression}
+
+There are various types of expressions that can be evaluated.
+
+\begin{figure}[H]
+  \centering
+  \begin{tikzpicture}
+    \node[entry] (entry) {};
+    \coordinate [below=of entry] (entry-list);
+    \node[nterm] (arithmetic) [below right=1cm and .25cm of entry-list] {Arithmetic};
+    \node[nterm] (func-call) [below left=1cm and .25cm of entry-list] {Function Call};
+    \node[nterm] (logical) [right=of arithmetic] {Logical};
+    \node[nterm] (range) [right=of logical] {Range};
+    \node[nterm] (morph) [left=of func-call] {Morph};
+    \node[nterm] (ternary) [left=of morph] {Ternary};
+    \node[nterm] (value) [left=of ternary] {Value};
+    \node[nterm] (literal) [right=of range] {Literal};
+    \coordinate [below right=1cm and .25cm of func-call] (list-exit);
+    \node[exit] (exit) [below=of list-exit] {};
+
+    \draw[arr] (entry) -- (entry-list);
+    \draw[arr] (list-exit) -- (exit);
+    \draw[arr] (entry-list) -| (func-call);
+    \draw[arr] (entry-list) -| (morph);
+    \draw[arr] (entry-list) -| (ternary);
+    \draw[arr] (entry-list) -| (value);
+    \draw[arr] (entry-list) -| (arithmetic);
+    \draw[arr] (entry-list) -| (logical);
+    \draw[arr] (entry-list) -| (range);
+    \draw[arr] (entry-list) -| (literal);
+
+    \draw[arr] (func-call) |- (list-exit);
+    \draw[arr] (morph) |- (list-exit);
+    \draw[arr] (ternary) |- (list-exit);
+    \draw[arr] (value) |- (list-exit);
+    \draw[arr] (arithmetic) |- (list-exit);
+    \draw[arr] (logical) |- (list-exit);
+    \draw[arr] (range) |- (list-exit);
+    \draw[arr] (literal) |- (list-exit);
+
   \end{tikzpicture}
 \end{figure}
 \end{document}

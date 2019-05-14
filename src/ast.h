@@ -6,9 +6,12 @@
 typedef struct root_st *root_t;
 typedef struct mod_st *mod_t;
 typedef struct decl_st *decl_t;
-typedef struct var_st *var_t;
+typedef struct const_decl_st *const_decl_t;
 typedef struct type_decl_st *type_decl_t;
+typedef struct var_decl_st *var_decl_t;
+typedef struct fun_decl_st *fun_decl_t;
 typedef struct const_st *const_t;
+typedef struct type_st *type_t;
 typedef struct var_st *var_t;
 typedef struct fun_st *fun_t;
 typedef struct expr_st * expr_t;
@@ -20,7 +23,6 @@ typedef struct ternary_st *ternary_t;
 typedef struct call_st *call_t;
 typedef struct range_st * range_t;
 typedef struct morph_expr_st *morph_expr_t;
-typedef struct type_st *type_t;
 typedef struct morph_st *morph_t;
 typedef struct boolean_st *boolean_t;
 
@@ -36,18 +38,30 @@ struct mod_st {
 
 // 'a' denotes null terminated type array
 struct decl_st {
+  const_t constants;
   type_decl_t types;
-  const_t consts;
-  fun_t funs;
   var_t vars;
+  fun_t funs;
   mod_t mods;
+};
+/*
+struct const_decl_st {
+  const_t curr;
+  const_t next;
+}
+*/
+struct const_st {
+  char* name;
+  type_t ty;
+  expr_t expr;
+  const_t next;
 };
 
 struct type_decl_st {
   char* name;
   type_t type;
   morph_t morphs;
-  type_decl_t next; // points to next type declarations in the block
+  type_decl_t next;
 };
 
 struct type_st {
@@ -55,10 +69,6 @@ struct type_st {
     TY_STRING, TY_INTEGER, TY_REAL, TY_BOOLEAN,
     TY_ARRAY, TY_REC, TY_HASH, TY_LIST, TY_NAME
   } kind;
-  
-  union {
-    char* name; // used for user defined types (TY_NAME)
-  };
 };
 
 struct morph_st {
@@ -66,20 +76,17 @@ struct morph_st {
   morph_t next; // points to next morph in chain
 };
 
-struct const_st {
-  char* name;
-  type_t ty;
-  expr_t expr;
-  const_t next; // points to next constant declaration in block
-};
 
 struct var_st {
   char* name;
   type_t type;
+  expr_t expr;
+  var_t next;
 };
 
 struct fun_st {
   char* name;
+  fun_t next;
 };
 
 struct expr_st {

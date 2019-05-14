@@ -57,40 +57,26 @@ static literal_t parse_literal(PARSE_PARAMS);
 static boolean_t parse_boolean(PARSE_PARAMS);
 
 static expr_t parse_expr(PARSE_PARAMS) {
-  expr_t ex = malloc(sizeof(struct expr_st));
-
-  printf("inside parse_expr()\n");
-  
-  if (MATCH_TOK(STRING_VAL) 
-     || MATCH_TOK(INT_VAL) 
-     || MATCH_TOK(REAL_VAL)   
-     || MATCH_TOK(IDENTIFIER)) {
-    if (MATCH_FUN(parse_math_expr, ex->u.math)){
-       ex->kind = MATHEMATICAL_EX;
-       NEXT;
-    }
-    else if(MATCH_TOK(IDENTIFIER)){
+  expr_t ex = malloc(sizeof(expr_t));
+        
+    if (MATCH_TOK(IDENTIFIER)){
       ex->kind = ID_EX;
       ex->u.id = BEGET->val;
-      NEXT;
     }
     else if (MATCH_FUN(parse_literal, ex->u.literal)){
        ex->kind = LITERAL_EX;
-       NEXT;
     }
+    else if (MATCH_TOK(TRUE) || MATCH_TOK(FALSE)){
+      ex->kind = BOOLEAN;
+      EXPECT_FUN(parse_boolean, ex->u.boolean)
   }
-  else if (MATCH_TOK(TRUE) || MATCH_TOK(FALSE)){
-    ex->kind = BOOLEAN;
-    EXPECT_FUN(parse_boolean, ex->u.boolean)
-  }
+
   PARSE_RETURN(ex);
  }
 
 static boolean_t parse_boolean(PARSE_PARAMS) {
-  boolean_t bool = malloc(sizeof(struct boolean_st));
+  boolean_t bool = malloc(sizeof(boolean_t));
 
-  printf("inside parse_boolean\n");
-  
   if (MATCH_TOK(TRUE))
     bool->val = TRUE_BOOL;
   else if (MATCH_TOK(FALSE))
@@ -100,9 +86,7 @@ static boolean_t parse_boolean(PARSE_PARAMS) {
 }
 
 static literal_t parse_literal(PARSE_PARAMS) {
-  literal_t lit = malloc(sizeof(struct literal_st));
-
-  printf("inside parse_literal()\n");
+  literal_t lit = malloc(sizeof(literal_t));
   
   if (MATCH_TOK(STRING_VAL)){
     lit->kind = STRING_LIT;
@@ -116,7 +100,7 @@ static literal_t parse_literal(PARSE_PARAMS) {
     lit->kind = REAL_LIT;
     lit->u.real = atof(BEGET->val);
   }
-  
+
   PARSE_RETURN(lit);
 }
 
@@ -127,9 +111,7 @@ static char* parse_arithmetic_expr(PARSE_PARAMS) {
 }
 
 static type_t parse_type_expr(PARSE_PARAMS) {
-  type_t ty = malloc(sizeof(struct type_st));
-
-  printf("inside parse_type_expr()\n");
+  type_t ty = malloc(sizeof(type_t));
 
   if (MATCH_TOK(STRING))
    ty->kind = TY_STRING;
@@ -155,9 +137,7 @@ static type_t parse_type_expr(PARSE_PARAMS) {
 }
 
 static morph_t parse_morph_chain(PARSE_PARAMS) {
-  morph_t morph = malloc(sizeof(struct morph_st));
-
-  printf("inside parse_morph_chain()\n");
+  morph_t morph = malloc(sizeof(morph_t));
   
   EXPECT_FUN(parse_type_expr, morph->ty);
   if(MATCH_TOK(DOT_DOT_DOT)){
@@ -177,9 +157,7 @@ static var_t parse_vars_decl(PARSE_PARAMS) {
 
 // parse type declarations
 static type_decl_t parse_type_decl(PARSE_PARAMS) {
-  type_decl_t ty = malloc(sizeof(struct type_decl_st));
-
-  printf("inside parse_type_decl()\n");
+  type_decl_t ty = malloc(sizeof(type_decl_t));
 
   ty->name = BEGET->val;
   EXPECT_TOK(IDENTIFIER);
@@ -196,43 +174,55 @@ static type_decl_t parse_type_decl(PARSE_PARAMS) {
     printf("inside MU block\n");
     EXPECT_TOK(UM);
   }
-
+  /*
   if (MATCH_TOK(IDENTIFIER))
     EXPECT_FUN(parse_type_decl,ty->next);
-  
+  */
   PARSE_RETURN(ty);
 }
 
 // parse constant declarations
 static const_t parse_const_decl(PARSE_PARAMS) {
   const_t con;
-  con = malloc(sizeof(struct const_st));
-
-  printf("inside parse_const_decl()\n");
+  con = malloc(sizeof(const_t));
+  
   con->name = BEGET->val;
   EXPECT_TOK(IDENTIFIER);
   EXPECT_TOK(COLON);
   EXPECT_FUN(parse_type_expr, con->ty);
   EXPECT_TOK(EQ);
   EXPECT_FUN(parse_expr, con->expr);
+  printf("returned from parse_expr()\n");
+  printf("%s\n", BEGET->val);
   EXPECT_TOK(SEMICOLON);
+<<<<<<< HEAD
+  printf("parsed first const\n");
+  printf("%s\n", BEGET->val);
+
+  if (MATCH_TOK(IDENTIFIER))
+    MATCH_FUN(parse_const_decl, con->next);
+
+  printf("returning from parse_const_decl()\n");
+  printf("%s\n", BEGET->val);
+=======
 
   if (MATCH_TOK(IDENTIFIER))
     EXPECT_FUN(parse_const_decl,con->next);
   
+>>>>>>> 5b9f62499b40c2d02424fe8d25f45395865d4082
   PARSE_RETURN(con);
 }
 
 // parse declarations
 static decl_t parse_decl(PARSE_PARAMS) {
-  decl_t decl;
-  decl = malloc(sizeof(struct decl_st));
-
-  printf("inside parse_decl()\n");
+  decl_t decl = malloc(sizeof(decl_t));
+  
   if (MATCH_TOK(CONST)){
     NEXT;
-    EXPECT_FUN(parse_const_decl, decl->consts);
-  }
+    MATCH_FUN(parse_const_decl, decl->constants);
+    printf("returned from parse_const_decl\n");
+    printf("%s\n", BEGET->val);
+    }
   if (MATCH_TOK(TYPE)){
     NEXT;
     MATCH_FUN(parse_type_decl, decl->types);
@@ -245,10 +235,6 @@ static decl_t parse_decl(PARSE_PARAMS) {
     NEXT;
     MATCH_FUN(parse_fun_decl, decl->funs);\
   }
-  if (MATCH_TOK(MOD)){
-    NEXT;
-    MATCH_FUN(parse_module_decl, decl->mods);
-  }
 
   PARSE_RETURN(decl);
 }
@@ -260,9 +246,13 @@ static mod_t parse_module_decl(PARSE_PARAMS) {
 
   printf("begining mod parse\n");
   EXPECT_TOK(MOD);
+  mod->name = BEGET->val;
   EXPECT_TOK(IDENTIFIER);
-  EXPECT_FUN(parse_decl, mod->decl);
+  MATCH_FUN(parse_decl, mod->decl);
+  printf("returned from parse_decl\n");
+  printf("%s\n", BEGET->val);
   EXPECT_TOK(DOM);
+  EXPECT_TOK(IDENTIFIER);
 
   MATCH_FUN(parse_module_decl, mod->next);
 
@@ -272,9 +262,8 @@ static mod_t parse_module_decl(PARSE_PARAMS) {
 // start parse
 root_t parse(ll_t tokens) {
   root_t root;
-  root = malloc(sizeof(root));
+  root = malloc(sizeof(root_t));
 
-  printf("inside parse()\n");
   EXPECT_FUN(parse_module_decl, root->mods);
 
   printf("done parsing\n");

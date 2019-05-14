@@ -1083,5 +1083,71 @@ Basic loop. The only way to exit is to use a \textit{Break} statement.
     -- (exit);
   \end{tikzpicture}
 \end{figure}
+
+\subsection{Case Statement}
+
+Case statement.
+
+\begin{figure}[H]
+  \centering
+  \begin{tikzpicture}
+    \node[entry] (entry) {};
+  \end{tikzpicture}
+\end{figure}
+
+\subsection{Assignment}
+
+Assign a value to a variable or field of a record.
+
+\begin{figure}[H]
+  \centering
+  \begin{tikzpicture}
+    \node[entry] (entry) {};
+    \node[nterm] (left-side) [right=of entry] {Left Target};
+    \coordinate [right=1cm of left-side] (left-assign);
+    \node[term] (shallow) [above=of left-assign] {=};
+    \node[term] (deep) [below=of left-assign] {:=};
+    \node[nterm] (expr) [right=1cm of left-assign] {Expression};
+    \node[term] (semicolon) [right=of expr] {;};
+    \node[exit] (exit) [right=of semicolon] {};
+
+    \draw[arr] (entry) -- (left-side);
+    \draw[arr] (left-side) |- (shallow);
+    \draw[arr] (left-side) |- (deep);
+    \draw[arr] (shallow) -| (expr);
+    \draw[arr] (deep) -| (expr);
+    \draw[arrs] (expr) -- (semicolon) -- (exit);
+  \end{tikzpicture}
+\end{figure}
+
+\subsection{Left Target}
+
+Possible targets of an assignment.
+
+\begin{figure}[H]
+  \centering
+  \begin{tikzpicture}
+    \node[entry] (entry) {};
+    \coordinate [right=of entry] (entry-id);
+    \node[nterm] (id) [right=of entry-id] {Identifier};
+    \coordinate [right=of id] (id-bracket);
+    \coordinate [above=of id-bracked] (id-bracket-above);
+    \node[term] (left) [right=of id-bracket] {[};
+    \node[nterm] (expr) [right=of left] {Expression};
+    \node[term] (right) [right=of expr] {]};
+    \coordinate [above=of expr] (expr-dot);
+    \node[term] (dot) [above=of expr-dot] {.};
+    \coordinate [above=of right] (right-above);
+    \node[exit] (exit) [right=of right-above] {};
+    \coordinate [right=of exit] (exit-right);
+
+    \draw[arrs] (entry) -- (entry-id) -- (id) -- (id-bracket) |- (exit);
+    \draw[arrs] (dot) -| (entry-id) -- (id);
+    \draw[arrs] (left) -- (expr) -- (right);
+    \draw[arr] (right) |- (exit);
+    \draw[arr] (right) |- (dot);
+    \draw[arr] (id) -- (left);
+  \end{tikzpicture}
+\end{figure}
 \end{document}
 

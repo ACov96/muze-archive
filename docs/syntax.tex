@@ -1299,5 +1299,32 @@ Call a function with or without arguments.
   \end{tikzpicture}
 \end{figure}
 
+\subsection{Logical}
+
+\begin{figure}[H]
+  \centering
+  \begin{tikzpicture}
+    \node[entry] (entry) {};
+    \node[nterm] (left-expr) [right=of entry] {Expression};
+    \coordinate [right=of left-expr] (expr-op);
+    \node[term] (and) [right=of expr-op] {\&\&};
+    \node[term] (or) [above=of and] {||};
+    \node[term] (not) [below=of and] {!};
+    \coordinate [right=of and] (op-expr);
+    \node[nterm] (right-expr) [right=of op-expr] {Expression};
+    \node[exit] (exit) [right=of right-expr] {};
+
+    \draw[arrs] (entry) -- (left-expr) -- (expr-op);
+    \draw[arrs] (op-expr) -- (right-expr) -- (exit);
+
+    \draw[arr] (expr-op) -- (and);
+    \draw[arr] (expr-op) |- (or);
+    \draw[arr] (expr-op) |- (not);
+    \draw[arr] (and) -- (op-expr);
+    \draw[arr] (or) -| (op-expr);
+    \draw[arr] (not) -| (op-expr);
+  \end{tikzpicture}
+\end{figure}
+
 \end{document}
 

@@ -1268,5 +1268,36 @@ Call a function with or without arguments.
   \end{tikzpicture}
 \end{figure}
 
+\subsection{Arithmetic Expression}
+
+\begin{figure}[H]
+  \centering
+  \begin{tikzpicture}
+    \node[entry] (entry) {};
+    \node[nterm] (left-expr) [right=of entry] {Expression};
+    \coordinate [right=of left-expr] (expr-op);
+    \node[term] (plus) [above right=.5cm and .75cm of expr-op] {+};
+    \node[term] (minus) [above=of plus] {-};
+    \node[term] (multiply) [below right=.5cm and .75cm of expr-op] {*};
+    \node[term] (divide) [below=of multiply] {/};
+    \coordinate [below right=.5cm and .75cm of plus] (op-expr);
+    \node[nterm] (right-expr) [right=of op-expr] {Expression};
+    \node[exit] (exit) [right=of right-expr] {};
+
+    \draw[arrs] (entry) -- (left-expr) -- (expr-op);
+    \draw[arr] (expr-op) |- (plus);
+    \draw[arr] (expr-op) |- (minus);
+    \draw[arr] (expr-op) |- (multiply);
+    \draw[arr] (expr-op) |- (divide);
+
+    \draw[arr] (plus) -| (op-expr);
+    \draw[arr] (minus) -| (op-expr);
+    \draw[arr] (multiply) -| (op-expr);
+    \draw[arr] (divide) -| (op-expr);
+
+    \draw[arrs] (op-expr) -- (right-expr) -- (exit);
+  \end{tikzpicture}
+\end{figure}
+
 \end{document}
 

@@ -68,6 +68,7 @@ struct type_st {
 
 struct morph_st {
   type_t ty;
+  enum{DIRECT_PATH, BEST_PATH} path; // -> is DIRECT_PATH, ... is BEST_PATH
   morph_t next; // points to next morph in chain
 };
 
@@ -120,8 +121,8 @@ struct ternary_st {
 
 struct literal_st {
   enum {
-    String_lit, Integer_lit, Real_lit,
-    Boolean_lit
+    STRING_LIT, INTEGER_LIT, REAL_LIT,
+    BOOLEAN_LIT
   } kind;
   union {
     char* str;

@@ -4,7 +4,7 @@ mod test_mod
        b:integer = 11;
        c:integer = 12;
     type
-        celsius = integer;
+        celsius = ...integer->real;
         mu
         um
         fahr = real;

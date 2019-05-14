@@ -1,0 +1,12 @@
+mod test_mod
+    const
+       a:integer = 10;
+       b:integer = 11;
+       c:integer = 12;
+    type
+        celsius = integer;
+        mu
+        um
+        fahr = real;
+        kelvin = real;
+dom test_mod

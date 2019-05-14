@@ -76,7 +76,7 @@ ll_t generate_token_list(char* s) {
       }
     }
 
-    // arithmetic operators (all cases)
+    // arithmetic operators
     else if (c == '+') {
       if (peek(1) == '+') {
         ll_append(token_list, new_token(INC, "++"));
@@ -96,7 +96,11 @@ ll_t generate_token_list(char* s) {
       else if (peek(1) == '=') {
         ll_append(token_list, new_token(MINUS_EQ, "-="));
         i++;
-      } else
+      }
+      else if (peek(1) == '>') {
+        ll_append(token_list, new_token(ARROW, "->"));
+        i++;
+      }else
         ll_append(token_list, new_token(MINUS, "-"));
     }
     else if (c == '*') {

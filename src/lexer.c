@@ -370,6 +370,8 @@ token_t token_from_word(char* s) {
     return new_token(TYPE, "type");
   else if (strcmp(buf, "mu") == 0)
     return new_token(MU, "mu");
+  else if (strcmp(buf, "um") == 0)
+    return new_token(UM, "um");
 
   //CONST and VAR tokens
   else if (strcmp(buf, "const") == 0)

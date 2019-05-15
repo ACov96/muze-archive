@@ -68,7 +68,7 @@ struct type_st {
 
 struct morph_st {
   type_t ty;
-  enum{DIRECT_PATH, BEST_PATH} path; // -> is DIRECT_PATH, ... is BEST_PATH
+  enum{DIRECT_PATH, BEST_PATH} path; // -> is DIRECT_PATH, ... is BEST_PATH 
   morph_t next; // points to next morph in chain
 };
 
@@ -124,12 +124,7 @@ struct literal_st {
     STRING_LIT, INTEGER_LIT, REAL_LIT,
     BOOLEAN_LIT
   } kind;
-  union {
-    char* str;
-    int integer;
-    double real;
-    boolean_t boolean;
-  } u;
+  char* val;
 };
 
 struct morph_expr_st {

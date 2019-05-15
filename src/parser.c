@@ -85,21 +85,26 @@ static literal_t parse_literal(PARSE_PARAMS) {
   
   if (MATCH_TOK(STRING_VAL)){
     lit->kind = STRING_LIT;
-    lit->u.str = BEGET->val;
+    lit->val = BEGET->val;
   }
   else if (MATCH_TOK(INT_VAL)) {
     lit->kind = INTEGER_LIT;
-    lit->u.integer = atoi(BEGET->val);
+    lit->val = BEGET->val;
   }
   else if (MATCH_TOK(REAL_VAL)) {
     lit->kind = REAL_LIT;
-    lit->u.real = atof(BEGET->val);
+    lit->val = BEGET->val;
   }
-  else if (MATCH_TOK(TRUE) || MATCH_TOK(FALSE)){
+  else if (MATCH_TOK(TRUE)){
     lit->kind = BOOLEAN_LIT;
-    EXPECT_FUN(parse_boolean, lit->u.boolean);
+    lit->val = "true";
+  }
+  else if (MATCH_TOK(FALSE)){
+    lit->kind = BOOLEAN_LIT;
+    lit->val = "false";
   }
   PARSE_RETURN(lit);
+    
 }
 
 static char* parse_arithmetic_expr(PARSE_PARAMS) {

@@ -24,6 +24,7 @@ typedef struct call_st *call_t;
 typedef struct range_st * range_t;
 typedef struct morph_expr_st *morph_expr_t;
 typedef struct morph_st *morph_t;
+typedef struct morph_chain_st *morph_chain_t;
 typedef struct boolean_st *boolean_t;
 
 struct root_st {
@@ -61,15 +62,22 @@ struct type_decl_st {
 
 struct type_st {
   enum{
-    TY_STRING, TY_INTEGER, TY_REAL, TY_BOOLEAN,
-    TY_ARRAY, TY_REC, TY_HASH, TY_LIST, TY_NAME
+    STRING_TY, INTEGER_TY, REAL_TY, BOOLEAN_TY,
+    ARRAY_TY, REC_TY, HASH_TY, LIST_TY, NAME_TY,
+    MORPH_TY, ENUM_TY
   } kind;
+  union {
+    rec_t rec_ty;
+    enum_t enum_ty;
+    morph_chain_t morph_ty;
+    char *name_ty;
+  } u;
 };
 
-struct morph_st {
+struct morph_chain_st {
   type_t ty;
   enum{DIRECT_PATH, BEST_PATH} path; // -> is DIRECT_PATH, ... is BEST_PATH 
-  morph_t next; // points to next morph in chain
+  morph_chain_t next; // points to next morph in chain
 };
 
 
@@ -100,7 +108,7 @@ struct expr_st {
     ternary_t ternary;
     call_t call;
     range_t range;
-    morph_expr_t morph_expr;
+    morph_expr_t morph_expr; // a = (morph ...integer 2)
   } u;
 };
 
@@ -128,7 +136,8 @@ struct literal_st {
 };
 
 struct morph_expr_st {
-  // something wild
+  expr_t expr;
+  morph_chain_t morph;
 };
 
 struct boolean_st {

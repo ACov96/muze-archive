@@ -26,6 +26,8 @@ typedef struct morph_expr_st *morph_expr_t;
 typedef struct morph_st *morph_t;
 typedef struct morph_chain_st *morph_chain_t;
 typedef struct boolean_st *boolean_t;
+typedef struct enum_st *enum_t;
+typedef struct rec_st *rec_t;
 
 struct root_st {
   mod_t mods;
@@ -144,6 +146,9 @@ struct boolean_st {
   enum {
     TRUE_BOOL, FALSE_BOOL
   } val;
+};
+
+struct morph_st {
 };
   
 // prototypes

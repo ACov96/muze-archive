@@ -8,7 +8,7 @@
 #define LL_OUT tok_out
 
 #define MATCH_FUN(fn, res) \
-  (res = fn(LL_NAME, &LL_NAME))
+  (res == fn(LL_NAME, &LL_NAME))
 
 #define MATCH_TOK(t) \
   (BEGET->tok == t)
@@ -51,7 +51,7 @@ static fun_t parse_fun_decl(PARSE_PARAMS);
 static var_t parse_vars_decl(PARSE_PARAMS);
 static type_t parse_type_expr(PARSE_PARAMS);
 static expr_t parse_expr(PARSE_PARAMS);
-static morph_t parse_morph_chain(PARSE_PARAMS);
+static morph_chain_t parse_morph_chain(PARSE_PARAMS);
 static char* parse_arithmetic_expr(PARSE_PARAMS);
 static literal_t parse_literal(PARSE_PARAMS);
 static boolean_t parse_boolean(PARSE_PARAMS);
@@ -115,30 +115,30 @@ static type_t parse_type_expr(PARSE_PARAMS) {
   type_t ty = malloc(sizeof(type_t));
 
   if (MATCH_TOK(STRING))
-   ty->kind = TY_STRING;
+   ty->kind = STRING_TY;
   else if (MATCH_TOK(INTEGER))
-    ty->kind = TY_INTEGER;
+    ty->kind = INTEGER_TY;
   else if (MATCH_TOK(REAL))
-    ty->kind = TY_REAL;
+    ty->kind = REAL_TY;
   else if (MATCH_TOK(BOOLEAN))
-    ty->kind = TY_BOOLEAN;
+    ty->kind = BOOLEAN_TY;
   else if (MATCH_TOK(ARRAY))
-    ty->kind = TY_ARRAY;
+    ty->kind = ARRAY_TY;
   else if (MATCH_TOK(REC))
-    ty->kind = TY_REC;
+    ty->kind = REC_TY;
   else if (MATCH_TOK(HASH))
-    ty->kind = TY_HASH;
+    ty->kind = HASH_TY;
   else if (MATCH_TOK(LIST))
-    ty->kind = TY_LIST;
+    ty->kind = LIST_TY;
   else if (MATCH_TOK(IDENTIFIER))
-    ty->kind = TY_NAME;
+    ty->kind = NAME_TY;
 
   PARSE_RETURN(ty);
 
 }
 
-static morph_t parse_morph_chain(PARSE_PARAMS) {
-  morph_t morph = malloc(sizeof(morph_t));
+static morph_chain_t parse_morph_chain(PARSE_PARAMS) {
+  morph_chain_t morph = malloc(sizeof(morph_t));
 
   if (MATCH_TOK(DOT_DOT_DOT)){
     morph->path = DIRECT_PATH;

@@ -9,4 +9,9 @@ mod test_mod
         um
         fahr = real;
         kelvin = real;
+    var
+        temp_in_WA : integer  = 0;
+        temp_in_CA : integer = 30;
+        temp_on_moon : integer = 125;
+         
 dom test_mod

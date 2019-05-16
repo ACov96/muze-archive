@@ -167,6 +167,10 @@ static var_t parse_vars_decl(PARSE_PARAMS) {
   
   var->name = BEGET->val;
   EXPECT_TOK(IDENTIFIER);
+  if (MATCH_TOK(COMMA)) {
+      NEXT;
+      MATCH_FUN(parse_vars_decl, var->next);
+  }
   EXPECT_TOK(COLON);
   EXPECT_FUN(parse_type_expr, var->type);
   EXPECT_TOK(EQ);

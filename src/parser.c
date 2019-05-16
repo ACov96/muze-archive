@@ -218,7 +218,7 @@ static decl_t parse_decl(PARSE_PARAMS) {
   }
   if (MATCH_TOK(FUN)){
     NEXT;
-    MATCH_FUN(parse_fun_decl, decl->funs);\
+    MATCH_FUN(parse_fun_decl, decl->funs);
   }
   PARSE_RETURN(decl);
 }

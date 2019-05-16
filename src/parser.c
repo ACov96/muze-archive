@@ -162,7 +162,18 @@ static fun_t parse_fun_decl(PARSE_PARAMS) {
 }
 
 static var_t parse_vars_decl(PARSE_PARAMS) {
-  return NULL;
+  var_t var;
+  var = malloc(sizeof(var_t));
+  
+  var->name = BEGET->val;
+  EXPECT_TOK(IDENTIFIER);
+  EXPECT_TOK(COLON);
+  EXPECT_FUN(parse_type_expr, var->type);
+  EXPECT_TOK(EQ);
+  EXPECT_FUN(parse_expr, var->expr);
+  EXPECT_TOK(SEMICOLON);
+  MATCH_FUN(parse_vars_decl, var->next);
+  PARSE_RETURN(var);
 }
 
 // parse type declarations

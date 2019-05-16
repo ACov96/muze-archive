@@ -8,7 +8,7 @@
 #define LL_OUT tok_out
 
 #define MATCH_FUN(fn, res) \
-  (res == fn(LL_NAME, &LL_NAME))
+  (res = fn(LL_NAME, &LL_NAME))
 
 #define MATCH_TOK(t) \
   (BEGET->tok == t)

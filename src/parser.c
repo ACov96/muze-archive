@@ -49,7 +49,7 @@ static type_decl_t parse_type_decl(PARSE_PARAMS);
 static const_t parse_const_decl(PARSE_PARAMS);
 static fun_t parse_fun_decl(PARSE_PARAMS);
 static var_t parse_vars_decl(PARSE_PARAMS);
-static type_t parse_type_expr(PARSE_PARAMS);
+static type_t parse_type(PARSE_PARAMS);
 static expr_t parse_expr(PARSE_PARAMS);
 static morph_chain_t parse_morph_chain(PARSE_PARAMS);
 static char* parse_arithmetic_expr(PARSE_PARAMS);
@@ -111,11 +111,12 @@ static char* parse_arithmetic_expr(PARSE_PARAMS) {
   return NULL;
 }
 
-static type_t parse_type_expr(PARSE_PARAMS) {
+
+static type_t parse_type(PARSE_PARAMS) {
   type_t ty = malloc(sizeof(type_t));
 
   if (MATCH_TOK(STRING))
-   ty->kind = STRING_TY;
+    ty->kind = STRING_TY;
   else if (MATCH_TOK(INTEGER))
     ty->kind = INTEGER_TY;
   else if (MATCH_TOK(REAL))
@@ -143,18 +144,33 @@ static morph_chain_t parse_morph_chain(PARSE_PARAMS) {
   if (MATCH_TOK(DOT_DOT_DOT)){
     morph->path = DIRECT_PATH;
     NEXT;
-    EXPECT_FUN(parse_type_expr, morph->ty);
+    EXPECT_FUN(parse_type, morph->ty);
   }
   else if (MATCH_TOK(ARROW)){
     morph->path = BEST_PATH;
     NEXT;
-    EXPECT_FUN(parse_type_expr, morph->ty);
+    EXPECT_FUN(parse_type, morph->ty);
   }
   else
     EXPECT_TOK(DOT_DOT_DOT);
   
   MATCH_FUN(parse_morph_chain, morph->next);
   PARSE_RETURN(morph);
+}
+
+static type_t parse_type_expr(PARSE_PARAMS) {
+  type_t ty = malloc(sizeof(type_t));
+  
+  //check for a morph chain
+  if (MATCH_FUN(parse_morph_chain, ty->u.morph_ty)){
+    ty->kind = MORPH_TY;
+    printf("parsed morph chain\n");
+  }
+  // else parse single type
+  else{
+    MATCH_FUN(parse_type, ty);
+  }
+  PARSE_RETURN(ty);
 }
 
 static fun_t parse_fun_decl(PARSE_PARAMS) {
@@ -172,7 +188,7 @@ static var_t parse_vars_decl(PARSE_PARAMS) {
       MATCH_FUN(parse_vars_decl, var->next);
   }
   EXPECT_TOK(COLON);
-  EXPECT_FUN(parse_type_expr, var->type);
+  EXPECT_FUN(parse_type, var->type);
   EXPECT_TOK(EQ);
   EXPECT_FUN(parse_expr, var->expr);
   EXPECT_TOK(SEMICOLON);
@@ -187,8 +203,9 @@ static type_decl_t parse_type_decl(PARSE_PARAMS) {
   ty->name = BEGET->val;
   EXPECT_TOK(IDENTIFIER);
   EXPECT_TOK(EQ);
-  MATCH_FUN(parse_morph_chain, ty->morphs);
   EXPECT_FUN(parse_type_expr, ty->type);
+  printf("returned from parse_type_expr\n");
+  printf("%s\n", BEGET->val);
   EXPECT_TOK(SEMICOLON);
   if (MATCH_TOK(MU)){
     NEXT;
@@ -207,7 +224,7 @@ static const_t parse_const_decl(PARSE_PARAMS) {
   con->name = BEGET->val;
   EXPECT_TOK(IDENTIFIER);
   EXPECT_TOK(COLON);
-  EXPECT_FUN(parse_type_expr, con->ty);
+  EXPECT_FUN(parse_type, con->ty);
   EXPECT_TOK(EQ);
   EXPECT_FUN(parse_expr, con->expr);
   EXPECT_TOK(SEMICOLON);
@@ -226,6 +243,9 @@ static decl_t parse_decl(PARSE_PARAMS) {
   if (MATCH_TOK(TYPE)){
     NEXT;
     MATCH_FUN(parse_type_decl, decl->types);
+    printf("returned from parse_type_decl\n");
+    printf("%s\n", BEGET->val);
+
   }
   if (MATCH_TOK(VAR)){
     NEXT;

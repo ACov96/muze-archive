@@ -58,7 +58,7 @@ struct const_st {
 struct type_decl_st {
   char* name;
   type_t type;
-  morph_chain_t morphs;
+  //morph_chain_t morphs;
   type_decl_t next;
 };
 

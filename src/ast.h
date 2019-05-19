@@ -28,6 +28,7 @@ typedef struct morph_chain_st *morph_chain_t;
 typedef struct boolean_st *boolean_t;
 typedef struct enum_st *enum_t;
 typedef struct rec_st *rec_t;
+typedef struct arg_st * arg_t;
 
 struct root_st {
   mod_t mods;
@@ -66,7 +67,7 @@ struct type_st {
   enum{
     STRING_TY, INTEGER_TY, REAL_TY, BOOLEAN_TY,
     ARRAY_TY, REC_TY, HASH_TY, LIST_TY, NAME_TY,
-    MORPH_TY, ENUM_TY
+    MORPH_TY, ENUM_TY, MAP_TY, SET_TY
   } kind;
   union {
     rec_t rec_ty;
@@ -92,6 +93,9 @@ struct var_st {
 
 struct fun_st {
   char* name;
+  arg_t args;
+  type_t ret_type;
+  decl_t decl;
   fun_t next;
 };
 
@@ -149,6 +153,12 @@ struct boolean_st {
 };
 
 struct morph_st {
+};
+
+struct arg_st {
+  char* name;
+  type_t type;
+  arg_t next;
 };
   
 // prototypes

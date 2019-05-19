@@ -14,3 +14,6 @@ morph
 *.log
 *.out
 
+# who even knows
+*.nfs*
+

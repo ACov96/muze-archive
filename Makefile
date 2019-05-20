@@ -1,5 +1,5 @@
 CC = gcc
-CFLAGS = -g -Wall
+CFLAGS = -g -Wall -Werror
 
 OBJS = util.o lexer.o main.o parser.o print_tree.o
 

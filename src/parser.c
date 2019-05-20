@@ -16,26 +16,26 @@
 #define EXPECT_FUN(fn, res) \
   if (!MATCH_FUN(fn, res)) \
     return NULL; \
-  NEXT;
+  NEXT
 
 #define EXPECT_TOK(t) \
   if (!MATCH_TOK(t)) { \
     snprintf(last_mismatch, BUFSIZ, "Expected %s, got %s", \
-        token_names[t], token_names[BEGET->tok]); \
+             token_names[t], token_names[BEGET->tok]); \
     return NULL; \
   } \
-  NEXT;
+  NEXT
 
 #define PARSE_RETURN(ret) \
   *LL_OUT = LL_NAME; \
-  return ret; 
+  return ret
 
 // Gets the current token
 #define BEGET \
   ((token_t)(LL_NAME->val))
 
 #define NEXT \
-  LL_NAME = LL_NAME->next;
+  LL_NAME = LL_NAME->next
 
 #define PARSE_PARAMS ll_t LL_NAME, ll_t *LL_OUT
 
@@ -58,7 +58,7 @@ static boolean_t parse_boolean(PARSE_PARAMS);
 
 static expr_t parse_expr(PARSE_PARAMS) {
   expr_t ex = malloc(sizeof(expr_t));
-        
+
   if (MATCH_TOK(IDENTIFIER)){
     ex->kind = ID_EX;
     ex->u.id = BEGET->val;
@@ -67,7 +67,7 @@ static expr_t parse_expr(PARSE_PARAMS) {
     ex->kind = LITERAL_EX;
 
   PARSE_RETURN(ex);
- }
+}
 
 static boolean_t parse_boolean(PARSE_PARAMS) {
   boolean_t bool = malloc(sizeof(boolean_t));
@@ -76,13 +76,13 @@ static boolean_t parse_boolean(PARSE_PARAMS) {
     bool->val = TRUE_BOOL;
   else if (MATCH_TOK(FALSE))
     bool->val = FALSE_BOOL;
-  
+
   PARSE_RETURN(bool);
 }
 
 static literal_t parse_literal(PARSE_PARAMS) {
   literal_t lit = malloc(sizeof(literal_t));
-  
+
   if (MATCH_TOK(STRING_VAL)){
     lit->kind = STRING_LIT;
     lit->val = BEGET->val;
@@ -104,7 +104,7 @@ static literal_t parse_literal(PARSE_PARAMS) {
     lit->val = "false";
   }
   PARSE_RETURN(lit);
-    
+
 }
 
 static char* parse_arithmetic_expr(PARSE_PARAMS) {
@@ -115,7 +115,7 @@ static type_t parse_type_expr(PARSE_PARAMS) {
   type_t ty = malloc(sizeof(type_t));
 
   if (MATCH_TOK(STRING))
-   ty->kind = STRING_TY;
+    ty->kind = STRING_TY;
   else if (MATCH_TOK(INTEGER))
     ty->kind = INTEGER_TY;
   else if (MATCH_TOK(REAL))
@@ -152,7 +152,7 @@ static morph_chain_t parse_morph_chain(PARSE_PARAMS) {
   }
   else
     EXPECT_TOK(DOT_DOT_DOT);
-  
+
   MATCH_FUN(parse_morph_chain, morph->next);
   PARSE_RETURN(morph);
 }
@@ -164,12 +164,12 @@ static fun_t parse_fun_decl(PARSE_PARAMS) {
 static var_t parse_vars_decl(PARSE_PARAMS) {
   var_t var;
   var = malloc(sizeof(var_t));
-  
+
   var->name = BEGET->val;
   EXPECT_TOK(IDENTIFIER);
   if (MATCH_TOK(COMMA)) {
-      NEXT;
-      MATCH_FUN(parse_vars_decl, var->next);
+    NEXT;
+    MATCH_FUN(parse_vars_decl, var->next);
   }
   EXPECT_TOK(COLON);
   EXPECT_FUN(parse_type_expr, var->type);
@@ -183,7 +183,7 @@ static var_t parse_vars_decl(PARSE_PARAMS) {
 // parse type declarations
 static type_decl_t parse_type_decl(PARSE_PARAMS) {
   type_decl_t ty = malloc(sizeof(type_decl_t));
-  
+
   ty->name = BEGET->val;
   EXPECT_TOK(IDENTIFIER);
   EXPECT_TOK(EQ);
@@ -206,6 +206,7 @@ static const_t parse_const_decl(PARSE_PARAMS) {
 
   con->name = BEGET->val;
   EXPECT_TOK(IDENTIFIER);
+
   EXPECT_TOK(COLON);
   EXPECT_FUN(parse_type_expr, con->ty);
   EXPECT_TOK(EQ);
@@ -218,11 +219,11 @@ static const_t parse_const_decl(PARSE_PARAMS) {
 // parse declarations block
 static decl_t parse_decl(PARSE_PARAMS) {
   decl_t decl = malloc(sizeof(decl_t));
-  
+
   if (MATCH_TOK(CONST)){
     NEXT;
     MATCH_FUN(parse_const_decl, decl->constants);
-    }
+  }
   if (MATCH_TOK(TYPE)){
     NEXT;
     MATCH_FUN(parse_type_decl, decl->types);

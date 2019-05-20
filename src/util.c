@@ -9,13 +9,13 @@ ll_t ll_new() {
 }
 
 void ll_append(ll_t l, void *data) {
+  ll_t curr;
   assert(l != NULL);
   if (l->val == NULL) {
     l->val = data;
     return;
   }
-  ll_t curr = l;
-  for (curr; curr->next != NULL; curr = curr->next);
+  for (curr = l; curr->next != NULL; curr = curr->next);
   curr->next = malloc(sizeof(struct ll_st));
   curr->next->val = data;
 }

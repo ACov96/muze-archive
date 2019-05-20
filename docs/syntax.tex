@@ -276,6 +276,27 @@ A literal value representing an real. \textit{Digit} is any single digit from th
   \end{tikzpicture}
 \end{figure}
 
+\subsection{Boolean Literal}
+
+A literal value representing a boolean.
+
+\begin{figure}[H]
+  \centering
+  \begin{tikzpicture}
+    \node[entry] (entry) {};
+    \coordinate [right=of entry] (entry-list);
+    \node[term] (false) [below right=.75cm of entry-list] {false};
+    \node[term] (true) [above=1cm of false] {true};
+    \coordinate [above right=.75cm of false] (list-exit);
+    \node[exit] (exit) [right=of list-exit] {};
+
+    \draw[arr] (entry) -- (entry-list) |- (true);
+    \draw[arr] (entry) -- (entry-list) |- (false);
+    \draw[arr] (true) -| (list-exit) -- (exit);
+    \draw[arr] (false) -| (list-exit) -- (exit);
+  \end{tikzpicture}
+\end{figure}
+
 
 \newpage
 \section{Declaration Blocks}
@@ -1390,5 +1411,27 @@ Ternary statement.
     -- (exit);
   \end{tikzpicture}
 \end{figure}
+
+\subsection{Value}
+
+An expression that results in a value. This is used when you need to access a value in a variable, array, or record.
+
+\begin{figure}[H]
+  \centering
+  \begin{tikzpicture}
+    \node[entry] (entry) {};
+    \coordinate [right=of entry] (entry-list);
+    \node[nterm] (target) [above right=.75cm of entry-list] {Left Target};
+    \node[nterm] (literal) [below=of target] {Literal};
+    \coordinate [below right=.75cm of target] (list-exit);
+    \node[exit] (exit) [right=of list-exit] {};
+
+    \draw[arr] (entry) -- (entry-list) |- (target);
+    \draw[arr] (entry) -- (entry-list) |- (literal);
+    \draw[arr] (target) -| (list-exit) -- (exit);
+    \draw[arr] (literal) -| (list-exit) -- (exit);
+  \end{tikzpicture}
+\end{figure}
+
 \end{document}
 

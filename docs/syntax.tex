@@ -1366,5 +1366,29 @@ Range expression. Both literal expressions must be of the same type.
   \end{tikzpicture}
 \end{figure}
 
+\subsection{Ternary}
+
+Ternary statement.
+
+\begin{figure}[H]
+  \centering
+  \begin{tikzpicture}
+    \node[entry] (entry) {};
+    \node[nterm] (expr-base) [right=of entry] {Expression};
+    \node[term] (question) [right=of expr-base] {?};
+    \node[nterm] (expr-true) [right=of question] {Expression};
+    \node[term] (colon) [right=of expr-true] {:};
+    \node[nterm] (expr-false) [right=of colon] {Expression};
+    \node[exit] (exit) [right=of expr-false] {};
+
+    \draw[arrs] (entry)
+    -- (expr-base)
+    -- (question)
+    -- (expr-true)
+    -- (colon)
+    -- (expr-false)
+    -- (exit);
+  \end{tikzpicture}
+\end{figure}
 \end{document}
 

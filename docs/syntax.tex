@@ -1092,6 +1092,27 @@ Case statement.
   \centering
   \begin{tikzpicture}
     \node[entry] (entry) {};
+    \node[term] (case) [right=of entry] {case};
+    \node[term] (open) [right=of case] {(};
+    \node[nterm] (case-var) [right=of open] {Identifier};
+    \node[term] (close) [right=of case-var] {)};
+    \node[term] (colon) [right=of close] {:};
+    \coordinate [below=of case] (case-below);
+    \node[nterm] (expr) [below=of case-below] {Expression};
+    \node[term] (arrow) [right=of expr] {=>};
+    \node[nterm] (decl) [below=of arrow] {Declaration Block};
+    \node[term] (begin) [right=of decl] {begin};
+    \node[nterm] (statements) [right=of begin] {Statement List};
+    \node[term] (end) [right=of statements] {end};
+    \coordinate [right=of end] (end-esac);
+    \node[term] (esac) [right=of end-esac] {esac};
+    \node[exit] (exit) [right=of esac] {};
+
+    \draw[arrs] (entry) -- (case) -- (open) -- (case-var) -- (close) -- (colon);
+    \draw[arr] (colon) |- (case-below) -- (expr);
+    \draw[arrs] (expr) -- (arrow) -- (decl) -- (begin) -- (statements) -- (end);
+    \draw[arrs] (end) -- (esac) -- (exit);
+    \draw[arr] (end) -- (end-esac) |- (case-below) -- (expr);
   \end{tikzpicture}
 \end{figure}
 
@@ -1301,6 +1322,8 @@ Call a function with or without arguments.
 
 \subsection{Logical}
 
+Logical expressions. \&\& is logical and, || (there's some weird font issue here) is logical or, and ! is logical not.
+
 \begin{figure}[H]
   \centering
   \begin{tikzpicture}
@@ -1323,6 +1346,23 @@ Call a function with or without arguments.
     \draw[arr] (and) -- (op-expr);
     \draw[arr] (or) -| (op-expr);
     \draw[arr] (not) -| (op-expr);
+  \end{tikzpicture}
+\end{figure}
+
+\subsection{Range}
+
+Range expression. Both literal expressions must be of the same type.
+
+\begin{figure}[H]
+  \centering
+  \begin{tikzpicture}
+    \node[entry] (entry) {};
+    \node[nterm] (lit1) [right=of entry] {Literal};
+    \node[term] (dotdot) [right=of lit1] {..};
+    \node[nterm] (lit2) [right=of dotdot] {Literal};
+    \node[exit] (exit) [right=of lit2] {};
+
+    \draw[arrs] (entry) -- (lit1) -- (dotdot) -- (lit2) -- (exit);
   \end{tikzpicture}
 \end{figure}
 

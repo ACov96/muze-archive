@@ -31,7 +31,6 @@ typedef struct boolean_st       *boolean_t;
 typedef struct enum_st          *enum_t;
 typedef struct rec_st           *rec_t;
 
-
 // Entry node in the AST
 struct root_st {
   mod_t mods;
@@ -70,7 +69,7 @@ struct type_decl_st {
   type_t type;
 
   // Any morphs for this type
-  morph_chain_t morphs;
+  morph__t morphs;
 
   // The next type in the sequence of declarations
   type_decl_t next; // NULLABLE
@@ -178,14 +177,20 @@ struct fun_decl_st {
   // name of the function
   char* name;
 
-  // Parameters for the function
+  // Function parameters
   param_t params;
 
   // return type of the function
-  type_t type;
+  type_t ret_type;
+
+  // Parameters for the function
+  arg_t args;
+
+  // Inner function declarations
+  decl_t decl;
 
   // next function in the declaration
-  fun_t next;
+  fun_t next; // NULLABLE
 };
 
 
@@ -296,6 +301,12 @@ struct boolean_st {
 };
 
 struct morph_st {
+};
+
+struct arg_st {
+  char* name;
+  type_t type;
+  arg_t next;
 };
   
 // prototypes

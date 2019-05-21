@@ -50,8 +50,8 @@ static decl_t parse_decl(PARSE_PARAMS);
 static mod_t parse_module_decl(PARSE_PARAMS);
 static type_decl_t parse_type_decl(PARSE_PARAMS);
 static const_t parse_const_decl(PARSE_PARAMS);
-static fun_t parse_fun_decl(PARSE_PARAMS);
-static var_t parse_vars_decl(PARSE_PARAMS);
+static fun_decl_t parse_fun_decl(PARSE_PARAMS);
+static var_decl_t parse_vars_decl(PARSE_PARAMS);
 static type_t parse_type(PARSE_PARAMS);
 static expr_t parse_expr(PARSE_PARAMS);
 static morph_chain_t parse_morph_chain(PARSE_PARAMS);
@@ -73,6 +73,7 @@ static expr_t parse_expr(PARSE_PARAMS) {
 
   PARSE_RETURN(ex);
 }
+
 static arg_t parse_arg_list(PARSE_PARAMS) {
   arg_t arg = malloc(sizeof(arg_t));
 
@@ -164,7 +165,7 @@ static type_t parse_type(PARSE_PARAMS) {
      ty_>kind = MAP_TY;
      else if (MATCH_TOK(SET))
      ty->kind = SET_TY;
-     */  
+     */
   else if (MATCH_TOK(IDENTIFIER))
     ty->kind = NAME_TY;
 
@@ -206,8 +207,8 @@ static type_t parse_type_expr(PARSE_PARAMS) {
   PARSE_RETURN(ty);
 }
 
-static fun_t parse_fun_decl(PARSE_PARAMS) {
-  fun_t fun = malloc(sizeof(fun_t));
+static fun_decl_t parse_fun_decl(PARSE_PARAMS) {
+  fun_decl_t fun = malloc(sizeof(fun_decl_t));
 
   fun->name = BEGET->val;
   EXPECT_TOK(IDENTIFIER);
@@ -240,6 +241,7 @@ static fun_t parse_fun_decl(PARSE_PARAMS) {
   PARSE_RETURN(fun);
 }
 
+<<<<<<< HEAD
 // Assignment used in a declaration context
 static assign_t parse_static_assign(PARSE_PARAMS) {
   assign_t assign;
@@ -321,7 +323,7 @@ static assign_t parse_assign(PARSE_PARAMS) {
 static id_list_t parse_id_list(PARSE_PARAMS) {
   id_list_t id_list;
 
-  id_list = malloc(sizeof(id_list_st));
+  id_list = malloc(sizeof(struct id_list_st));
 
   id_list->name = BEGET->val;
   EXPECT_TOK(IDENTIFIER);
@@ -337,10 +339,9 @@ static id_list_t parse_id_list(PARSE_PARAMS) {
   return id_list;
 }
 
-
 static var_decl_t parse_vars_decl(PARSE_PARAMS) {
   var_decl_t var;
-  var = malloc(sizeof(struct var_decl_st));
+  var = malloc(sizeof(var_decl_t));
 
   var->name = BEGET->val;
   EXPECT_TOK(IDENTIFIER);
@@ -463,4 +464,3 @@ root_t parse(ll_t tokens) {
   log("Parse ended successfully\n");
   return root;
 }
-

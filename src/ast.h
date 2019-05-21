@@ -7,7 +7,7 @@ typedef struct root_st          *root_t;
 typedef struct mod_st           *mod_t;
 typedef struct decl_st          *decl_t;
 typedef struct id_list_st       *id_list_t;
-typedef struct assign_st        *assign_t
+typedef struct assign_st        *assign_t;
 typedef struct const_decl_st    *const_decl_t;
 typedef struct type_decl_st     *type_decl_t;
 typedef struct var_decl_st      *var_decl_t;
@@ -54,8 +54,8 @@ struct mod_st {
 struct decl_st {
   const_t constants;
   type_decl_t types;
-  var_t vars;
-  fun_t funs;
+  var_decl_t vars;
+  fun_decl_t funs;
   mod_t mods;
 };
 
@@ -69,7 +69,7 @@ struct type_decl_st {
   type_t type;
 
   // Any morphs for this type
-  morph__t morphs;
+  morph_t morphs;
 
   // The next type in the sequence of declarations
   type_decl_t next; // NULLABLE
@@ -102,7 +102,7 @@ struct morph_chain_st {
   enum {
     DIRECT_PATH,
     BEST_PATH
-  } path; // -> is DIRECT_PATH, ... is BEST_PATH 
+  } path; // -> is DIRECT_PATH, ... is BEST_PATH
 
   // points to next morph in chain
   morph_chain_t next; // NULLABLE
@@ -308,7 +308,7 @@ struct arg_st {
   type_t type;
   arg_t next;
 };
-  
+
 // prototypes
 root_t parse(ll_t ll_tokens);
 

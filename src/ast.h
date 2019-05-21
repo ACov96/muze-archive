@@ -280,8 +280,11 @@ struct literal_st {
     char *string_lit;
     char *integer_lit;
     char *real_lit;
-    boolean_t bool_lit;
-  };
+    enum {
+      TRUE_BOOL,
+      FALSE_BOOL
+    } bool_lit;
+  } u;
 };
 
 
@@ -290,12 +293,6 @@ struct literal_st {
 struct morph_expr_st {
   expr_t expr;
   morph_chain_t morph;
-};
-
-struct boolean_st {
-  enum {
-    TRUE_BOOL, FALSE_BOOL
-  } val;
 };
 
 struct morph_st {

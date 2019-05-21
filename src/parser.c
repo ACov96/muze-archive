@@ -66,10 +66,12 @@ static expr_t parse_expr(PARSE_PARAMS) {
 
   if (MATCH_TOK(IDENTIFIER)){
     ex->kind = ID_EX;
-    ex->u.id = BEGET->val;
+    ex->u.id_ex = BEGET->val;
   }
-  else if (MATCH_FUN(parse_literal, ex->u.literal))
+  else if (MATCH_FUN(parse_literal, ex->u.literal_ex)) {
     ex->kind = LITERAL_EX;
+  }
+  // TODO
 
   PARSE_RETURN(ex);
 }
@@ -102,39 +104,28 @@ static arg_t parse_arg_list(PARSE_PARAMS) {
   PARSE_RETURN(arg);
 }
 
-static boolean_t parse_boolean(PARSE_PARAMS) {
-  boolean_t bool = malloc(sizeof(boolean_t));
-
-  if (MATCH_TOK(TRUE))
-    bool->val = TRUE_BOOL;
-  else if (MATCH_TOK(FALSE))
-    bool->val = FALSE_BOOL;
-
-  PARSE_RETURN(bool);
-}
-
 static literal_t parse_literal(PARSE_PARAMS) {
   literal_t lit = malloc(sizeof(literal_t));
 
   if (MATCH_TOK(STRING_VAL)){
     lit->kind = STRING_LIT;
-    lit->val = BEGET->val;
+    lit->u.string_lit = BEGET->val;
   }
   else if (MATCH_TOK(INT_VAL)) {
     lit->kind = INTEGER_LIT;
-    lit->val = BEGET->val;
+    lit->u.integer_lit = BEGET->val;
   }
   else if (MATCH_TOK(REAL_VAL)) {
     lit->kind = REAL_LIT;
-    lit->val = BEGET->val;
+    lit->u.real_lit = BEGET->val;
   }
   else if (MATCH_TOK(TRUE)){
     lit->kind = BOOLEAN_LIT;
-    lit->val = "true";
+    lit->u.bool_lit = TRUE_BOOL;
   }
   else if (MATCH_TOK(FALSE)){
     lit->kind = BOOLEAN_LIT;
-    lit->val = "false";
+    lit->u.bool_lit = FALSE_BOOL;
   }
   PARSE_RETURN(lit);
 
@@ -144,22 +135,30 @@ static char* parse_arithmetic_expr(PARSE_PARAMS) {
   return NULL;
 }
 
+static char *parse_right_identifier(PARSE_PARAMS) {
+  char *id;
+
+  if (MATCH_TOK(STRING)
+      || MATCH_TOK(INTEGER)
+      || MATCH_TOK(REAL)
+      || MATCH_TOK(BOOLEAN)
+      || MATCH_TOK(ARRAY)
+      || MATCH_TOK(LIST)
+      || MATCH_TOK(IDENTIFIER)
+      ) {
+  }
+  else {
+    PARSE_FAIL("Expected identifier");
+  }
+
+  PARSE_RETURN(id);
+}
+
 
 static type_t parse_type(PARSE_PARAMS) {
   type_t ty = malloc(sizeof(type_t));
 
-  if (MATCH_TOK(STRING))
-    ty->kind = STRING_TY;
-  else if (MATCH_TOK(INTEGER))
-    ty->kind = INTEGER_TY;
-  else if (MATCH_TOK(REAL))
-    ty->kind = REAL_TY;
-  else if (MATCH_TOK(BOOLEAN))
-    ty->kind = BOOLEAN_TY;
-  else if (MATCH_TOK(ARRAY))
-    ty->kind = ARRAY_TY;
-  else if (MATCH_TOK(LIST))
-    ty->kind = LIST_TY;
+  if (MATCH_FUN(parse_right_identifer, ty->NAME_TY))
   /*
      else if (MATCH_TOK(MAP))
      ty_>kind = MAP_TY;

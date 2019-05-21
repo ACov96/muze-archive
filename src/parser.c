@@ -49,7 +49,7 @@ static char parse_err[BUFSIZ];
 static decl_t parse_decl(PARSE_PARAMS);
 static mod_t parse_module_decl(PARSE_PARAMS);
 static type_decl_t parse_type_decl(PARSE_PARAMS);
-static const_t parse_const_decl(PARSE_PARAMS);
+static const_decl_t parse_const_decl(PARSE_PARAMS);
 static fun_decl_t parse_fun_decl(PARSE_PARAMS);
 static var_decl_t parse_vars_decl(PARSE_PARAMS);
 static type_t parse_type(PARSE_PARAMS);
@@ -227,14 +227,14 @@ static fun_decl_t parse_fun_decl(PARSE_PARAMS) {
     fun->ret_type = NULL;
 
   MATCH_FUN(parse_decl, fun->decl);
-  log("return from parse_decl\n");
-  log("%s\n", BEGET->val);
+  write_log("return from parse_decl\n");
+  write_log("%s\n", BEGET->val);
 
   EXPECT_TOK(BEGIN);
 
   // parse statements
-  log("parsed BEGIN\n");
-  log("%s\n", BEGET->val);
+  write_log("parsed BEGIN\n");
+  write_log("%s\n", BEGET->val);
   EXPECT_TOK(NUF);
   EXPECT_TOK(IDENTIFIER);
   MATCH_FUN(parse_fun_decl, fun->next);
@@ -339,9 +339,30 @@ static id_list_t parse_id_list(PARSE_PARAMS) {
   return id_list;
 }
 
+// parse type declarations
+static type_decl_t parse_type_decl(PARSE_PARAMS) {
+  type_decl_t ty = malloc(sizeof(struct type_decl_st));
+
+  ty->name = BEGET->val;
+  EXPECT_TOK(IDENTIFIER);
+
+  EXPECT_TOK(EQ);
+  EXPECT_FUN(parse_type_expr, ty->type);
+  EXPECT_TOK(SEMICOLON);
+
+  if (MATCH_TOK(MU)){
+    NEXT;
+    //some morph stuff
+    EXPECT_TOK(UM);
+  } 
+
+  MATCH_FUN(parse_type_decl,ty->next);
+  PARSE_RETURN(ty);
+}
+
 static var_decl_t parse_vars_decl(PARSE_PARAMS) {
   var_decl_t var;
-  var = malloc(sizeof(var_decl_t));
+  var = malloc(sizeof(struct var_decl_st));
 
   var->name = BEGET->val;
   EXPECT_TOK(IDENTIFIER);
@@ -383,27 +404,6 @@ static const_decl_t parse_const_decl(PARSE_PARAMS) {
   PARSE_RETURN(con);
 }
 
-// parse type declarations
-static type_decl_t parse_type_decl(PARSE_PARAMS) {
-  type_decl_t ty = malloc(sizeof(struct type_decl_st));
-
-  ty->name = BEGET->val;
-  EXPECT_TOK(IDENTIFIER);
-
-  EXPECT_TOK(EQ);
-  EXPECT_FUN(parse_type_expr, ty->type);
-  EXPECT_TOK(SEMICOLON);
-
-  if (MATCH_TOK(MU)){
-    NEXT;
-    //some morph stuff
-    EXPECT_TOK(UM);
-  } 
-
-  MATCH_FUN(parse_type_decl,ty->next);
-  PARSE_RETURN(ty);
-}
-
 // parse declarations block
 static decl_t parse_decl(PARSE_PARAMS) {
   decl_t decl = malloc(sizeof(struct decl_st));
@@ -427,8 +427,8 @@ static decl_t parse_decl(PARSE_PARAMS) {
     NEXT;
     MATCH_FUN(parse_fun_decl, decl->funs);
 
-    log("returned from parse_fun_decl\n");
-    log("%s\n", BEGET->val);
+    write_log("returned from parse_fun_decl\n");
+    write_log("%s\n", BEGET->val);
   }
 
   PARSE_RETURN(decl);
@@ -461,6 +461,6 @@ root_t parse(ll_t tokens) {
   root = malloc(sizeof(struct root_st));
 
   EXPECT_FUN(parse_module_decl, root->mods);
-  log("Parse ended successfully\n");
+  write_log("Parse ended successfully\n");
   return root;
 }

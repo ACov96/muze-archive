@@ -30,6 +30,7 @@ typedef struct morph_chain_st   *morph_chain_t;
 typedef struct boolean_st       *boolean_t;
 typedef struct enum_st          *enum_t;
 typedef struct rec_st           *rec_t;
+typedef struct arg_st           *arg_t;
 
 // Entry node in the AST
 struct root_st {
@@ -52,11 +53,11 @@ struct mod_st {
 
 // A sequence of declarations
 struct decl_st {
-  const_t constants;
-  type_decl_t types;
-  var_decl_t vars;
-  fun_decl_t funs;
-  mod_t mods;
+  const_decl_t constants; // NULLABLE
+  type_decl_t types; // NULLABLE
+  var_decl_t vars; // NULLABLE
+  fun_decl_t funs; // NULLABLE
+  mod_t mods; // NULLABLE
 };
 
 
@@ -72,7 +73,7 @@ struct var_decl_st {
   assign_t assign; // NULLABLE
 
   // next variable in the declaration
-  var_t next; // NULLABLE
+  var_decl_t next; // NULLABLE
 };
 
 
@@ -88,7 +89,7 @@ struct const_decl_st {
   assign_t assign;
 
   // next constant in declaration sequence
-  const_t next; // NULLABLE
+  const_decl_t next; // NULLABLE
 };
 
 
@@ -97,20 +98,17 @@ struct fun_decl_st {
   // name of the function
   char* name;
 
-  // Function parameters
-  param_t params;
+  // Function args
+  arg_t args;
 
   // return type of the function
   type_t ret_type;
-
-  // Parameters for the function
-  arg_t args;
 
   // Inner function declarations
   decl_t decl;
 
   // next function in the declaration
-  fun_t next; // NULLABLE
+  fun_decl_t next; // NULLABLE
 };
 
 
@@ -170,7 +168,7 @@ struct id_list_st {
 
   // next id in the list
   id_list_t next; // NULLABLE
-}
+};
 
 
 // An assignment
@@ -206,7 +204,7 @@ struct expr_st {
   } kind;
 
   union {
-    lvalue_t lvalue_ex;
+    char *id_ex;
     literal_t literal_ex;
     unary_t unary_ex;
     binary_t binary_ex;
@@ -282,8 +280,8 @@ struct literal_st {
     char *string_lit;
     char *integer_lit;
     char *real_lit;
-    boolean_st bool_lit;
-  }
+    boolean_t bool_lit;
+  };
 };
 
 

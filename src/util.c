@@ -26,9 +26,9 @@ void error_and_exit(char* message, int line_no) {
   exit(1);
 }
 
-void log(...) {
+void write_log(char *msg, ...) {
   va_list args;
 
-  fprintf(stdout, args);
+  fprintf(stdout, msg, args);
 }
 

@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <assert.h>
+#include <stdarg.h>
 #include "util.h"
 
 ll_t ll_new() {
@@ -23,5 +24,11 @@ void ll_append(ll_t l, void *data) {
 void error_and_exit(char* message, int line_no) {
   fprintf(stderr, "%d:%s\n", line_no, message);
   exit(1);
+}
+
+void log(...) {
+  va_list args;
+
+  fprintf(stdout, args);
 }
 

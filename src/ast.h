@@ -60,6 +60,60 @@ struct decl_st {
 };
 
 
+// A variable declaration
+struct var_decl_st {
+  // name of the variable
+  id_list_t names;
+
+  // type of the variable
+  type_t type;
+
+  // The assignment
+  assign_t assign; // NULLABLE
+
+  // next variable in the declaration
+  var_t next; // NULLABLE
+};
+
+
+// A declaration of a constant
+struct const_decl_st {
+  // Constant name
+  char* name;
+
+  // Constant type
+  type_t ty;
+
+  // Expression assigned to the constant
+  assign_t assign;
+
+  // next constant in declaration sequence
+  const_t next; // NULLABLE
+};
+
+
+// A function declaration
+struct fun_decl_st {
+  // name of the function
+  char* name;
+
+  // Function parameters
+  param_t params;
+
+  // return type of the function
+  type_t ret_type;
+
+  // Parameters for the function
+  arg_t args;
+
+  // Inner function declarations
+  decl_t decl;
+
+  // next function in the declaration
+  fun_t next; // NULLABLE
+};
+
+
 // A type declaration
 struct type_decl_st {
   // Name of the type
@@ -123,7 +177,7 @@ struct id_list_st {
 struct assign_st {
   // Deep or shallow copy, := vs =
   enum {
-    SHALLOW_AS,
+    SIMPLE_AS,
     DEEP_AS,
     PLUS_AS,
     MINUS_AS,
@@ -133,64 +187,10 @@ struct assign_st {
     OR_AS,
     AND_AS,
     XOR_AS
-  } op;
+  } kind;
 
   // Expression to be assigned to
   expr_t expr;
-};
-
-
-// A variable declaration
-struct var_decl_st {
-  // name of the variable
-  id_list_t names;
-
-  // type of the variable
-  type_t type;
-
-  // The assignment
-  assign_t assign; // NULLABLE
-
-  // next variable in the declaration
-  var_t next; // NULLABLE
-};
-
-
-// A declaration of a constant
-struct const_decl_st {
-  // Constant name
-  char* name;
-
-  // Constant type
-  type_t ty;
-
-  // Expression assigned to the constant
-  assign_t assign;
-
-  // next constant in declaration sequence
-  const_t next; // NULLABLE
-};
-
-
-// A function declaration
-struct fun_decl_st {
-  // name of the function
-  char* name;
-
-  // Function parameters
-  param_t params;
-
-  // return type of the function
-  type_t ret_type;
-
-  // Parameters for the function
-  arg_t args;
-
-  // Inner function declarations
-  decl_t decl;
-
-  // next function in the declaration
-  fun_t next; // NULLABLE
 };
 
 

@@ -45,12 +45,12 @@ struct token_st {
   int line_no;
 };
 
-#ifndef _LEXER_C_
-extern const char *token_names[];
-#else
+#ifdef _LEXER_C_
 const char *token_names[] = {
     FOREACH_TOKEN(GEN_STR)
 };
+#else
+extern const char *token_names[];
 #endif
 
 typedef struct token_st* token_t;

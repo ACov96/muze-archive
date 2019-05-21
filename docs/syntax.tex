@@ -970,41 +970,41 @@ A singular statement.
     \node[nterm] at (0, -3) (assign)  {Assignment};
     \node[nterm] at (0, -5) (expr)  {Expression Statement};
 
-    \draw[arr] (entry)
+    \draw[narr, mid arrow = 0.9] (entry)
     -- (entry-list)
     |- (if);
-    \draw[arr] (entry)
+    \draw[narr, mid arrow = 0.85] (entry)
     -- (entry-list)
     |- (loop);
-    \draw[arr] (entry)
+    \draw[narr, mid arrow = 0.8] (entry)
     -- (entry-list)
     |- (fa);
-    \draw[arr] (entry)
+    \draw[narr, mid arrow = 0.8] (entry)
     -- (entry-list)
     |- (case);
-    \draw[arr] (entry)
+    \draw[narr, mid arrow = 0.9] (entry)
     -- (entry-list)
     |- (assign);
-    \draw[arr] (entry)
+    \draw[narr, mid arrow = 0.95] (entry)
     -- (entry-list)
     |- (expr);
 
-    \draw[arr] (if)
+    \draw[narr, mid arrow = 0.1] (if)
     -| (list-exit)
     -- (exit);
-    \draw[arr] (loop)
+    \draw[narr, mid arrow = 0.15] (loop)
     -| (list-exit)
     -- (exit);
-    \draw[arr] (fa)
+    \draw[narr, mid arrow = 0.2] (fa)
     -| (list-exit)
     -- (exit);
-    \draw[arr] (case)
+    \draw[narr, mid arrow = 0.2] (case)
     -| (list-exit)
     -- (exit);
-    \draw[arr] (assign)
+    \draw[narr, mid arrow = 0.1] (assign)
     -| (list-exit)
     -- (exit);
-    \draw[arr] (expr)
+    \draw[narr, mid arrow = 0.05] (expr)
     -| (list-exit)
     -- (exit);
   \end{tikzpicture}
@@ -1145,26 +1145,30 @@ Assign a value to a variable or field of a record.
   \centering
   \begin{tikzpicture}
     \node[entry] (entry) {};
-    \node[nterm] (left-side) [right=of entry] {Left Target};
-    \coordinate [right=1cm of left-side] (left-assign);
-    \node[term] (shallow) [above=of left-assign] {=};
-    \node[term] (deep) [below=of left-assign] {:=};
-    \node[nterm] (expr) [right=1cm of left-assign] {Expression};
+    \node[nterm] (left-side) [right=of entry] {LValue};
+    \coordinate [right=of left-side] (left-assign);
+    \coordinate [right=1cm of left-assign] (assign);
+    \node[term] (shallow) [above=0.25cm of assign] {=};
+    \node[term] (deep) [below=0.25cm of assign] {:=};
+    \coordinate [right=1cm of assign] (assign-expr);
+    \node[nterm] (expr) [right=of assign-expr] {Expression};
     \node[term] (semicolon) [right=of expr] {;};
     \node[exit] (exit) [right=of semicolon] {};
 
     \draw[arr] (entry) -- (left-side);
-    \draw[arr] (left-side) |- (shallow);
-    \draw[arr] (left-side) |- (deep);
-    \draw[arr] (shallow) -| (expr);
-    \draw[arr] (deep) -| (expr);
+    \draw[narr, mid arrow = 0.8] (left-side) -- (left-assign) |- (shallow);
+    \draw[narr, mid arrow = 0.8] (left-side) -- (left-assign) |- (deep);
+    \draw[narr, mid arrow = 0.2] (shallow) -| (assign-expr) -- (expr);
+    \draw[narr, mid arrow = 0.2] (deep) -| (assign-expr) -- (expr);
     \draw[arrs] (expr) -- (semicolon) -- (exit);
   \end{tikzpicture}
 \end{figure}
 
-\subsection{Left Target}
+\subsection{LValue}
 
-Possible targets of an assignment.
+Possible value on the left side of an assignment.
+
+TODO: We need to talk about this in further detail.
 
 \begin{figure}[H]
   \centering
@@ -1231,25 +1235,23 @@ There are various types of expressions that can be evaluated.
     \coordinate [below right=1cm and .25cm of func-call] (list-exit);
     \node[exit] (exit) [below=of list-exit] {};
 
-    \draw[arr] (entry) -- (entry-list);
-    \draw[arr] (list-exit) -- (exit);
-    \draw[arr] (entry-list) -| (func-call);
-    \draw[arr] (entry-list) -| (morph);
-    \draw[arr] (entry-list) -| (ternary);
-    \draw[arr] (entry-list) -| (value);
-    \draw[arr] (entry-list) -| (arithmetic);
-    \draw[arr] (entry-list) -| (logical);
-    \draw[arr] (entry-list) -| (range);
-    \draw[arr] (entry-list) -| (literal);
+    \draw[narr, mid arrow = -0.5cm] (entry) -- (entry-list) -| (func-call);
+    \draw[narr, mid arrow = -0.5cm] (entry) -- (entry-list) -| (morph);
+    \draw[narr, mid arrow = -0.5cm] (entry) -- (entry-list) -| (ternary);
+    \draw[narr, mid arrow = -0.5cm] (entry) -- (entry-list) -| (value);
+    \draw[narr, mid arrow = -0.5cm] (entry) -- (entry-list) -| (arithmetic);
+    \draw[narr, mid arrow = -0.5cm] (entry) -- (entry-list) -| (logical);
+    \draw[narr, mid arrow = -0.5cm] (entry) -- (entry-list) -| (range);
+    \draw[narr, mid arrow = -0.5cm] (entry) -- (entry-list) -| (literal);
 
-    \draw[arr] (func-call) |- (list-exit);
-    \draw[arr] (morph) |- (list-exit);
-    \draw[arr] (ternary) |- (list-exit);
-    \draw[arr] (value) |- (list-exit);
-    \draw[arr] (arithmetic) |- (list-exit);
-    \draw[arr] (logical) |- (list-exit);
-    \draw[arr] (range) |- (list-exit);
-    \draw[arr] (literal) |- (list-exit);
+    \draw[narr, mid arrow = 0.5cm] (func-call)  |- (list-exit) -- (exit);
+    \draw[narr, mid arrow = 0.5cm] (morph)      |- (list-exit) -- (exit);
+    \draw[narr, mid arrow = 0.5cm] (ternary)    |- (list-exit) -- (exit);
+    \draw[narr, mid arrow = 0.5cm] (value)      |- (list-exit) -- (exit);
+    \draw[narr, mid arrow = 0.5cm] (arithmetic) |- (list-exit) -- (exit);
+    \draw[narr, mid arrow = 0.5cm] (logical)    |- (list-exit) -- (exit);
+    \draw[narr, mid arrow = 0.5cm] (range)      |- (list-exit) -- (exit);
+    \draw[narr, mid arrow = 0.5cm] (literal)    |- (list-exit) -- (exit);
 
   \end{tikzpicture}
 \end{figure}
@@ -1270,15 +1272,15 @@ An expression that immediately evaluates to a literal value.
     \coordinate [right=of boolean] (list-exit);
     \node[exit] (exit) [right=of list-exit] {};
 
-    \draw[arr] (entry) -- (string);
-    \draw[arr] (boolean) -- (exit);
-    \draw[arr] (entry) -- (entry-list) |- (integer);
-    \draw[arr] (entry) -- (entry-list) |- (real);
-    \draw[arr] (entry) -- (entry-list) |- (boolean);
+    \draw[narr, mid arrow = 0.75] (entry) -- (string);
+    \draw[narr, mid arrow = 0.25] (boolean) -- (exit);
+    \draw[narr, mid arrow = 0.92] (entry) -- (entry-list) |- (integer);
+    \draw[narr, mid arrow = 0.92] (entry) -- (entry-list) |- (real);
+    \draw[narr, mid arrow = 0.97] (entry) -- (entry-list) |- (boolean);
 
-    \draw[arr] (string) -| (list-exit) -- (exit);
-    \draw[arr] (integer) -| (list-exit) -- (exit);
-    \draw[arr] (real) -| (list-exit) -- (exit);
+    \draw[narr, mid arrow = 0.05] (string) -| (list-exit) -- (exit);
+    \draw[narr, mid arrow = 0.08] (integer) -| (list-exit) -- (exit);
+    \draw[narr, mid arrow = 0.15] (real) -| (list-exit) -- (exit);
   \end{tikzpicture}
 \end{figure}
 
@@ -1290,23 +1292,23 @@ Call a function with or without arguments.
   \centering
   \begin{tikzpicture}
     \node[entry] (entry) {};
-    \node[nterm] (name) [right=of entry] {Left Target};
+    \node[nterm] (name) [right=of entry] {Identifier};
     \node[term] (open) [right=of name] {(};
-    \coordinate [right=4cm of open] (middle);
-    \node[term] (close) [right=of middle] {)};
+    \coordinate [right=of open] (open-loop);
+    \coordinate [right=of open-loop] (loop-expr);
+    \node[nterm] (expr) [right=of loop-expr] {Expression};
+    \node[term] (comma) [above=of expr] {,};
+    \coordinate [right=of expr] (expr-loop); 
+    \coordinate [right=of expr-loop] (loop-close); 
+    \node[term] (close) [right=of loop-close] {)};
     \node[exit] (exit) [right=of close] {};
-    \node[nterm] (expr) [above right=.5cm and .5cm of open] {Expression};
-    \coordinate [right=.5cm of expr] (expr-comma); 
-    \coordinate [above=of expr-comma] (expr-comma-above); 
-    \node[term] (comma) [right=.5cm of expr-comma] {,};
 
     \draw[arrs] (entry) -- (name) -- (open);
+    \draw[arrs] (open) -- (expr) -- (close);
     \draw[arr] (close) -- (exit);
-    \draw[arr] (open) -- (close);
-    \draw[arr] (open) -| (expr);
-    \draw[narr] (expr) -- (expr-comma) |- (close);
-    \draw[arr] (expr) -- (comma);
-    \draw[arr] (comma) |- (expr-comma-above) -| (expr);
+    \draw[arr] (open) -- (open-loop) -- ++(0, -1) -| (loop-close) -- (close);
+    \draw[narr, mid arrow = 0.75] (expr) -- (expr-loop) |- (comma);
+    \draw[narr, mid arrow = 0.25] (comma) -| (loop-expr) -- (expr);
   \end{tikzpicture}
 \end{figure}
 

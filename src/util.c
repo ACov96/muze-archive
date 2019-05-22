@@ -32,3 +32,33 @@ void write_log(char *msg, ...) {
   fprintf(stdout, msg, args);
 }
 
+typedef struct err_queue_st *err_queue_t;
+
+struct err_queue_st {
+  char *msg;
+  err_queue_t next;
+};
+
+static err_queue_t errors;
+
+void append_error(char *msg, ...) {
+  va_list args;
+  err_queue_t *curr;
+
+  // get to the end of the list
+  for (curr = &errors; *curr; curr = &((*curr)->next));
+
+  *curr = malloc(sizeof(struct err_queue_st));
+  (*curr)->msg = malloc(BUFSIZ);
+  snprintf((*curr)->msg, BUFSIZ, msg, args);
+  (*curr)->next = NULL;
+}
+
+void print_errors() {
+  err_queue_t curr;
+
+  for (curr = errors; curr; curr = curr->next) {
+    fprintf(stderr, "%s\n", curr->msg);
+  }
+}
+

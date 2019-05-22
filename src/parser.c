@@ -11,7 +11,7 @@
   (res = fn(LL_NAME, &LL_NAME))
 
 #define MATCH_TOK(t) \
-  (BEGET->tok == t)
+  ((BEGET->tok == t) && (NEXT))
 
 #define EXPECT_FUN(fn, res) \
   if (!MATCH_FUN(fn, res)) \
@@ -85,7 +85,6 @@ static arg_t parse_arg_list(PARSE_PARAMS) {
   arg->name = BEGET->val;
   EXPECT_TOK(IDENTIFIER);
   if (MATCH_TOK(COMMA)) {
-    NEXT;
     EXPECT_FUN(parse_arg_list, arg->next);
   }
   EXPECT_TOK(COLON);
@@ -93,7 +92,6 @@ static arg_t parse_arg_list(PARSE_PARAMS) {
   printf("%s\n", BEGET->val);
   EXPECT_FUN(parse_type_expr, arg->type);
   if (MATCH_TOK(SEMICOLON)){
-    NEXT;
     MATCH_FUN(parse_arg_list, arg->next);
   }
   else
@@ -180,12 +178,10 @@ static morph_chain_t parse_morph_chain(PARSE_PARAMS) {
 
   if (MATCH_TOK(DOT_DOT_DOT)){
     morph->path = DIRECT_PATH;
-    NEXT;
     EXPECT_FUN(parse_type, morph->ty);
   }
   else if (MATCH_TOK(ARROW)){
     morph->path = BEST_PATH;
-    NEXT;
     EXPECT_FUN(parse_type, morph->ty);
   }
   else
@@ -223,7 +219,6 @@ static fun_decl_t parse_fun_decl(PARSE_PARAMS) {
   printf("%s\n", BEGET->val);
 
   if (MATCH_TOK(COLON)){
-    NEXT;
     EXPECT_FUN(parse_type_expr, fun->ret_type);
   }else
     fun->ret_type = NULL;
@@ -250,11 +245,9 @@ static assign_t parse_static_assign(PARSE_PARAMS) {
 
   if (MATCH_TOK(EQ)) {
     assign->kind = SIMPLE_AS;
-    NEXT;
   }
   else if (MATCH_TOK(COLON_EQ)) {
     assign->kind = DEEP_AS;
-    NEXT;
   }
   else {
     PARSE_FAIL("Expected one of '=' or ':=' in static assignment");
@@ -273,43 +266,33 @@ static assign_t parse_assign(PARSE_PARAMS) {
 
   if (MATCH_TOK(EQ)) {
     assign->kind = SIMPLE_AS;
-    NEXT;
   }
   else if (MATCH_TOK(COLON_EQ)) {
     assign->kind = DEEP_AS;
-    NEXT;
   }
   else if (MATCH_TOK(PLUS_EQ)) {
     assign->kind = PLUS_AS;
-    NEXT;
   }
   else if (MATCH_TOK(MINUS_EQ)) {
     assign->kind = MINUS_AS;
-    NEXT;
   }
   else if (MATCH_TOK(MULT_EQ)) {
     assign->kind = MULT_AS;
-    NEXT;
   }
   else if (MATCH_TOK(DIV_EQ)) {
     assign->kind = DIV_AS;
-    NEXT;
   }
   else if (MATCH_TOK(MOD_EQ)) {
     assign->kind = MOD_AS;
-    NEXT;
   }
   else if (MATCH_TOK(OR_EQ)) {
     assign->kind = OR_AS;
-    NEXT;
   }
   else if (MATCH_TOK(AND_EQ)) {
     assign->kind = AND_AS;
-    NEXT;
   }
   else if (MATCH_TOK(XOR_EQ)) {
     assign->kind = XOR_AS;
-    NEXT;
   }
   else {
     PARSE_FAIL("Expected an assignment operator");
@@ -330,7 +313,6 @@ static id_list_t parse_id_list(PARSE_PARAMS) {
   EXPECT_TOK(IDENTIFIER);
 
   if (MATCH_TOK(COMMA)) {
-    NEXT;
     EXPECT_FUN(parse_id_list, id_list->next);
   }
   else {
@@ -352,7 +334,6 @@ static type_decl_t parse_type_decl(PARSE_PARAMS) {
   EXPECT_TOK(SEMICOLON);
 
   if (MATCH_TOK(MU)){
-    NEXT;
     //some morph stuff
     EXPECT_TOK(UM);
   } 
@@ -404,22 +385,18 @@ static decl_t parse_decl(PARSE_PARAMS) {
   decl_t decl = malloc(sizeof(struct decl_st));
 
   if (MATCH_TOK(CONST)){
-    NEXT;
     MATCH_FUN(parse_const_decl, decl->constants);
   }
 
   if (MATCH_TOK(TYPE)){
-    NEXT;
     MATCH_FUN(parse_type_decl, decl->types);
   }
 
   if (MATCH_TOK(VAR)){
-    NEXT;
     MATCH_FUN(parse_vars_decl, decl->vars);
   }
 
   if (MATCH_TOK(FUN)){
-    NEXT;
     MATCH_FUN(parse_fun_decl, decl->funs);
 
     write_log("returned from parse_fun_decl\n");

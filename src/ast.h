@@ -179,7 +179,7 @@ struct assign_st {
     DEEP_AS,
     PLUS_AS,
     MINUS_AS,
-    MUL_AS,
+    MULT_AS,
     DIV_AS,
     MOD_AS,
     OR_AS,

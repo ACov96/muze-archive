@@ -32,4 +32,6 @@ void ll_append(ll_t l, void *data);
  */
 void error_and_exit(char* message, int line_no);
 
+void write_log(char *msg, ...);
+
 #endif

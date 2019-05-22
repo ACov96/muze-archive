@@ -23,7 +23,7 @@ char morph_paths[][12] = {"DIRECT_PATH", "BEST_PATH"};
 #define PARAMS FILE *OUT_FILE, char *BUF_START, char *BUF_END
 
 #define INDT_APP(str, num) \
-  strncpy(BUF_END, str, num); \
+  strncpy(BUF_END, str, num + 1); \
   BUF_END += num
 
 #define INDT_DROP(num) \
@@ -103,7 +103,7 @@ static void print_decl(decl_t decl, PARAMS) {
   PRINT_NODE("Types", print_type_decl, decl->types);
   PRINT_NODE("Variables", print_var_decl, decl->vars);
   PRINT_NODE("Functions", print_fun_decl, decl->funs);
-  PRINT_NODE("Modules", print_mod, decl->mods);
+  PRINT_LAST("Modules", print_mod, decl->mods);
 }
 
 static void print_mod(mod_t mod, PARAMS) {

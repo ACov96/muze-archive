@@ -1,0 +1,40 @@
+├│└─┌┘
+
+Root
+ └Modules
+   ├Name
+   │ └'Main'
+   ├Declarations
+   │ ├Constants
+   │ │ ├Name
+   │ │ │ └'a'
+   │ │ ├Type
+   │ │ │ ├Kind
+   │ │ │ │ └NAME_TY
+   │ │ │ └Name
+   │ │ │   └'A'
+   │ │ ├Assignment
+   │ │ │ └]
+   │ │ └Next
+   │ │ ┌─┘
+   │ │ ├Name
+   │ │ │ └'b'
+   │ │ ├Type
+   │ │ │ ├Kind
+   │ │ │ │ └NAME_TY
+   │ │ │ └Name
+   │ │ │   └'B'
+   │ │ ├Assignment
+   │ │ │ └]
+   │ │ └Next
+   │ │   └]
+   │ ├Types
+   │ │ └]
+   │ ├Variables
+   │ │ └]
+   │ ├Functions
+   │ │ └]
+   │ └Modules
+   │   └]
+   └Next
+     └]

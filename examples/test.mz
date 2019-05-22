@@ -1,0 +1,7 @@
+mod Main
+  const
+    a : Integer = 1;
+dom Main
+
+mod Test
+dom Test

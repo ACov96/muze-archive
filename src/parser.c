@@ -14,24 +14,23 @@
   ((BEGET->tok == t) && (NEXT))
 
 #define EXPECT_FUN(fn, res) \
-  if (!MATCH_FUN(fn, res)) \
+  if (!MATCH_FUN(fn, res)) { \
     return NULL; \
-  NEXT
+  }
 
 #define EXPECT_TOK(t) \
   if (!MATCH_TOK(t)) { \
     PARSE_FAIL("Expected %s, got %s", token_names[t].pretty, \
                token_names[BEGET->tok].pretty); \
-    return NULL; \
-  } \
-  NEXT
+  }
 
 #define PARSE_RETURN(ret) \
   *LL_OUT = LL_NAME; \
   return ret
 
 #define PARSE_FAIL(...) \
-  snprintf(last_fail_msg, BUFSIZ, __VA_ARGS__)
+  snprintf(last_fail_msg, BUFSIZ, __VA_ARGS__); \
+  return NULL;
 
 // Gets the current token
 #define BEGET \
@@ -64,6 +63,8 @@ static char *parse_right_identifier(PARSE_PARAMS);
 
 static expr_t parse_expr(PARSE_PARAMS) {
   expr_t ex = malloc(sizeof(expr_t));
+
+  write_log("Parsing expression, %s", token_names[BEGET->tok].raw);
 
   if (MATCH_FUN(parse_right_identifier, ex->u.id_ex)) {
     ex->kind = ID_EX;
@@ -105,6 +106,8 @@ static arg_t parse_arg_list(PARSE_PARAMS) {
 static literal_t parse_literal(PARSE_PARAMS) {
   literal_t lit = malloc(sizeof(literal_t));
 
+  write_log("Parsing literal");
+
   if (MATCH_TOK(STRING_VAL)){
     lit->kind = STRING_LIT;
     lit->u.string_lit = BEGET->val;
@@ -137,6 +140,8 @@ static char* parse_arithmetic_expr(PARSE_PARAMS) {
 static char *parse_right_identifier(PARSE_PARAMS) {
   char *id;
 
+  write_log("Looking at %s", token_names[BEGET->tok].raw);
+
   id = BEGET->val;
   if (!(MATCH_TOK(STRING)
       || MATCH_TOK(INTEGER)
@@ -148,8 +153,11 @@ static char *parse_right_identifier(PARSE_PARAMS) {
       || MATCH_TOK(FALSE)
       || MATCH_TOK(IDENTIFIER)
       )) {
+    write_log("Is this working?");
     PARSE_FAIL("Expected identifier");
   }
+
+  write_log("Succesfully parsed right id");
 
   PARSE_RETURN(id);
 }
@@ -385,6 +393,7 @@ static decl_t parse_decl(PARSE_PARAMS) {
   decl_t decl = malloc(sizeof(struct decl_st));
 
   if (MATCH_TOK(CONST)){
+    write_log("found const");
     MATCH_FUN(parse_const_decl, decl->constants);
   }
 

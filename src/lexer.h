@@ -16,7 +16,7 @@
     Q(FUN), Q(NUF),  \
     Q(TYPE), Q(EPYT), Q(MU), Q(UM), \
     Q(CONST), Q(VAR), \
-    Q(CHAR), Q(STRING), Q(INTEGER), Q(REAL), Q(BOOLEAN), Q(BITSET), \
+     Q(STRING), Q(INTEGER), Q(REAL), Q(BOOLEAN), Q(BITSET), \
     Q(REC), Q(CER), \
     Q(ARRAY), Q(TUPLE), Q(HASH), Q(SET), Q(LIST), \
     A(STRING_VAL, "string literal"), A(INT_VAL, "integer literal"), \
@@ -50,13 +50,6 @@ enum token {
     FOREACH_TOKEN(GEN_ENUM, GEN_ENUM2)
 };
 
-
-struct token_st {
-  enum token tok;
-  char* val;
-  int line_no;
-};
-
 struct tokname_st {
   char *raw;
   char *pretty;
@@ -69,6 +62,12 @@ const struct tokname_st token_names[] = {
 #else
 extern const struct tokname_st token_names[];
 #endif
+
+struct token_st {
+  enum token tok;
+  char* val;
+  int line_no;
+};
 
 typedef struct token_st* token_t;
 

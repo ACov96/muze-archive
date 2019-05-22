@@ -33,5 +33,10 @@ int main(int argc, char* argv[]) {
   // parse
   root_t root;
   root = parse(tokens);
-  print_tree(stdout, root, 1);
+  if (root) {
+    print_tree(stdout, root);
+  }
+  else {
+    print_errors();
+  }
 }

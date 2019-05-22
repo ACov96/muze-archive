@@ -29,7 +29,10 @@ void error_and_exit(char* message, int line_no) {
 void write_log(char *msg, ...) {
   va_list args;
 
-  fprintf(stdout, msg, args);
+  va_start(args, msg);
+  vfprintf(stdout, msg, args);
+  va_end(args);
+  fprintf(stdout, "\n");
 }
 
 typedef struct err_queue_st *err_queue_t;

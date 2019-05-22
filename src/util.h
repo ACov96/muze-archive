@@ -33,7 +33,7 @@ void ll_append(ll_t l, void *data);
 void error_and_exit(char* message, int line_no);
 
 // Writes to the log file
-// (right now this is just pointed at stderr
+// (right now this is just pointed at stdout
 void write_log(char *msg, ...);
 
 // Append an error to the error queue

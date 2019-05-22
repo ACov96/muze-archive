@@ -1,5 +1,5 @@
 CC = gcc
-CFLAGS = -g -Wall -Werror
+CFLAGS = -g -Wall -Werror -Wno-error=unused-function
 
 OBJS = util.o lexer.o main.o parser.o print_tree.o
 

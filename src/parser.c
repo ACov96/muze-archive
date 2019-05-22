@@ -31,7 +31,7 @@
   return ret
 
 #define PARSE_FAIL(...) \
-  snprintf(parse_err, BUFSIZ, __VA_ARGS__)
+  snprintf(last_fail_msg, BUFSIZ, __VA_ARGS__)
 
 // Gets the current token
 #define BEGET \
@@ -43,9 +43,10 @@
 #define PARSE_PARAMS ll_t LL_NAME, ll_t *LL_OUT
 
 // most recent mismatch
-static char parse_err[BUFSIZ];
+static char last_fail_msg[BUFSIZ];
 
 // Prototypes
+static root_t parse_root(PARSE_PARAMS);
 static decl_t parse_decl(PARSE_PARAMS);
 static mod_t parse_module_decl(PARSE_PARAMS);
 static type_decl_t parse_type_decl(PARSE_PARAMS);
@@ -64,9 +65,8 @@ static char *parse_right_identifier(PARSE_PARAMS);
 static expr_t parse_expr(PARSE_PARAMS) {
   expr_t ex = malloc(sizeof(expr_t));
 
-  if (MATCH_TOK(IDENTIFIER)){
+  if (MATCH_FUN(parse_right_identifier, ex->u.id_ex)) {
     ex->kind = ID_EX;
-    ex->u.id_ex = BEGET->val;
   }
   else if (MATCH_FUN(parse_literal, ex->u.literal_ex)) {
     ex->kind = LITERAL_EX;
@@ -427,12 +427,25 @@ static mod_t parse_module_decl(PARSE_PARAMS) {
   PARSE_RETURN(mod);
 }
 
-// start parse
-root_t parse(ll_t tokens) {
+static root_t parse_root(PARSE_PARAMS) {
   root_t root;
   root = malloc(sizeof(struct root_st));
 
   EXPECT_FUN(parse_module_decl, root->mods);
-  write_log("Parse ended successfully\n");
+
+  PARSE_RETURN(root);
+}
+
+// start parse
+root_t parse(ll_t LL_NAME) {
+  root_t root;
+
+  if (MATCH_FUN(parse_root, root)) {
+    write_log("Parse ended successfully\n");
+  }
+  else {
+    append_error(last_fail_msg);
+  }
+
   return root;
 }

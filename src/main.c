@@ -17,7 +17,7 @@ int main(int argc, char* argv[]) {
   // print lexed tokens
   while (toks) {
     token_t t = toks->val;
-    printf("%s : ", token_names[t->tok]);
+    printf("%s : ", token_names[t->tok].raw);
     if (t->tok == STRING_VAL)
       printf("\"%s\"\n", t->val);
     else if (t->tok == INT_VAL)

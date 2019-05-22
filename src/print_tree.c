@@ -41,6 +41,12 @@ char morph_paths[][12] = {"DIRECT_PATH", "BEST_PATH"};
   } \
   INDT_DROP(4)
 
+#define PRINT_KIND(name, fn, node) \
+  fprintf(OUT_FILE, "%s " UDRPIPE "%s\n", BUF_START, name); \
+  INDT_APP(" " UDPIPE, 4); \
+  fn(node, OUT_FILE, BUF_START, BUF_END); \
+  INDT_DROP(4)
+
 #define PRINT_LAST(name, fn, node) \
   fprintf(OUT_FILE, "%s " URPIPE "%s\n", BUF_START, name); \
   INDT_APP("  ", 2); \
@@ -71,19 +77,125 @@ char morph_paths[][12] = {"DIRECT_PATH", "BEST_PATH"};
 static void print_name(char *name, PARAMS);
 
 static void print_root(root_t root, PARAMS);
-static void print_mod(mod_t mod, PARAMS);
+
 static void print_decl(decl_t decl, PARAMS);
 static void print_const_decl(const_decl_t con, PARAMS);
 static void print_type_decl(type_decl_t ty, PARAMS);
 static void print_var_decl(var_decl_t var, PARAMS);
 static void print_fun_decl(fun_decl_t fun, PARAMS);
+static void print_mod(mod_t mod, PARAMS);
+
+static void print_type(type_t ty, PARAMS);
+static void print_rec(rec_t rec, PARAMS);
+static void print_enum(enum_t en, PARAMS);
+static void print_morph_chain(morph_chain_t chain, PARAMS);
+
+static void print_assign(assign_t assign, PARAMS);
+
+static void print_expr(expr_t expr, PARAMS);
 
 static void print_name(char *name, PARAMS) {
   PRINT_LIT("'%s'", name);
 }
 
-static void print_const_decl(const_decl_t con, PARAMS) {
+static void print_expr(expr_t expr, PARAMS) {
   PRINT_LIT("__TODO__");
+}
+
+static void print_assign_kind(enum assign_kind kind, PARAMS) {
+  switch (kind) {
+    case SIMPLE_AS:
+      PRINT_LIT("Simple '='");
+      break;
+
+    case DEEP_AS:
+      PRINT_LIT("Deep Copy ':='");
+      break;
+
+    case PLUS_AS:
+      PRINT_LIT("Additive '+='");
+      break;
+
+    case MINUS_AS:
+      PRINT_LIT("Subtractive '-='");
+      break;
+
+    case MULT_AS:
+      PRINT_LIT("Multiplicative '*='");
+      break;
+
+    case DIV_AS:
+      PRINT_LIT("Divisive '/='");
+      break;
+
+    case MOD_AS:
+      PRINT_LIT("Modulo '%%='");
+      break;
+
+    case OR_AS:
+      PRINT_LIT("Bitwise Or '|='");
+      break;
+
+    case AND_AS:
+      PRINT_LIT("Bitwise And '&='");
+      break;
+
+    case XOR_AS:
+      PRINT_LIT("Bitwise Exclusive Or '^='");
+      break;
+
+    default:
+      PRINT_LIT("__UNIMPLEMENTED_KIND__");
+      break;
+  }
+}
+
+static void print_assign(assign_t assign, PARAMS) {
+  PRINT_KIND("Kind", print_assign_kind, assign->kind);
+  PRINT_LAST("Expression", print_expr, assign->expr);
+}
+
+static void print_rec(rec_t rec, PARAMS) {
+  PRINT_LIT("__TODO__");
+}
+
+static void print_enum(enum_t en, PARAMS) {
+  PRINT_LIT("__TODO__");
+}
+
+static void print_morph_chain(morph_chain_t chain, PARAMS) {
+  PRINT_LIT("__TODO__");
+}
+
+static void print_type(type_t ty, PARAMS) {
+  switch (ty->kind) {
+    case NAME_TY:
+      PRINT_NODE("Named Type", print_name, ty->u.name_ty);
+      break;
+
+    case REC_TY:
+      PRINT_NODE("Record Type", print_rec, ty->u.rec_ty);
+      break;
+
+    case ENUM_TY:
+      PRINT_NODE("Enum Type", print_enum, ty->u.enum_ty);
+      break;
+
+    case MORPH_TY:
+      PRINT_NODE("Morph Chain Type", print_morph_chain, ty->u.morph_ty);
+      break;
+
+    default:
+      PRINT_LIT("__UNIMPLEMENTED_KIND__");
+      break;
+  }
+}
+
+static void print_const_decl(const_decl_t con, PARAMS) {
+  PRINT_NODE("Name", print_name, con->name);
+  PRINT_NODE("Type", print_type, con->ty);
+  PRINT_NODE("Assignment", print_assign, con->assign);
+  PRINT_NEXT("Next", print_const_decl, con->next);
 }
 
 static void print_type_decl(type_decl_t ty, PARAMS) {

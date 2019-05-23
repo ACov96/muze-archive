@@ -1,6 +1,13 @@
 mod Main
   const
-    a : Integer = 1;
+    a : integer = 1;
+  type
+    celsius = ...integer...real;
+    mu
+    um
+  var
+    b, e : integer = 10;
+    c : string = "test string";
 dom Main
 
 mod Test

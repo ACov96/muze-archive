@@ -93,6 +93,7 @@ static void print_morph_chain(morph_chain_t chain, PARAMS);
 static void print_assign(assign_t assign, PARAMS);
 
 static void print_expr(expr_t expr, PARAMS);
+static void print_id_list(id_list_t id_list, PARAMS);
 
 static void print_name(char *name, PARAMS) {
   PRINT_LIT("'%s'", name);
@@ -150,6 +151,11 @@ static void print_assign_kind(enum assign_kind kind, PARAMS) {
   }
 }
 
+static void print_id_list(id_list_t id_list, PARAMS){
+  PRINT_NODE("Name", print_name, id_list->name);
+  PRINT_NEXT("Next", print_id_list, id_list->next);
+}
+
 static void print_assign(assign_t assign, PARAMS) {
   PRINT_KIND("Kind", print_assign_kind, assign->kind);
   PRINT_LAST("Expression", print_expr, assign->expr);
@@ -199,11 +205,15 @@ static void print_const_decl(const_decl_t con, PARAMS) {
 }
 
 static void print_type_decl(type_decl_t ty, PARAMS) {
-  PRINT_LIT("__TODO__");
+  PRINT_NODE("Name", print_name, ty->name);
+  PRINT_LAST("Type", print_type, ty->type);
 }
 
 static void print_var_decl(var_decl_t var, PARAMS) {
-  PRINT_LIT("__TODO__");
+  PRINT_NODE("Var", print_id_list, var->names);
+  PRINT_NODE("Type", print_type, var->type);
+  PRINT_NODE("Assign", print_assign, var->assign);
+  PRINT_NEXT("Next", print_var_decl, var->next);
 }
 
 static void print_fun_decl(fun_decl_t fun, PARAMS) {

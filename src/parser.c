@@ -20,8 +20,8 @@
 
 #define EXPECT_TOK(t) \
   if (!MATCH_TOK(t)) { \
-    PARSE_FAIL("Expected %s, got %s", token_names[t].pretty, \
-               token_names[BEGET->tok].pretty); \
+    PARSE_FAIL("Expected %s, got %s : %s", token_names[t].pretty, \
+               token_names[BEGET->tok].pretty, BEGET->val);                  \
   }
 
 #define PARSE_RETURN(ret) \
@@ -80,17 +80,12 @@ static expr_t parse_expr(PARSE_PARAMS) {
 static arg_t parse_arg_list(PARSE_PARAMS) {
   arg_t arg = malloc(sizeof(arg_t));
 
-  printf("entered parse_arg_list\n");
-  printf("%s\n", BEGET->val);
-
   arg->name = BEGET->val;
   EXPECT_TOK(IDENTIFIER);
   if (MATCH_TOK(COMMA)) {
     EXPECT_FUN(parse_arg_list, arg->next);
   }
   EXPECT_TOK(COLON);
-  printf("parsed COLON\n");
-  printf("%s\n", BEGET->val);
   EXPECT_FUN(parse_type_expr, arg->type);
   if (MATCH_TOK(SEMICOLON)){
     MATCH_FUN(parse_arg_list, arg->next);
@@ -98,8 +93,6 @@ static arg_t parse_arg_list(PARSE_PARAMS) {
   else
     arg->next = NULL;
 
-  printf("returning from parse_arg_list\n");
-  printf("%s\n", BEGET->val);
   PARSE_RETURN(arg);
 }
 
@@ -220,11 +213,7 @@ static fun_decl_t parse_fun_decl(PARSE_PARAMS) {
   EXPECT_TOK(IDENTIFIER);
   EXPECT_TOK(LPAREN);
   MATCH_FUN(parse_arg_list, fun->args);
-  printf("returned from parse_arg_list\n");
-  printf("%s\n", BEGET->val);
   EXPECT_TOK(RPAREN);
-  printf("parsed RPAREN\n");
-  printf("%s\n", BEGET->val);
 
   if (MATCH_TOK(COLON)){
     EXPECT_FUN(parse_type_expr, fun->ret_type);
@@ -314,7 +303,6 @@ static assign_t parse_assign(PARSE_PARAMS) {
 
 static id_list_t parse_id_list(PARSE_PARAMS) {
   id_list_t id_list;
-
   id_list = malloc(sizeof(struct id_list_st));
 
   id_list->name = BEGET->val;
@@ -327,7 +315,8 @@ static id_list_t parse_id_list(PARSE_PARAMS) {
     id_list->next = NULL;
   }
 
-  return id_list;
+  //return id_list;
+  PARSE_RETURN(id_list);
 }
 
 // parse type declarations
@@ -355,7 +344,6 @@ static var_decl_t parse_vars_decl(PARSE_PARAMS) {
   var = malloc(sizeof(struct var_decl_st));
 
   EXPECT_FUN(parse_id_list, var->names);
-
   EXPECT_TOK(COLON);
   EXPECT_FUN(parse_type, var->type);
 
@@ -402,7 +390,7 @@ static decl_t parse_decl(PARSE_PARAMS) {
   }
 
   if (MATCH_TOK(VAR)){
-    MATCH_FUN(parse_vars_decl, decl->vars);
+    MATCH_FUN(parse_vars_decl, decl->vars);  
   }
 
   if (MATCH_TOK(FUN)){

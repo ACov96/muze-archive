@@ -174,12 +174,12 @@ struct id_list_st {
 // An assignment
 struct assign_st {
   // Deep or shallow copy, := vs =
-  enum {
+  enum assign_kind {
     SIMPLE_AS,
     DEEP_AS,
     PLUS_AS,
     MINUS_AS,
-    MUL_AS,
+    MULT_AS,
     DIV_AS,
     MOD_AS,
     OR_AS,

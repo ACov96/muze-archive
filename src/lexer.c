@@ -384,8 +384,6 @@ token_t token_from_word(char* s) {
     return new_token(VAR, "var");
 
   // Basic types
-  else if (strcmp(buf, "char") == 0)
-    return new_token(CHAR, "char");
   else if (strcmp(buf, "string") == 0)
     return new_token(STRING, "string");
   else if (strcmp(buf, "integer") == 0)
@@ -467,3 +465,4 @@ char* file_to_string(FILE *f) {
   fread(buffer, 1, file_length, f);
   return buffer;
 }
+

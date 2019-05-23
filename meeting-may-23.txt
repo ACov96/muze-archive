@@ -1,0 +1,23 @@
+1) morphs between user defined types and primitive types
+answer) use extend block
+
+2) multiple ids in a const dec: yes
+const a = 0;
+const
+  b, c = 0;
+
+3) mu/um syntax: decide this/that
+
+bonus) side-effects in morphs? If they had no side-effects, it would be easier to have first-class morphs
+
+4)
+
+5) real morph chain of length 1? It's an alias. Nominative typing.
+
+Brings up ...integer...real or integer...real
+
+6) Operator precedence? What is the precedence of
+swap :=:
+range ..
+morph ...
+slicing

@@ -8,7 +8,8 @@ mod Main
   var
     b, e : integer = 10;
     c : string = "test string";
-dom Main
+    d : string;
+dom Mainn
 
 mod Test
 dom Test

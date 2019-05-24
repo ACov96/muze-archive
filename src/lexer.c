@@ -10,17 +10,28 @@
 
 // Peek n characters beyond the current character
 #define peek(n) (i + n < strlen(s) ? s[i + n] : '\0')
-#define new_token(t, val) _new_token(t, val, line_no)
-#define inc(n) for (int j=1; j<=n; j++) {if (peek(j) == '\n') line_no++;} i+= n;
+#define new_token(t, val) _new_token(t, val, line_no, col_no)
+#define inc(n) \
+  for (int j=1; j<=n; j++) { \
+    if (peek(j) == '\n') { \
+      line_no++; \
+      col_no = 1; \
+    } \
+    else { \
+      col_no++; \
+    } \
+  } \
+  i += n
 
 /* PROTOTYPES */
 char* file_to_string(FILE *f);
-token_t _new_token(enum token t, char* val, int line_no);
+token_t _new_token(enum token t, char* val, int line_no, int col_no);
 ll_t generate_token_list(char* s);
 char** split_string(char* s, char* del, int* size);
 token_t token_from_word(char* s);
 
 int line_no = 1;
+int col_no = 1;
 
 ll_t lex(char* file_name) {
   FILE *f = fopen(file_name, "r");
@@ -38,10 +49,13 @@ ll_t generate_token_list(char* s) {
     // set current character to c
     char c = s[i];
     // Whitespace, tab, new line
-    if (c == ' ' || c == '\t')
+    if (c == ' ' || c == '\t') {
+      col_no++;
       continue;
+    }
     else if (c == '\n') {
       line_no++;
+      col_no = 1;
       continue;
     }
     // check for (definite) single character symbols
@@ -448,12 +462,13 @@ char** split_string(char* s, char* del, int *size) {
   return strings;
 }
 
-token_t _new_token(enum token t, char* val, int line_no) {
+token_t _new_token(enum token t, char* val, int line_no, int col_no) {
   token_t tok = malloc(sizeof(struct token_st));
   tok->tok = t;
   tok->val = malloc(strlen(val));
   strcpy(tok->val, val);
   tok->line_no = line_no;
+  tok->col_no = col_no;
   return tok;
 }
 

@@ -38,9 +38,11 @@ void write_log(char *msg, ...);
 
 // Append an error to the error queue
 // Errors are FIFO
-void append_error(char *msg, ...);
+void append_error(char *file, int line, int col, char *title, char *msg, ...);
 
 // Print all errors in order that they were appended
 void print_errors();
+
+int had_errors();
 
 #endif

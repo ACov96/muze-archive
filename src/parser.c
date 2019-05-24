@@ -1,8 +1,11 @@
 #include <stdlib.h>
 #include <stdio.h>
+#include <string.h>
 
 #include "ast.h"
 #include "lexer.h"
+#include "util.h"
+#include "limits.h"
 
 #define LL_NAME tokens
 #define LL_OUT tok_out
@@ -29,8 +32,13 @@
   return ret
 
 #define PARSE_FAIL(...) \
-  snprintf(last_fail_msg, BUFSIZ, __VA_ARGS__); \
-  return NULL;
+  snprintf(last_fail_msg, MAX_ERROR_SIZE, __VA_ARGS__); \
+  return NULL
+
+#define PARSE_ASSERT(pred, title, msg, ...) \
+  if (!(pred)) { \
+    append_error("/to/do", -1, -1, (title), (msg), ##__VA_ARGS__); \
+  }
 
 // Gets the current token
 #define BEGET \
@@ -42,7 +50,7 @@
 #define PARSE_PARAMS ll_t LL_NAME, ll_t *LL_OUT
 
 // most recent mismatch
-static char last_fail_msg[BUFSIZ];
+static char last_fail_msg[MAX_ERROR_SIZE];
 
 // Prototypes
 static root_t parse_root(PARSE_PARAMS);
@@ -417,6 +425,11 @@ static mod_t parse_module_decl(PARSE_PARAMS) {
 
   EXPECT_TOK(DOM);
 
+  PARSE_ASSERT(!strcmp(BEGET->val, mod->name),
+      "Module block terminated by the wrong identifier.",
+      "Expected '%s' after 'dom', got '%s'.",
+      mod->name, BEGET->val);
+
   EXPECT_TOK(IDENTIFIER);
 
   MATCH_FUN(parse_module_decl, mod->next);
@@ -441,8 +454,9 @@ root_t parse(ll_t LL_NAME) {
     write_log("Parse ended successfully\n");
   }
   else {
-    append_error(last_fail_msg);
+    append_error("/to/do", -1, -1, "Bad syntax", last_fail_msg);
   }
 
   return root;
 }
+

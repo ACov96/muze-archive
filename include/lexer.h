@@ -67,6 +67,7 @@ struct token_st {
   enum token tok;
   char* val;
   int line_no;
+  int col_no;
 };
 
 typedef struct token_st* token_t;

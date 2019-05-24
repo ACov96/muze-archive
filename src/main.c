@@ -36,7 +36,8 @@ int main(int argc, char* argv[]) {
   if (root) {
     print_tree(stdout, root);
   }
-  else {
+
+  if (had_errors()) {
     print_errors();
   }
 }

@@ -176,19 +176,19 @@ static void print_morph_chain(morph_chain_t chain, PARAMS) {
 static void print_type(type_t ty, PARAMS) {
   switch (ty->kind) {
     case NAME_TY:
-      PRINT_NODE("Named Type", print_name, ty->u.name_ty);
+      PRINT_LAST("Named Type", print_name, ty->u.name_ty);
       break;
 
     case REC_TY:
-      PRINT_NODE("Record Type", print_rec, ty->u.rec_ty);
+      PRINT_LAST("Record Type", print_rec, ty->u.rec_ty);
       break;
 
     case ENUM_TY:
-      PRINT_NODE("Enum Type", print_enum, ty->u.enum_ty);
+      PRINT_LAST("Enum Type", print_enum, ty->u.enum_ty);
       break;
 
     case MORPH_TY:
-      PRINT_NODE("Morph Chain Type", print_morph_chain, ty->u.morph_ty);
+      PRINT_LAST("Morph Chain Type", print_morph_chain, ty->u.morph_ty);
       break;
 
     default:

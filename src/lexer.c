@@ -12,16 +12,16 @@
 #define peek(n) (i + n < strlen(s) ? s[i + n] : '\0')
 #define new_token(t, val) _new_token(t, val, line_no, col_no)
 #define inc(n) \
-  for (int j=1; j<=n; j++) { \
-    if (peek(j) == '\n') { \
+  for (int _j=1; _j<=n; _j++) { \
+    if (peek(_j) == '\n') { \
       line_no++; \
       col_no = 1; \
-    } \
+    }  \
     else { \
       col_no++; \
     } \
   } \
-  i += n
+  i += n;
 
 /* PROTOTYPES */
 char* file_to_string(FILE *f);
@@ -50,12 +50,10 @@ ll_t generate_token_list(char* s) {
     char c = s[i];
     // Whitespace, tab, new line
     if (c == ' ' || c == '\t') {
-      col_no++;
       continue;
     }
     else if (c == '\n') {
       line_no++;
-      col_no = 1;
       continue;
     }
     // check for (definite) single character symbols
@@ -80,7 +78,7 @@ ll_t generate_token_list(char* s) {
     else if (c == ':') {
       if (peek(1) == ':') {
         ll_append(token_list, new_token(COLON_COLON, "::"));
-        i++;
+        inc(1);
       }
       else if (peek(1) == '=') {
         ll_append(token_list, new_token(COLON_EQ, ":="));
@@ -94,54 +92,54 @@ ll_t generate_token_list(char* s) {
     else if (c == '+') {
       if (peek(1) == '+') {
         ll_append(token_list, new_token(INC, "++"));
-        i++;
+        inc(1);
       }
       else if (peek(1) == '=') {
         ll_append(token_list, new_token(PLUS_EQ, "+="));
-        i++;
+        inc(1);
       } else
         ll_append(token_list, new_token(PLUS, "+"));
     }
     else if (c == '-') {
       if (peek(1) == '-') {
         ll_append(token_list, new_token(DEC, "--"));
-        i++;
+        inc(1);
       }
       else if (peek(1) == '=') {
         ll_append(token_list, new_token(MINUS_EQ, "-="));
-        i++;
+        inc(1);
       }
       else if (peek(1) == '>') {
         ll_append(token_list, new_token(ARROW, "->"));
-        i++;
+        inc(1);
       }else
         ll_append(token_list, new_token(MINUS, "-"));
     }
     else if (c == '*') {
       if (peek(1) == '=') {
         ll_append(token_list, new_token(MULT_EQ, "*="));
-        i++;
+        inc(1);
       } else
         ll_append(token_list, new_token(MULT, "*"));
     }
     else if (c == '/') {
       if (peek(1) == '=') {
         ll_append(token_list, new_token(DIV_EQ, "/="));
-        i++;
+        inc(1);
       } else if (s[i+1] == '*') {
         /* Multi-line
          * comments */
         // Allow for nested comments
         int levels_deep = 0;
         while (1) {
-          i++;
+          inc(1);
           if (peek(2))
             error_and_exit("Reached end of file in unclosed comment", line_no);
           if (peek(1) == '/' && peek(2) == '*')
             levels_deep++;
           else if (peek(1) == '*' && peek(2) == '/') {
             if (levels_deep == 0) {
-              i += 2;
+              inc(2);
               break;
             } else
               levels_deep--;
@@ -159,7 +157,7 @@ ll_t generate_token_list(char* s) {
     // Comparison operators
     else if (c == '<') {
       if (peek(1) == '=') {
-        i++;
+        inc(1);
         ll_append(token_list, new_token(LT_EQ, "<="));
       } else 
         ll_append(token_list, new_token(LT, "<"));
@@ -167,7 +165,7 @@ ll_t generate_token_list(char* s) {
 
     else if (c == '>') {
       if (peek(1) == '=') {
-        i++;
+        inc(1);
         ll_append(token_list, new_token(GT_EQ, ">="));
       } else 
         ll_append(token_list, new_token(GT, ">"));
@@ -175,7 +173,7 @@ ll_t generate_token_list(char* s) {
 
     else if (c == '!') {
       if (peek(1) == '=') {
-        i++;
+        inc(1);
         ll_append(token_list, new_token(NOT_EQ, "!="));
       } else 
         ll_append(token_list, new_token(NOT, "!"));
@@ -183,7 +181,7 @@ ll_t generate_token_list(char* s) {
     
     else if (c == '=') {
       if (peek(1) == '=') {
-        i++;
+        inc(1);
         ll_append(token_list, new_token(EQ_EQ, "=="));
       } else 
         ll_append(token_list, new_token(EQ, "="));
@@ -193,7 +191,7 @@ ll_t generate_token_list(char* s) {
     else if (c == '&') {
       if (peek(1) == '&') {
         ll_append(token_list, new_token(AND, "&&"));
-        i++;
+        inc(1);
       }
       else {
         ll_append(token_list, new_token(BIT_AND, "&"));
@@ -203,7 +201,7 @@ ll_t generate_token_list(char* s) {
     else if (c == '|') {
       if (peek(1) == '|') {
         ll_append(token_list, new_token(OR, "||"));
-        i++;
+        inc(1);
       }
       else {
         ll_append(token_list, new_token(BIT_OR, "|"));
@@ -213,7 +211,7 @@ ll_t generate_token_list(char* s) {
     else if (c == '^') {
       if (peek(1) == '^') {
         ll_append(token_list, new_token(XOR, "^^"));
-        i++;
+        inc(1);
       }
       else {
         ll_append(token_list, new_token(BIT_XOR, "^"));
@@ -229,11 +227,11 @@ ll_t generate_token_list(char* s) {
       if (peek(1) == '.') {
         if (peek(2) == '.') {
           ll_append(token_list, new_token(DOT_DOT_DOT, "..."));
-          i += 2;
+          inc(2);
         }
         else {
           ll_append(token_list, new_token(DOT_DOT, ".."));
-          i++;
+          inc(1);
         }
       } else
         ll_append(token_list, new_token(DOT, "."));
@@ -252,14 +250,25 @@ ll_t generate_token_list(char* s) {
       char *id = malloc(MAX_IDENTIFIER_SIZE + 1);
       memset(id, 0, (MAX_IDENTIFIER_SIZE + 1) * sizeof(char));
       int j = 0;
-      while (isalpha(s[i]) || isdigit(s[i]) || s[i] == '_') {
+      id[j] = c;
+      j++;
+
+      while (isalpha(peek(1)) || isdigit(peek(1)) || peek(1) == '_') {
         if (j > MAX_IDENTIFIER_SIZE - 1)
           error_and_exit("Variable name cannot exceed 255 characters.", line_no);
-        id[j] = s[i];
+        id[j] = peek(1);
         j++;
-        i++;
+        inc(1);
       }
-      i--;
+
+      // Just in case anyone actually reads the commit diff:
+      // I am very unhappy with whoever decided to previously write 'i++' here.
+      // I just spent half an hour trying to figure out why none of the line
+      // numbers were being tracked correctly, and it was because we were, just
+      // in this one spot, moving the current char BACKWARDS.
+      //
+      // You owe me a beer
+
       ll_append(token_list, token_from_word(id));
     }
 
@@ -280,7 +289,7 @@ ll_t generate_token_list(char* s) {
           error_and_exit("exceeded digit buffer.", line_no);
         id[j] = s[i];
         j++;
-        i++;
+        inc(1);
       }
       i--;
       if (is_float == 1)
@@ -292,13 +301,13 @@ ll_t generate_token_list(char* s) {
     else if (c == '"') {
       char *buf = NULL, *tmp = NULL;
       unsigned int bufLen = 0;
-      i++;
+      inc(1);
       while(s[i] != '"') {
         tmp = realloc(buf, bufLen+1);
         buf = tmp;
         buf[bufLen] = s[i];
         bufLen++;
-        i++;
+        inc(1);
       }
       tmp = realloc(buf, bufLen+1);
       buf = tmp;

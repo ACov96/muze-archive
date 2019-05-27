@@ -9,9 +9,10 @@
 
 #define LL_NAME tokens
 #define LL_OUT tok_out
+#define LEVEL_SPECIFIER parse_level
 
 #define MATCH_FUN(fn, res) \
-  (res = fn(LL_NAME, &LL_NAME))
+  (res = fn(LL_NAME, &LL_NAME, LEVEL_SPECIFIER + 1))
 
 #define MATCH_TOK(t) \
   ((BEGET->tok == t) && (NEXT))
@@ -24,7 +25,7 @@
 #define EXPECT_TOK(t) \
   if (!MATCH_TOK(t)) { \
     PARSE_FAIL("Expected %s, got %s : %s", token_names[t].pretty, \
-               token_names[BEGET->tok].pretty, BEGET->val);                  \
+               token_names[BEGET->tok].pretty, BEGET->val); \
   }
 
 #define PARSE_RETURN(ret) \
@@ -32,12 +33,18 @@
   return ret
 
 #define PARSE_FAIL(...) \
-  snprintf(last_fail_msg, MAX_ERROR_SIZE, __VA_ARGS__); \
+  if (LEVEL_SPECIFIER > fail_info.level) { \
+    snprintf(fail_info.msg, MAX_ERROR_SIZE, __VA_ARGS__); \
+    fail_info.line = BEGET->line_no; \
+    fail_info.column = BEGET->col_no; \
+    fail_info.level = LEVEL_SPECIFIER; \
+  } \
   return NULL
 
 #define PARSE_ASSERT(pred, title, msg, ...) \
   if (!(pred)) { \
-    append_error("/to/do", -1, -1, (title), (msg), ##__VA_ARGS__); \
+    append_error("/to/do", BEGET->line_no, BEGET->col_no, \
+                 (title), (msg), ##__VA_ARGS__); \
   }
 
 // Gets the current token
@@ -47,10 +54,22 @@
 #define NEXT \
   LL_NAME = LL_NAME->next
 
-#define PARSE_PARAMS ll_t LL_NAME, ll_t *LL_OUT
+#define PARSE_PARAMS ll_t LL_NAME, ll_t *LL_OUT, int LEVEL_SPECIFIER
 
 // most recent mismatch
-static char last_fail_msg[MAX_ERROR_SIZE];
+static struct {
+  char msg[MAX_ERROR_SIZE];
+  int line;
+  int column;
+  int level;
+} fail_info;
+
+static void init_fail() {
+  fail_info.msg[0] = '\0';
+  fail_info.line = -1;
+  fail_info.column = -1;
+  fail_info.level = -1;
+}
 
 // Prototypes
 static root_t parse_root(PARSE_PARAMS);
@@ -79,6 +98,9 @@ static expr_t parse_expr(PARSE_PARAMS) {
   }
   else if (MATCH_FUN(parse_literal, ex->u.literal_ex)) {
     ex->kind = LITERAL_EX;
+  }
+  else {
+    PARSE_FAIL("Expression expected");
   }
   // TODO
 
@@ -129,6 +151,10 @@ static literal_t parse_literal(PARSE_PARAMS) {
     lit->kind = BOOLEAN_LIT;
     lit->u.bool_lit = FALSE_BOOL;
   }
+  else {
+    PARSE_FAIL("Literal expected");
+  }
+
   PARSE_RETURN(lit);
 
 }
@@ -257,6 +283,8 @@ static assign_t parse_static_assign(PARSE_PARAMS) {
   else {
     PARSE_FAIL("Expected one of '=' or ':=' in static assignment");
   }
+
+  write_log("Level in const parse is %d", LEVEL_SPECIFIER);
 
   EXPECT_FUN(parse_expr, assign->expr);
 
@@ -390,19 +418,19 @@ static decl_t parse_decl(PARSE_PARAMS) {
 
   if (MATCH_TOK(CONST)){
     write_log("found const");
-    MATCH_FUN(parse_const_decl, decl->constants);
+    EXPECT_FUN(parse_const_decl, decl->constants);
   }
 
   if (MATCH_TOK(TYPE)){
-    MATCH_FUN(parse_type_decl, decl->types);
+    EXPECT_FUN(parse_type_decl, decl->types);
   }
 
   if (MATCH_TOK(VAR)){
-    MATCH_FUN(parse_vars_decl, decl->vars);  
+    EXPECT_FUN(parse_vars_decl, decl->vars);  
   }
 
   if (MATCH_TOK(FUN)){
-    MATCH_FUN(parse_fun_decl, decl->funs);
+    EXPECT_FUN(parse_fun_decl, decl->funs);
 
     write_log("returned from parse_fun_decl\n");
     write_log("%s\n", BEGET->val);
@@ -423,6 +451,7 @@ static mod_t parse_module_decl(PARSE_PARAMS) {
 
   MATCH_FUN(parse_decl, mod->decl);
 
+  write_log("Level is %d", LEVEL_SPECIFIER);
   EXPECT_TOK(DOM);
 
   PARSE_ASSERT(!strcmp(BEGET->val, mod->name),
@@ -449,12 +478,18 @@ static root_t parse_root(PARSE_PARAMS) {
 // start parse
 root_t parse(ll_t LL_NAME) {
   root_t root;
+  int LEVEL_SPECIFIER;
+
+  init_fail();
+
+  LEVEL_SPECIFIER = 0;
 
   if (MATCH_FUN(parse_root, root)) {
     write_log("Parse ended successfully\n");
   }
   else {
-    append_error("/to/do", -1, -1, "Bad syntax", last_fail_msg);
+    append_error("/to/do", fail_info.line, fail_info.column,
+                 "Syntax error", fail_info.msg);
   }
 
   return root;

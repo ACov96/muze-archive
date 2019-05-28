@@ -1,6 +1,6 @@
 mod Main
   const
-    a : integer = ;
+    a : integer = 1;
   type
     celsius = ...integer...real;
     mu
@@ -9,7 +9,7 @@ mod Main
     b, e : integer = 10;
     c : string = "test string";
     d : string;
-dom Mainn
+dom Main
 
 mod Test
 dom Test

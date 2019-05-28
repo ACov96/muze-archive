@@ -1,5 +1,3 @@
-- Columns are not quite tracked correctly
-- Error messages in parsing still leave a little to be desired
 - Parsing is not finished or up to date
 - I noticed that there were quite a few 'if/else if' blocks in the parser which
       did not have an 'else' fail condition when there needed to be one.

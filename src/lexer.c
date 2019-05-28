@@ -15,7 +15,7 @@
   for (int _j=1; _j<=n; _j++) { \
     if (peek(_j) == '\n') { \
       line_no++; \
-      col_no = 1; \
+      col_no = 0; \
     }  \
     else { \
       col_no++; \
@@ -32,6 +32,7 @@ token_t token_from_word(char* s);
 
 int line_no = 1;
 int col_no = 1;
+int tok_col = 1;
 
 ll_t lex(char* file_name) {
   FILE *f = fopen(file_name, "r");
@@ -45,7 +46,7 @@ ll_t lex(char* file_name) {
 ll_t generate_token_list(char* s) {
   ll_t token_list = ll_new();
   // Loop through file
-  for (int i = 0; i < strlen(s); i++) {
+  for (int i = 0; i < strlen(s); i++, col_no++, tok_col = col_no) {
     // set current character to c
     char c = s[i];
     // Whitespace, tab, new line
@@ -54,6 +55,8 @@ ll_t generate_token_list(char* s) {
     }
     else if (c == '\n') {
       line_no++;
+      col_no = 0;
+      tok_col = col_no;
       continue;
     }
     // check for (definite) single character symbols
@@ -477,7 +480,8 @@ token_t _new_token(enum token t, char* val, int line_no, int col_no) {
   tok->val = malloc(strlen(val));
   strcpy(tok->val, val);
   tok->line_no = line_no;
-  tok->col_no = col_no;
+  tok->col_no = tok_col;
+  tok_col = col_no;
   return tok;
 }
 

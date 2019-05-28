@@ -128,6 +128,10 @@ struct type_decl_st {
 };
 
 
+struct rec_st {
+};
+
+
 // A "type expression", something which evaluates to a concrete type
 struct type_st {
   enum {

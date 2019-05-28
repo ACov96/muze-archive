@@ -23,23 +23,32 @@
   }
 
 #define EXPECT_TOK(t) \
-  if (!MATCH_TOK(t)) { \
-    PARSE_FAIL("Expected %s, got %s : %s", token_names[t].pretty, \
-               token_names[BEGET->tok].pretty, BEGET->val); \
-  }
+  do { \
+    int _line = BEGET->line_no; \
+    int _col = BEGET->col_no; \
+    if (!MATCH_TOK(t)) { \
+      PARSE_FAIL_AT(_line, _col, \
+                    "Expected %s, got %s: '%s'", token_names[t].pretty, \
+                    token_names[BEGET->tok].pretty, BEGET->val); \
+    } \
+  } while(0)
 
 #define PARSE_RETURN(ret) \
+  fail_info.level = -1; \
   *LL_OUT = LL_NAME; \
   return ret
 
-#define PARSE_FAIL(...) \
+#define PARSE_FAIL_AT(_line, _col, ...) \
   if (LEVEL_SPECIFIER > fail_info.level) { \
     snprintf(fail_info.msg, MAX_ERROR_SIZE, __VA_ARGS__); \
-    fail_info.line = BEGET->line_no; \
-    fail_info.column = BEGET->col_no; \
+    fail_info.line = (_line); \
+    fail_info.column = (_col); \
     fail_info.level = LEVEL_SPECIFIER; \
   } \
   return NULL
+
+#define PARSE_FAIL(...) \
+  PARSE_FAIL_AT(BEGET->line_no, BEGET->col_no, __VA_ARGS__)
 
 #define PARSE_ASSERT(pred, title, msg, ...) \
   if (!(pred)) { \
@@ -79,7 +88,6 @@ static type_decl_t parse_type_decl(PARSE_PARAMS);
 static const_decl_t parse_const_decl(PARSE_PARAMS);
 static fun_decl_t parse_fun_decl(PARSE_PARAMS);
 static var_decl_t parse_vars_decl(PARSE_PARAMS);
-static type_t parse_type(PARSE_PARAMS);
 static expr_t parse_expr(PARSE_PARAMS);
 static morph_chain_t parse_morph_chain(PARSE_PARAMS);
 static char* parse_arithmetic_expr(PARSE_PARAMS);
@@ -90,8 +98,6 @@ static char *parse_right_identifier(PARSE_PARAMS);
 
 static expr_t parse_expr(PARSE_PARAMS) {
   expr_t ex = malloc(sizeof(expr_t));
-
-  write_log("Parsing expression, %s", token_names[BEGET->tok].raw);
 
   if (MATCH_FUN(parse_right_identifier, ex->u.id_ex)) {
     ex->kind = ID_EX;
@@ -129,8 +135,6 @@ static arg_t parse_arg_list(PARSE_PARAMS) {
 static literal_t parse_literal(PARSE_PARAMS) {
   literal_t lit = malloc(sizeof(literal_t));
 
-  write_log("Parsing literal");
-
   if (MATCH_TOK(STRING_VAL)){
     lit->kind = STRING_LIT;
     lit->u.string_lit = BEGET->val;
@@ -167,8 +171,6 @@ static char* parse_arithmetic_expr(PARSE_PARAMS) {
 static char *parse_right_identifier(PARSE_PARAMS) {
   char *id;
 
-  write_log("Looking at %s", token_names[BEGET->tok].raw);
-
   id = BEGET->val;
   if (!(MATCH_TOK(STRING)
       || MATCH_TOK(INTEGER)
@@ -180,68 +182,67 @@ static char *parse_right_identifier(PARSE_PARAMS) {
       || MATCH_TOK(FALSE)
       || MATCH_TOK(IDENTIFIER)
       )) {
-    write_log("Is this working?");
     PARSE_FAIL("Expected identifier");
   }
-
-  write_log("Succesfully parsed right id");
 
   PARSE_RETURN(id);
 }
 
 
-static type_t parse_type(PARSE_PARAMS) {
-  type_t ty = malloc(sizeof(type_t));
-
-  if (MATCH_FUN(parse_right_identifier, ty->u.name_ty)) {
-    ty->kind = NAME_TY;
-  }
-  else if (MATCH_TOK(REC)) {
-    // handle record
-    EXPECT_TOK(CER);
-  }
-  // TODO morph expressions
-  else {
-    PARSE_FAIL("Invalid type expression");
-  }
-
-  PARSE_RETURN(ty);
-}
-
 static morph_chain_t parse_morph_chain(PARSE_PARAMS) {
-  morph_chain_t morph = malloc(sizeof(morph_t));
+  morph_chain_t morph = malloc(sizeof(struct morph_st));
 
   if (MATCH_TOK(DOT_DOT_DOT)){
     morph->path = DIRECT_PATH;
-    EXPECT_FUN(parse_type, morph->ty);
+    EXPECT_FUN(parse_type_expr, morph->ty);
   }
   else if (MATCH_TOK(ARROW)){
     morph->path = BEST_PATH;
-    EXPECT_FUN(parse_type, morph->ty);
+    EXPECT_FUN(parse_type_expr, morph->ty);
   }
-  else
-    EXPECT_TOK(DOT_DOT_DOT);
+  else {
+    write_log("got here");
+    PARSE_FAIL("Expected to find a morph chain, instead got %s",
+               token_names[BEGET->tok].pretty);
+  }
 
   MATCH_FUN(parse_morph_chain, morph->next);
   PARSE_RETURN(morph);
 }
 
-static type_t parse_type_expr(PARSE_PARAMS) {
-  type_t ty = malloc(sizeof(type_t));
+static rec_t parse_rec_decl(PARSE_PARAMS) {
+  rec_t rec = malloc(sizeof(struct rec_st));
 
-  //check for a morph chain
-  if (MATCH_FUN(parse_morph_chain, ty->u.morph_ty)){
+  EXPECT_TOK(REC);
+  EXPECT_TOK(CER);
+
+  PARSE_RETURN(rec);
+}
+
+static type_t parse_type_expr(PARSE_PARAMS) {
+  type_t ty = malloc(sizeof(struct type_st));
+
+  if (MATCH_FUN(parse_right_identifier, ty->u.name_ty)) {
+    ty->kind = NAME_TY;
+  }
+  else if (MATCH_FUN(parse_rec_decl, ty->u.rec_ty)) {
+    ty->kind = REC_TY;
+  }
+  else if (MATCH_FUN(parse_morph_chain, ty->u.morph_ty)) {
     ty->kind = MORPH_TY;
   }
-  // else parse single type
-  else{
-    MATCH_FUN(parse_type, ty);
+  // TODO add a case for enums
+  else {
+    write_log("falling through to here, fail level is %d", fail_info.level);
+    PARSE_FAIL("Expected to find a type expression, instead got %s",
+               token_names[BEGET->tok].pretty);
   }
+
   PARSE_RETURN(ty);
 }
 
 static fun_decl_t parse_fun_decl(PARSE_PARAMS) {
-  fun_decl_t fun = malloc(sizeof(fun_decl_t));
+  fun_decl_t fun = malloc(sizeof(struct fun_decl_st));
 
   fun->name = BEGET->val;
   EXPECT_TOK(IDENTIFIER);
@@ -255,14 +256,10 @@ static fun_decl_t parse_fun_decl(PARSE_PARAMS) {
     fun->ret_type = NULL;
 
   MATCH_FUN(parse_decl, fun->decl);
-  write_log("return from parse_decl\n");
-  write_log("%s\n", BEGET->val);
 
   EXPECT_TOK(BEGIN);
 
   // parse statements
-  write_log("parsed BEGIN\n");
-  write_log("%s\n", BEGET->val);
   EXPECT_TOK(NUF);
   EXPECT_TOK(IDENTIFIER);
   MATCH_FUN(parse_fun_decl, fun->next);
@@ -283,8 +280,6 @@ static assign_t parse_static_assign(PARSE_PARAMS) {
   else {
     PARSE_FAIL("Expected one of '=' or ':=' in static assignment");
   }
-
-  write_log("Level in const parse is %d", LEVEL_SPECIFIER);
 
   EXPECT_FUN(parse_expr, assign->expr);
 
@@ -351,7 +346,6 @@ static id_list_t parse_id_list(PARSE_PARAMS) {
     id_list->next = NULL;
   }
 
-  //return id_list;
   PARSE_RETURN(id_list);
 }
 
@@ -366,12 +360,15 @@ static type_decl_t parse_type_decl(PARSE_PARAMS) {
   EXPECT_FUN(parse_type_expr, ty->type);
   EXPECT_TOK(SEMICOLON);
 
+  // MATCH_FUN(parse_morph_decl, ty->morphs);
+
   if (MATCH_TOK(MU)){
     //some morph stuff
     EXPECT_TOK(UM);
   } 
 
   MATCH_FUN(parse_type_decl,ty->next);
+
   PARSE_RETURN(ty);
 }
 
@@ -381,7 +378,7 @@ static var_decl_t parse_vars_decl(PARSE_PARAMS) {
 
   EXPECT_FUN(parse_id_list, var->names);
   EXPECT_TOK(COLON);
-  EXPECT_FUN(parse_type, var->type);
+  EXPECT_FUN(parse_type_expr, var->type);
 
   MATCH_FUN(parse_static_assign, var->assign);
 
@@ -401,7 +398,7 @@ static const_decl_t parse_const_decl(PARSE_PARAMS) {
   EXPECT_TOK(IDENTIFIER);
 
   EXPECT_TOK(COLON);
-  EXPECT_FUN(parse_type, con->ty);
+  EXPECT_FUN(parse_type_expr, con->ty);
 
   EXPECT_FUN(parse_static_assign, con->assign);
 
@@ -417,7 +414,6 @@ static decl_t parse_decl(PARSE_PARAMS) {
   decl_t decl = malloc(sizeof(struct decl_st));
 
   if (MATCH_TOK(CONST)){
-    write_log("found const");
     EXPECT_FUN(parse_const_decl, decl->constants);
   }
 
@@ -431,9 +427,6 @@ static decl_t parse_decl(PARSE_PARAMS) {
 
   if (MATCH_TOK(FUN)){
     EXPECT_FUN(parse_fun_decl, decl->funs);
-
-    write_log("returned from parse_fun_decl\n");
-    write_log("%s\n", BEGET->val);
   }
 
   PARSE_RETURN(decl);
@@ -451,14 +444,12 @@ static mod_t parse_module_decl(PARSE_PARAMS) {
 
   MATCH_FUN(parse_decl, mod->decl);
 
-  write_log("Level is %d", LEVEL_SPECIFIER);
   EXPECT_TOK(DOM);
 
   PARSE_ASSERT(!strcmp(BEGET->val, mod->name),
       "Module block terminated by the wrong identifier.",
       "Expected '%s' after 'dom', got '%s'.",
       mod->name, BEGET->val);
-
   EXPECT_TOK(IDENTIFIER);
 
   MATCH_FUN(parse_module_decl, mod->next);

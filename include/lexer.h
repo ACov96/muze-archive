@@ -4,25 +4,29 @@
 #include "util.h"
 
 // Don't read just go on and trust it works
-#define GEN_ENUM2(ident, x) ident
-#define GEN_ENUM(ident) ident
-#define GEN_QUOT(ident) {#ident, "'"#ident"'"}
+#define GEN_ENUM(ident, x) ident
 #define GEN_ASSOC(ident, str) {#ident, str}
 
-#define FOREACH_TOKEN(Q, A) \
-    Q(IF), Q(FI), Q(ELIF), Q(ELSE), Q(THEN), \
-    Q(CASE), Q(ESAC), Q(OF), \
-    Q(FOR), Q(ROF), Q(LOOP), Q(POOL), Q(BREAK), Q(CONTINUE), Q(CYCLE), Q(FA), Q(AF), \
-    Q(FUN), Q(NUF),  \
-    Q(TYPE), Q(EPYT), Q(MU), Q(UM), \
-    Q(CONST), Q(VAR), \
-     Q(STRING), Q(INTEGER), Q(REAL), Q(BOOLEAN), Q(BITSET), \
-    Q(REC), Q(CER), \
-    Q(ARRAY), Q(TUPLE), Q(HASH), Q(SET), Q(LIST), \
+#define FOREACH_TOKEN(A) \
+    A(IF, "'if'"), A(FI, "'fi'"), A(ELIF, "'elif'"), A(ELSE, "'else'"), A(THEN, "'then'"), \
+    A(CASE, "'case'"), A(ESAC, "'esac'"), A(OF, "'of'"), \
+    A(FOR, "'for'"), A(ROF, "'rof'"), \
+    A(FA, "'fa'"), A(AF, "'af'"), \
+    A(LOOP, "'loop'"), A(POOL, "'pool'"), \
+    A(BREAK, "'break'"), A(CONTINUE, "'continue'"), A(CYCLE, "'cycle'"), \
+    A(FUN, "'fun'"), A(NUF, "'nuf'"),  \
+    A(TYPE, "'type'"), A(EPYT, "'epyt'"), A(MU, "'mu'"), A(UM, "'um'"), \
+    A(CONST, "'const'"), A(VAR, "'var'"), \
+    A(STRING, "'string'"), A(INTEGER, "'integer'"), A(REAL, "'real'"), \
+    A(BOOLEAN, "'boolean'"), A(BITSET, "'bitset'"), \
+    A(REC, "'rec'"), A(CER, "'cer'"), \
+    A(ARRAY, "'array'"), A(TUPLE, "'tuple'"), A(HASH, "'hash'"), \
+    A(SET, "'set'"), A(LIST, "'list'"), \
     A(STRING_VAL, "string literal"), A(INT_VAL, "integer literal"), \
     A(REAL_VAL, "real literal"), \
-    Q(TRUE), Q(FALSE), \
-    Q(MOD), Q(DOM), Q(FROM), Q(IMPORT), Q(EXTERN),  \
+    A(TRUE, "'true'"), A(FALSE, "'false'"), \
+    A(MOD, "'mod'"), A(DOM, "'dom'"), A(FROM, "'from'"), \
+    A(IMPORT, "'import'"), A(EXTERN, "'extern'"),  \
     A(COLON, "':'"), A(SEMICOLON, "';'"), \
     A(COMMA, "','"), \
     A(LBRACE, "'{'"), A(RBRACE, "'}'"), \
@@ -38,16 +42,16 @@
     A(NOT_EQ, "'!='"), A(LT_EQ, "'<='"), A(GT_EQ, "'>='"), \
     A(NOT, "'!'"), A(AND, "'&&'"), A(OR, "'||'"), A(XOR, "'^^'"), \
     A(BIT_NOT, "'~'"), A(BIT_AND, "'&'"), A(BIT_OR, "'|'"), A(BIT_XOR, "'^'"), \
-    Q(BEGIN), Q(END), \
+    A(BEGIN, "'begin'"), A(END, "'end'"), \
     A(DOT, "'.'"), A(TICK, "'''"), \
     A(DOT_DOT, "'..'"), A(DOT_DOT_DOT, "'...'"), \
     A(ARROW, "'->'"), \
-    Q(ST), Q(IN), \
+    A(ST, "'st'"), A(IN, "'in'"), \
     A(IDENTIFIER, "identifier"), \
-    Q(LEXEOF)
+    A(LEXEOF, "EOF")
 
 enum token {
-    FOREACH_TOKEN(GEN_ENUM, GEN_ENUM2)
+    FOREACH_TOKEN(GEN_ENUM)
 };
 
 struct tokname_st {
@@ -57,7 +61,7 @@ struct tokname_st {
 
 #ifdef _LEXER_C_
 const struct tokname_st token_names[] = {
-    FOREACH_TOKEN(GEN_QUOT, GEN_ASSOC)
+    FOREACH_TOKEN(GEN_ASSOC)
 };
 #else
 extern const struct tokname_st token_names[];

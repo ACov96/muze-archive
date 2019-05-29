@@ -85,6 +85,7 @@ ll_t generate_token_list(char* s) {
       }
       else if (peek(1) == '=') {
         ll_append(token_list, new_token(COLON_EQ, ":="));
+        inc(1);
       }
       else {
         ll_append(token_list, new_token(COLON, ":"));

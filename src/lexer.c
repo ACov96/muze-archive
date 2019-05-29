@@ -281,26 +281,27 @@ ll_t generate_token_list(char* s) {
     else if (isdigit(c)) {
       char *id = malloc(MAX_NUMBER_SIZE + 1);
       memset(id, 0, (MAX_NUMBER_SIZE + 1) * sizeof(char));
+      id[0] = c;
 
-      int j = 0;
+      int j = 1;
       int is_float = 0;
-      while (isdigit(s[i]) || (s[i] == '.' && peek(1) == '.')) {
-        if (s[i] == '.' && is_float == 1)
+      while (isdigit(peek(1)) || (peek(1) == '.' && peek(2) != '.')) {
+        if (peek(1) == '.' && is_float == 1)
           error_and_exit("Invalid real.", line_no);
-        else if (s[i] == '.')
+        else if (peek(1) == '.')
           is_float = 1;
         if (j > MAX_NUMBER_SIZE - 1)
           error_and_exit("exceeded digit buffer.", line_no);
-        id[j] = s[i];
+        id[j] = peek(1);
         j++;
         inc(1);
       }
-      i--;
       if (is_float == 1)
         ll_append(token_list, new_token(REAL_VAL, id));
       else
         ll_append(token_list, new_token(INT_VAL, id));
     }
+
     // Check for strings
     else if (c == '"') {
       char *buf = NULL, *tmp = NULL;

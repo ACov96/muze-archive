@@ -7,18 +7,19 @@
 #include "print_tree.h"
 
 int main(int argc, char* argv[]) {
-  /*
-  int opt;
-  struct option long_opts[] = {
-    { "--help",   no_argument,       NULL, 'h' },
-    { "--output", required_argument, NULL, 'o' }
-  };
 
-  while (1) {
-    opt = getopt_long(argc, argv, "", long_opts, NULL);
-    //TODO
-  }
-  */
+//  struct option long_opts[] = {
+//    { "--help",   no_argument,       NULL, 'h' },
+//    { "--output", required_argument, NULL, 'o' }
+//  };
+
+//  while (1) {
+//    opt = getopt_long(argc, argv, "", long_opts, NULL);
+//
+//    switch (opt) {
+//    }
+//  }
+
   // lex
   ll_t tokens = lex(argv[1]);
   ll_t toks = tokens;

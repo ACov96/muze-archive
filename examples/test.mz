@@ -1,6 +1,6 @@
 mod Main
   const
-    a : integer = 1;
+    a : integer = 1.0;
   type
     celsius = ...integer...real;
     mu

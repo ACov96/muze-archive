@@ -90,7 +90,6 @@ static fun_decl_t parse_fun_decl(PARSE_PARAMS);
 static var_decl_t parse_vars_decl(PARSE_PARAMS);
 static expr_t parse_expr(PARSE_PARAMS);
 static morph_chain_t parse_morph_chain(PARSE_PARAMS);
-static char* parse_arithmetic_expr(PARSE_PARAMS);
 static literal_t parse_literal(PARSE_PARAMS);
 static type_t parse_type_expr(PARSE_PARAMS);
 static arg_t parse_arg_list(PARSE_PARAMS);
@@ -161,10 +160,6 @@ static literal_t parse_literal(PARSE_PARAMS) {
 
   PARSE_RETURN(lit);
 
-}
-
-static char* parse_arithmetic_expr(PARSE_PARAMS) {
-  return NULL;
 }
 
 // Right identifier, basically anything taht can
@@ -258,8 +253,8 @@ static fun_decl_t parse_fun_decl(PARSE_PARAMS) {
   MATCH_FUN(parse_decl, fun->decl);
 
   EXPECT_TOK(BEGIN);
-
   // parse statements
+  // MATCH_FUN()
   EXPECT_TOK(NUF);
   EXPECT_TOK(IDENTIFIER);
   MATCH_FUN(parse_fun_decl, fun->next);

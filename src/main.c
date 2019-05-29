@@ -7,6 +7,7 @@
 #include "print_tree.h"
 
 int main(int argc, char* argv[]) {
+  /*
   int opt;
   struct option long_opts[] = {
     { "--help",   no_argument,       NULL, 'h' },
@@ -17,7 +18,7 @@ int main(int argc, char* argv[]) {
     opt = getopt_long(argc, argv, "", long_opts, NULL);
     //TODO
   }
-
+  */
   // lex
   ll_t tokens = lex(argv[1]);
   ll_t toks = tokens;

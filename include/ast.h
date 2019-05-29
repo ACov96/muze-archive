@@ -31,6 +31,9 @@ typedef struct boolean_st       *boolean_t;
 typedef struct enum_st          *enum_t;
 typedef struct rec_st           *rec_t;
 typedef struct arg_st           *arg_t;
+typedef struct stmt_st          *stmt_t;
+typedef struct assign_stmt_st   *assign_stmt_t;
+
 
 // Entry node in the AST
 struct root_st {
@@ -177,7 +180,6 @@ struct id_list_st {
 
 // An assignment
 struct assign_st {
-  // Deep or shallow copy, := vs =
   enum assign_kind {
     SIMPLE_AS,
     DEEP_AS,
@@ -218,7 +220,6 @@ struct expr_st {
     morph_expr_t morph_ex; // a = (morph ...integer 2)
   } u;
 };
-
 
 // One operand expression
 struct unary_st {
@@ -306,6 +307,23 @@ struct arg_st {
   char* name;
   type_t type;
   arg_t next;
+};
+
+// statements
+struct stmt_st {
+  enum{
+    IF_STMT, FOR_STMT, LOOP_STMT, COND_STMT,
+    CASE_STMT, ASSIGN_STMT, EXPR_STMT  
+  } kind;
+
+  union{
+    expr_t expr;
+  }u;
+};
+
+struct assign_stmt_st {
+  //lval_t lval
+  assign_t assignment;
 };
 
 // prototypes

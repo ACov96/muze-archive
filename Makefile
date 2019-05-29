@@ -16,7 +16,7 @@ vpath %.h $(INCLUDEDIR)
 include SOURCEDEPS
 
 $(BUILDDIR)/%.o : %.c
-	mkdir -p build
+	mkdir -p $(BUILDDIR)
 	$(CC) $(CFLAGS) -c -o $@ $<
 
 $(TARGET) : $(OBJS)
@@ -24,7 +24,12 @@ $(TARGET) : $(OBJS)
 
 .DEFAULT_GOAL = $(TARGET)
 
-.PHONY : clean
+.PHONY : clean test
+
+TESTSCRIPT = test.sh
+
+test: $(TARGET)
+	./$(TESTSCRIPT)
 
 clean:
 	rm -f $(OBJS) $(TARGET)

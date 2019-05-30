@@ -83,5 +83,7 @@ typedef struct token_st* token_t;
  */
 ll_t lex(char* file_name);
 
+void print_tokens(ll_t toks);
+
 #endif
 

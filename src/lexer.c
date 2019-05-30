@@ -495,3 +495,12 @@ char* file_to_string(FILE *f) {
   return buffer;
 }
 
+void print_tokens(ll_t toks) {
+  for (ll_t curr = toks; curr; curr = curr->next) {
+    token_t tok = toks->val;
+
+    printf("[%5d, %5d] %s : %s\n", tok->line_no, tok->col_no,
+           token_names[tok->tok].raw, tok->val);
+  }
+}
+

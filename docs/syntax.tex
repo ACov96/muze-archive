@@ -718,10 +718,6 @@ A specification of a morph path. May be used for explicit morphs or as a type.
 
     \node[nterm] (id) [below=0.25cm of top] {Right Identifier};
 
-    \node[nterm] (inner) [above=0.25cm of top] {Morph Chain};
-    \node[term] (lparen) [left=of inner] {(};
-    \node[term] (rparen) [right=of inner] {)};
-
     \node[term] (dotdot) [above=0.25cm of bot] {->};
     \node[term] (dotdotdot) [below=0.25cm of bot] {...};
 
@@ -729,27 +725,12 @@ A specification of a morph path. May be used for explicit morphs or as a type.
 
     \draw [arr] (entry) -- (entry-loop);
 
-    \draw [arr]
-      (entry-choices) + (-0.2, 0)
-      -- (entry-choices)
-      |- (top-left)
-      |- (lparen);
-
     \draw [narr, mid arrow = 0.8]
       (entry-loop)
-      -- (entry-choices)
-      |- (top-left)
       |- (id);
-
-    \draw [narr, mid arrow = 0.45]
-      (rparen)
-      -| (top-right)
-      -| (exit-choices)
-      -- (exit-loop);
 
     \draw [narr, mid arrow = 0.2]
       (id)
-      -| (top-right)
       -| (exit-choices)
       -- ++(0.2, 0);
 
@@ -779,7 +760,6 @@ A specification of a morph path. May be used for explicit morphs or as a type.
 
     \draw [arr] (exit-loop) -- (exit);
 
-    \draw [arrs] (lparen) -- (inner) -- (rparen);
   \end{tikzpicture}
 \end{figure}
 

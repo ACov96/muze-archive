@@ -16,7 +16,7 @@
     A(BREAK, "'break'"), A(CONTINUE, "'continue'"), A(CYCLE, "'cycle'"), \
     A(FUN, "'fun'"), A(NUF, "'nuf'"),  \
     A(TYPE, "'type'"), A(EPYT, "'epyt'"), A(MU, "'mu'"), A(UM, "'um'"), \
-    A(CONST, "'const'"), A(VAR, "'var'"), \
+    A(CONST, "'const'"), A(VAR, "'var'"), A(EXTEND, "'extend'"), \
     A(STRING, "'string'"), A(INTEGER, "'integer'"), A(REAL, "'real'"), \
     A(BOOLEAN, "'boolean'"), A(BITSET, "'bitset'"), \
     A(REC, "'rec'"), A(CER, "'cer'"), \

@@ -533,10 +533,11 @@ One or more constant declarations.
     \node[term] (const) [right=of entry] {const};
     \coordinate[right=of const] (const-name);
     \node[nterm] (name) [right=of const-name] {Identifier};
+    \node[term] (comma) [above=of name] {,};
     \node[term] (colon) [right=of name] {:};
     \node[nterm] (type) [right=of colon] {Type Expression};
-    \node[term] (eq) [below left=0.5cm and 0cm of type] {=};
-    \node[nterm] (literal) [left=of eq] {Literal};
+    \node[term] (eq) [below left=0.5cm and -0.5cm of type] {=};
+    \node[nterm] (literal) [left=of eq] {Expression};
     \node[term] (semi) [left=of literal] {;};
     \node[exit] (exit) [left=1.2cm of semi] {};
 
@@ -546,7 +547,7 @@ One or more constant declarations.
       -- (colon)
       -- (type);
 
-    \draw[narr, mid arrow = 0.6] (type) |- (eq);
+    \draw[narr, mid arrow = 0.75] (type) |- (eq);
 
     \draw[arrs] (eq)
       -- (literal)
@@ -555,7 +556,8 @@ One or more constant declarations.
     \draw[narr, mid arrow = 0.75] (semi) -- (exit);
     
     \draw[arr] (semi) -| (const-name) -- (name);
-
+    \draw[arr] (name) -- (comma);
+    \draw[arr] (comma) -| (const-name) -- (name);
   \end{tikzpicture}
 \end{figure}
 
@@ -575,6 +577,7 @@ One or more variable declarations.
     \node[nterm] (type) [right=of colon] {Type Expression};
     \node[term] (eq) [below left=0.5cm and -0.5cm of type] {=};
     \node[nterm] (expr) [left=of eq] {Expression};
+    \coordinate [below=of expr] (expr-below);
     \node[term] (semi) [left=of expr] {;};
     \node[exit] (exit) [left=1cm of semi] {};
     
@@ -583,20 +586,15 @@ One or more variable declarations.
     \draw[arrs] (name)
       -- (colon)
       -- (type);
-
     \draw[arr] (name) -- (comma) ;
     \draw[arr] (comma) -| (var-name) -- (name);
-
     \draw[narr, mid arrow = 0.75] (type) |- (eq);
-
     \draw[arrs] (eq)
       -- (expr)
       -- (semi);
-
     \draw[narr, mid arrow = 0.75] (semi) -- (exit);
-    
     \draw[arr] (semi) -| (var-name) -- (name);
-
+    \draw[arr] (type) |- (expr-below) -| (semi);
   \end{tikzpicture}
 \end{figure}
 

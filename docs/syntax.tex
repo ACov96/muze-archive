@@ -138,7 +138,7 @@ This is the result of a normal identifier not including certain keywords, which 
     \node[term] (boolean) [below=of real] {boolean};
     \node[term] (string) [below=of boolean] {string};
     \node[term] (array) [below=of string] {array};
-    \node[term] (map) [below=of array] {map};
+    \node[term] (map) [below=of array] {hash};
     \node[term] (set) [below=of map] {set};
 
     \coordinate[right=1cm of set] (aggr);
@@ -201,27 +201,29 @@ A literal value representing a string. It should be noted that \textit{Character
 
 \subsection{Integer Literal}
 
-A literal value representing an integer. \textit{Digit} is any single digit from the set \{0, 1, 2, 3, 4, 5, 6, 7, 8 , 9\}.
+A literal value representing an integer. \textit{Digit} is any single digit from the set \{0, 1, 2, 3, 4, 5, 6, 7, 8, 9\}, \textit{Non-Zero} is any single digit from the set \{1, 2, 3, 4, 5, 6, 7, 8, 9\}.
 
 \begin{figure}[H]
   \centering
   \begin{tikzpicture}
     \node[entry] (entry) {};
-    \coordinate [right=of entry] (entry-digit);
-    \node[nterm] (digit) [right=of entry-digit] {Digit};
+    \coordinate [right=of entry] (entry-non-zero);
+    \node[nterm] (non-zero) [right=of entry-non-zero] {Non-Zero};
+    \coordinate [right=of non-zero] (non-zero-digit);
+    \node[nterm] (digit) [right=of non-zero-digit] {Digit};
     \coordinate [above=of digit] (digit-above);
     \coordinate [right=of digit] (digit-exit);
     \node[exit] (exit) [right=of digit-exit] {};
 
     \draw[arrs] (entry)
-    -- (entry-digit)
+    -- (non-zero)
     -- (digit)
     -- (digit-exit)
     -- (exit);
     \draw[arr] (digit)
     -- (digit-exit)
     |- (digit-above)
-    -| (entry-digit)
+    -| (non-zero-digit)
     -- (digit);
   \end{tikzpicture}
 \end{figure}
@@ -257,7 +259,7 @@ A literal value representing an real. \textit{Digit} is any single digit from th
     -- (exit);
 
     \draw[arr] (digit)
-    -- (digit-exit)
+    -- (digit-decimal)
     |- (digit-above)
     -| (entry-digit)
     -- (digit);
@@ -1403,12 +1405,12 @@ Range expression. Both literal expressions must be of the same type.
   \centering
   \begin{tikzpicture}
     \node[entry] (entry) {};
-    \node[nterm] (lit1) [right=of entry] {Literal};
-    \node[term] (dotdot) [right=of lit1] {..};
-    \node[nterm] (lit2) [right=of dotdot] {Literal};
-    \node[exit] (exit) [right=of lit2] {};
+    \node[nterm] (exp1) [right=of entry] {Expression};
+    \node[term] (dotdot) [right=of exp1] {..};
+    \node[nterm] (exp2) [right=of dotdot] {Expression};
+    \node[exit] (exit) [right=of exp2] {};
 
-    \draw[arrs] (entry) -- (lit1) -- (dotdot) -- (lit2) -- (exit);
+    \draw[arrs] (entry) -- (exp1) -- (dotdot) -- (exp2) -- (exit);
   \end{tikzpicture}
 \end{figure}
 

@@ -31,6 +31,14 @@ typedef struct boolean_st       *boolean_t;
 typedef struct enum_st          *enum_t;
 typedef struct rec_st           *rec_t;
 typedef struct arg_st           *arg_t;
+//statments
+typedef struct stmt_st          *stmt_t;
+typedef struct stmt_list_st     *stmt_list_t;
+typedef struct assign_stmt_st   *assign_stmt_t;
+typedef struct cond_st          *cond_t;
+typedef struct for_st           *for_t;
+typedef struct loop_st          *loop_t;
+typedef struct case_st          *case_t;
 
 // Entry node in the AST
 struct root_st {
@@ -177,7 +185,6 @@ struct id_list_st {
 
 // An assignment
 struct assign_st {
-  // Deep or shallow copy, := vs =
   enum assign_kind {
     SIMPLE_AS,
     DEEP_AS,
@@ -218,7 +225,6 @@ struct expr_st {
     morph_expr_t morph_ex; // a = (morph ...integer 2)
   } u;
 };
-
 
 // One operand expression
 struct unary_st {
@@ -307,6 +313,51 @@ struct arg_st {
   type_t type;
   arg_t next;
 };
+
+// statements
+struct stmt_st {
+  enum{
+    COND_STMT, FOR_STMT, LOOP_STMT,
+    CASE_STMT, ASSIGN_STMT, EXPR_STMT  
+  } kind;
+
+  union{
+    cond_t cond_stmt;
+    for_t for_stmt;
+    loop_t loop_stmt;
+    
+    expr_t expr_stmt;
+  }u;
+};
+
+struct stmt_list_st {
+  stmt_t stmt;
+  stmt_list_t next;
+};
+
+struct cond_st {
+  expr_t test_expr;
+  stmt_list_t then_stmt, else_stmt;
+  cond_st elif_stmt;
+};
+
+struct for_st {
+  
+}; 
+
+struct loop_st {
+  stmt_list_t body;
+};
+
+struct case_st {
+  
+};
+
+struct assign_stmt_st {
+  //lval_t lval
+  assign_t assignment;
+};
+
 
 // prototypes
 root_t parse(ll_t ll_tokens);

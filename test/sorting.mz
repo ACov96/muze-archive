@@ -3,7 +3,7 @@ mod Util
     qsort(ls : list) : list
       var
         sorted : list := ls;
-        pivot : ...; // What is pivot's type?
+        pivot : unit; // What is pivot's type?
         i, pt : integer;
     begin
       if list'length > 1 then

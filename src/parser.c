@@ -88,18 +88,152 @@ static type_decl_t parse_type_decl(PARSE_PARAMS);
 static const_decl_t parse_const_decl(PARSE_PARAMS);
 static fun_decl_t parse_fun_decl(PARSE_PARAMS);
 static var_decl_t parse_vars_decl(PARSE_PARAMS);
+
+static assign_t parse_assign(PARSE_PARAMS);
+
 static expr_t parse_expr(PARSE_PARAMS);
+static lval_t parse_lval(PARSE_PARAMS);
+
 static morph_chain_t parse_morph_chain(PARSE_PARAMS);
 static literal_t parse_literal(PARSE_PARAMS);
 static type_t parse_type_expr(PARSE_PARAMS);
 static arg_t parse_arg_list(PARSE_PARAMS);
 static char *parse_right_identifier(PARSE_PARAMS);
 
-static expr_t parse_expr(PARSE_PARAMS) {
-  expr_t ex = malloc(sizeof(expr_t));
+static stmt_t parse_stmt(PARSE_PARAMS);
+static cond_stmt_t parse_cond_stmt(PARSE_PARAMS);
+static case_stmt_t parse_case_stmt(PARSE_PARAMS);
+static for_stmt_t parse_for_stmt(PARSE_PARAMS);
+static loop_stmt_t parse_loop_stmt(PARSE_PARAMS);
+static assign_stmt_t parse_assign_stmt(PARSE_PARAMS);
+static expr_stmt_t parse_expr_stmt(PARSE_PARAMS);
 
-  if (MATCH_FUN(parse_right_identifier, ex->u.id_ex)) {
-    ex->kind = ID_EX;
+static stmt_t parse_stmt(PARSE_PARAMS) {
+  stmt_t stmt = malloc(sizeof(struct stmt_st));
+
+  if (MATCH_FUN(parse_cond_stmt, stmt->u.cond_stmt)) {
+    stmt->kind = COND_STMT;
+  }
+  else if (MATCH_FUN(parse_case_stmt, stmt->u.case_stmt)) {
+    stmt->kind = CASE_STMT;
+  }
+  else if (MATCH_FUN(parse_for_stmt, stmt->u.for_stmt)) {
+    stmt->kind = FOR_STMT;
+  }
+  else if (MATCH_FUN(parse_loop_stmt, stmt->u.loop_stmt)) {
+    stmt->kind = LOOP_STMT;
+  }
+  else if (MATCH_FUN(parse_assign_stmt, stmt->u.assign_stmt)) {
+    stmt->kind = ASSIGN_STMT;
+  }
+  else if (MATCH_FUN(parse_expr_stmt, stmt->u.expr_stmt)) {
+    stmt->kind = EXPR_STMT;
+  }
+  else {
+    PARSE_FAIL("Expected to find a statement, instead found %s",
+               token_names[BEGET->tok].pretty);
+  }
+
+  if (!MATCH_FUN(parse_stmt, stmt->next)) {
+    stmt->next = NULL;
+  }
+
+  PARSE_RETURN(stmt);
+}
+
+static cond_stmt_t parse_cond_stmt(PARSE_PARAMS) {
+  cond_stmt_t cond_stmt = malloc(sizeof(struct cond_stmt_st));
+
+  EXPECT_TOK(IF);
+  EXPECT_FUN(parse_expr, cond_stmt->test);
+  EXPECT_TOK(THEN);
+  MATCH_FUN(parse_stmt, cond_stmt->body);
+
+  cond_stmt_t curr = cond_stmt;
+
+  while (MATCH_TOK(ELIF)) {
+    curr->else_stmt = malloc(sizeof(struct stmt_st));
+
+    curr->else_stmt->kind = COND_STMT;
+    curr->else_stmt->u.cond_stmt = malloc(sizeof(struct cond_stmt_st));
+
+    curr = curr->else_stmt->u.cond_stmt;
+
+    EXPECT_FUN(parse_expr, curr->test);
+    EXPECT_TOK(THEN);
+    MATCH_FUN(parse_stmt, curr->body);
+  }
+
+  if (MATCH_TOK(ELSE)) {
+    MATCH_FUN(parse_stmt, curr->else_stmt);
+  }
+
+  EXPECT_TOK(FI);
+
+  PARSE_RETURN(cond_stmt);
+}
+
+static case_stmt_t parse_case_stmt(PARSE_PARAMS) {
+  case_stmt_t case_stmt = malloc(sizeof(struct case_stmt_st));
+
+  EXPECT_TOK(CASE);
+  // TODO
+  EXPECT_TOK(ESAC);
+
+  PARSE_RETURN(case_stmt);
+}
+
+static for_stmt_t parse_for_stmt(PARSE_PARAMS) {
+  for_stmt_t for_stmt = malloc(sizeof(struct for_stmt_st));
+
+  EXPECT_TOK(FOR);
+
+  for_stmt->iter = BEGET->val;
+  EXPECT_TOK(IDENTIFIER);
+  EXPECT_TOK(IN);
+  EXPECT_FUN(parse_expr, for_stmt->list);
+
+  EXPECT_TOK(DO);
+  MATCH_FUN(parse_stmt, for_stmt->body);
+  EXPECT_TOK(ROF);
+
+  PARSE_RETURN(for_stmt);
+}
+
+static loop_stmt_t parse_loop_stmt(PARSE_PARAMS) {
+  loop_stmt_t loop_stmt = malloc(sizeof(struct loop_stmt_st));
+
+  EXPECT_TOK(LOOP);
+  MATCH_FUN(parse_stmt, loop_stmt->body);
+  EXPECT_TOK(POOL);
+
+  PARSE_RETURN(loop_stmt);
+}
+
+static assign_stmt_t parse_assign_stmt(PARSE_PARAMS) {
+  assign_stmt_t assign_stmt = malloc(sizeof(struct assign_stmt_st));
+
+  EXPECT_FUN(parse_lval, assign_stmt->lval);
+  EXPECT_FUN(parse_assign, assign_stmt->assign);
+  EXPECT_TOK(SEMICOLON);
+
+  PARSE_RETURN(assign_stmt);
+}
+
+static expr_stmt_t parse_expr_stmt(PARSE_PARAMS) {
+  expr_stmt_t expr_stmt = malloc(sizeof(struct expr_stmt_st));
+
+  EXPECT_FUN(parse_expr, expr_stmt->expr);
+  EXPECT_TOK(SEMICOLON);
+
+  PARSE_RETURN(expr_stmt);
+}
+
+static expr_t parse_expr(PARSE_PARAMS) {
+  expr_t ex = malloc(sizeof(struct expr_st));
+
+  if (MATCH_FUN(parse_lval, ex->u.lval_ex)) {
+    ex->kind = LVAL_EX;
   }
   else if (MATCH_FUN(parse_literal, ex->u.literal_ex)) {
     ex->kind = LITERAL_EX;
@@ -112,8 +246,16 @@ static expr_t parse_expr(PARSE_PARAMS) {
   PARSE_RETURN(ex);
 }
 
+static lval_t parse_lval(PARSE_PARAMS) {
+  lval_t lval = malloc(sizeof(struct lval_st));
+
+  // TODO
+
+  PARSE_RETURN(lval);
+}
+
 static arg_t parse_arg_list(PARSE_PARAMS) {
-  arg_t arg = malloc(sizeof(arg_t));
+  arg_t arg = malloc(sizeof(struct arg_st));
 
   arg->name = BEGET->val;
   EXPECT_TOK(IDENTIFIER);
@@ -132,7 +274,7 @@ static arg_t parse_arg_list(PARSE_PARAMS) {
 }
 
 static literal_t parse_literal(PARSE_PARAMS) {
-  literal_t lit = malloc(sizeof(literal_t));
+  literal_t lit = malloc(sizeof(struct literal_st));
 
   if (MATCH_TOK(STRING_VAL)){
     lit->kind = STRING_LIT;

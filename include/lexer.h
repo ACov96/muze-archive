@@ -46,7 +46,7 @@
     A(DOT, "'.'"), A(TICK, "'''"), \
     A(DOT_DOT, "'..'"), A(DOT_DOT_DOT, "'...'"), \
     A(ARROW, "'->'"), \
-    A(ST, "'st'"), A(IN, "'in'"), \
+    A(ST, "'st'"), A(IN, "'in'"), A(DO, "'do'"), \
     A(IDENTIFIER, "identifier"), \
     A(LEXEOF, "EOF")
 

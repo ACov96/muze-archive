@@ -362,6 +362,8 @@ token_t token_from_word(char* s) {
     return new_token(ST, "st");
   else if (strcmp(buf, "in") == 0)
     return new_token(IN, "in");
+  else if (strcmp(buf, "do") == 0)
+    return new_token(DO, "do");
 
   // Loop tokens
   else if (strcmp(buf, "for") == 0)

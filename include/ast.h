@@ -16,9 +16,11 @@ typedef struct const_st         *const_t;
 typedef struct type_st          *type_t;
 // typedef struct var_st           *var_t;
 // typedef struct fun_st           *fun_t;
+
+// Expressions
 typedef struct expr_st          *expr_t;
-typedef struct ident_st         *ident_t;
 typedef struct literal_st       *literal_t;
+typedef struct lval_st          *lval_t;
 typedef struct unary_st         *unary_t;
 typedef struct binary_st        *binary_t;
 typedef struct ternary_st       *ternary_t;
@@ -27,18 +29,21 @@ typedef struct range_st         *range_t;
 typedef struct morph_expr_st    *morph_expr_t;
 typedef struct morph_st         *morph_t;
 typedef struct morph_chain_st   *morph_chain_t;
+
 typedef struct boolean_st       *boolean_t;
 typedef struct enum_st          *enum_t;
 typedef struct rec_st           *rec_t;
 typedef struct arg_st           *arg_t;
+
 //statments
 typedef struct stmt_st          *stmt_t;
 typedef struct stmt_list_st     *stmt_list_t;
 typedef struct assign_stmt_st   *assign_stmt_t;
-typedef struct cond_st          *cond_t;
-typedef struct for_st           *for_t;
-typedef struct loop_st          *loop_t;
-typedef struct case_st          *case_t;
+typedef struct cond_stmt_st     *cond_stmt_t;
+typedef struct for_stmt_st      *for_stmt_t;
+typedef struct loop_stmt_st     *loop_stmt_t;
+typedef struct case_stmt_st     *case_stmt_t;
+typedef struct expr_stmt_st     *expr_stmt_t;
 
 // Entry node in the AST
 struct root_st {
@@ -210,20 +215,23 @@ struct expr_st {
 
   // Tagged union of various kinds of expressions
   enum {
-    ID_EX, LITERAL_EX, UNARY_EX, BINARY_EX, TERNARY_EX,
+    LVAL_EX, LITERAL_EX, UNARY_EX, BINARY_EX, TERNARY_EX,
     CALL_EX, RANGE_EX
   } kind;
 
   union {
-    char *id_ex;
-    literal_t literal_ex;
-    unary_t unary_ex;
-    binary_t binary_ex;
-    ternary_t ternary_ex;
-    call_t call_ex;
-    range_t range_ex;
-    morph_expr_t morph_ex; // a = (morph ...integer 2)
+    lval_t        lval_ex;
+    literal_t     literal_ex;
+    unary_t       unary_ex;
+    binary_t      binary_ex;
+    ternary_t     ternary_ex;
+    call_t        call_ex;
+    range_t       range_ex;
+    morph_expr_t  morph_ex;
   } u;
+};
+
+struct lval_st {
 };
 
 // One operand expression
@@ -286,7 +294,8 @@ struct literal_st {
   } kind;
 
   union {
-    // These three options seem redundant but it seems best to keep them around for logical consistency
+    // These three options seem redundant but it seems best to keep them around
+    // for logical consistency
     char *string_lit;
     char *integer_lit;
     char *real_lit;
@@ -299,7 +308,6 @@ struct literal_st {
 
 
 // Explicit morph
-// (morph <chain> <expr>)
 struct morph_expr_st {
   expr_t expr;
   morph_chain_t morph;
@@ -309,9 +317,9 @@ struct morph_st {
 };
 
 struct arg_st {
-  char* name;
+  char*  name;
   type_t type;
-  arg_t next;
+  arg_t  next;
 };
 
 // statements
@@ -322,40 +330,45 @@ struct stmt_st {
   } kind;
 
   union{
-    cond_t cond_stmt;
-    for_t for_stmt;
-    loop_t loop_stmt;
-    
-    expr_t expr_stmt;
-  }u;
+    cond_stmt_t    cond_stmt;
+    case_stmt_t    case_stmt;
+    for_stmt_t     for_stmt;
+    loop_stmt_t    loop_stmt;
+    assign_stmt_t  assign_stmt;
+    expr_stmt_t    expr_stmt;
+  } u;
+
+  stmt_t next;
 };
 
-struct stmt_list_st {
-  stmt_t stmt;
-  stmt_list_t next;
+struct cond_stmt_st {
+  expr_t test;
+  stmt_t body; // NULLABLE
+  stmt_t else_stmt; // NULLABLE
 };
 
-struct cond_st {
-  expr_t test_expr;
-  stmt_list_t then_stmt, else_stmt;
-  cond_st elif_stmt;
-};
-
-struct for_st {
-  
+struct for_stmt_st {
+  char   *iter;
+  expr_t  list;
+  stmt_t  body;
 }; 
 
-struct loop_st {
-  stmt_list_t body;
+struct loop_stmt_st {
+  stmt_t body;
 };
 
-struct case_st {
-  
+struct case_stmt_st {
+  expr_t test;
+  // TODO
 };
 
 struct assign_stmt_st {
-  //lval_t lval
-  assign_t assignment;
+  lval_t   lval;
+  assign_t assign;
+};
+
+struct expr_stmt_st {
+  expr_t expr;
 };
 
 

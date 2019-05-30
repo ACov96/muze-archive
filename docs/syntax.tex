@@ -612,9 +612,8 @@ One or more type declarations
     \node[term] (equals) [right=of name] {=};
     \node[nterm] (typexp) [right=of equals] {Type Expression};
     \node[nterm] (morphs) [right=of typexp] {Morphs};
-    \node[term] (semi) [right=of morphs] {;};
-    \coordinate[right=of semi] (semi-exit);
-    \node[exit] (exit) [right=of semi-exit] {};
+    \coordinate[right=of morphs] (morph-exit);
+    \node[exit] (exit) [right=of morph-exit] {};
 
     \draw[arrs] (entry)
     -- (type)
@@ -623,15 +622,35 @@ One or more type declarations
     -- (equals)
     -- (typexp)
     -- (morphs)
-    -- (semi)
-    -- (semi-exit)
+    -- (morph-exit)
     -- (exit);
 
-    \draw[arr] (semi)
-    -- (semi-exit)
+    \draw[arr] (morphs)
+    -- (morph-exit)
     |- ++(0, -.75)
     -| (type-name)
     -- (name);
+  \end{tikzpicture}
+\end{figure}
+
+\subsection{Extend Block}
+
+Extend the morphs of an already declared type.
+
+\begin{figure}[H]
+  \centering
+  \begin{tikzpicture}
+    \node[entry] (entry) {};
+    \node[term] (extend) [right=of entry] {extend};
+    \coordinate [right=of extend] (extend-id);
+    \node[nterm] (id) [right=of extend-id] {Identifier};
+    \coordinate [below=of id] (id-below);
+    \node[nterm] (morphs) [right=of id] {Morphs};
+    \coordinate [right=of morphs] (morphs-exit);
+    \node[exit] (exit) [right=of morphs-exit] {};
+
+    \draw[arrs] (entry) -- (extend) -- (id) -- (morphs) -- (exit);
+    \draw[arr] (morphs) -- (morphs-exit) |- (id-below) -| (extend-id) -- (id);
   \end{tikzpicture}
 \end{figure}
 
@@ -760,6 +779,30 @@ A specification of a morph path. May be used for explicit morphs or as a type.
 
     \draw [arr] (exit-loop) -- (exit);
 
+  \end{tikzpicture}
+\end{figure}
+
+\subsection{Morphs}
+
+Define the incoming morphs for a type.
+
+\begin{figure}[H]
+  \centering
+  \begin{tikzpicture}
+    \node[entry] (entry) {};
+    \coordinate [right=of entry] (entry-mu);
+    \node[term] (mu) [right=of entry-mu] {mu};
+    \node[nterm] (id) [right=of mu] {Identifier};
+    \node[nterm] (dec) [right=of id] {Declarations};
+    \node[term] (begin) [right=of dec] {begin};
+    \node[nterm] (statements) [right=of begin] {Statement List};
+    \node[term] (um) [right=of statements] {um};
+    \coordinate [right=of um] (um-exit);
+    \node[exit] (exit) [right=of um-exit] {};
+    \coordinate [below=of dec] (dec-below);
+
+    \draw[arrs] (entry) -- (mu) -- (id) -- (dec) -- (begin) -- (statements) -- (um) -- (exit);
+    \draw[arr] (um) -- (um-exit) |- (dec-below) -| (entry-mu) -- (mu);
   \end{tikzpicture}
 \end{figure}
 

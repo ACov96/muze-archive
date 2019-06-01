@@ -417,11 +417,13 @@ token_t token_from_word(char* s) {
   else if (strcmp(buf, "um") == 0)
     return new_token(UM, "um");
 
-  //CONST and VAR tokens
+  //CONST, VAR, and EXTEND tokens
   else if (strcmp(buf, "const") == 0)
     return new_token(CONST, "const");
   else if (strcmp(buf, "var") == 0)
     return new_token(VAR, "var");
+  else if (strcmp(buf, "extend") == 0)
+    return new_token(EXTEND, "extend");
 
   // Basic types
   else if (strcmp(buf, "string") == 0)

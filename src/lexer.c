@@ -163,6 +163,9 @@ ll_t generate_token_list(char* s) {
       if (peek(1) == '=') {
         inc(1);
         ll_append(token_list, new_token(LT_EQ, "<="));
+      } else if (peek(1) == '<') {
+        inc(1);
+        ll_append(token_list, new_token(SHIFT_LEFT, "<<"));
       } else 
         ll_append(token_list, new_token(LT, "<"));
     }
@@ -171,6 +174,9 @@ ll_t generate_token_list(char* s) {
       if (peek(1) == '=') {
         inc(1);
         ll_append(token_list, new_token(GT_EQ, ">="));
+      } else if (peek(1) == '>') {
+        inc(1);
+        ll_append(token_list, new_token(SHIFT_RIGHT, ">>"));
       } else 
         ll_append(token_list, new_token(GT, ">"));
     }
@@ -224,6 +230,10 @@ ll_t generate_token_list(char* s) {
 
     else if (c == '~') {
       ll_append(token_list, new_token(BIT_NOT, "~"));
+    }
+
+    else if (c == '?') {
+      ll_append(token_list, new_token(QUESTION, "?"));
     }
 
     // dots

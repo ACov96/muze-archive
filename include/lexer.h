@@ -27,7 +27,7 @@
     A(TRUE, "'true'"), A(FALSE, "'false'"), \
     A(MOD, "'mod'"), A(DOM, "'dom'"), A(FROM, "'from'"), \
     A(IMPORT, "'import'"), A(EXTERN, "'extern'"),  \
-    A(COLON, "':'"), A(SEMICOLON, "';'"), \
+    A(QUESTION, "'?'"), A(COLON, "':'"), A(SEMICOLON, "';'"), \
     A(COMMA, "','"), \
     A(LBRACE, "'{'"), A(RBRACE, "'}'"), \
     A(LBRACKET, "'['"), A(RBRACKET, "']'"), \
@@ -42,6 +42,7 @@
     A(NOT_EQ, "'!='"), A(LT_EQ, "'<='"), A(GT_EQ, "'>='"), \
     A(NOT, "'!'"), A(AND, "'&&'"), A(OR, "'||'"), A(XOR, "'^^'"), \
     A(BIT_NOT, "'~'"), A(BIT_AND, "'&'"), A(BIT_OR, "'|'"), A(BIT_XOR, "'^'"), \
+    A(SHIFT_LEFT, "'<<'"), A(SHIFT_RIGHT, "'>>'"), \
     A(BEGIN, "'begin'"), A(END, "'end'"), \
     A(DOT, "'.'"), A(TICK, "'''"), \
     A(DOT_DOT, "'..'"), A(DOT_DOT_DOT, "'...'"), \

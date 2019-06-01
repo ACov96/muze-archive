@@ -20,7 +20,6 @@ typedef struct type_st          *type_t;
 // Expressions
 typedef struct expr_st          *expr_t;
 typedef struct literal_st       *literal_t;
-typedef struct lval_st          *lval_t;
 typedef struct unary_st         *unary_t;
 typedef struct binary_st        *binary_t;
 typedef struct ternary_st       *ternary_t;
@@ -215,12 +214,12 @@ struct expr_st {
 
   // Tagged union of various kinds of expressions
   enum {
-    LVAL_EX, LITERAL_EX, UNARY_EX, BINARY_EX, TERNARY_EX,
+    ID_EX, LITERAL_EX, UNARY_EX, BINARY_EX, TERNARY_EX,
     CALL_EX, RANGE_EX
   } kind;
 
   union {
-    lval_t        lval_ex;
+    char         *id_ex;
     literal_t     literal_ex;
     unary_t       unary_ex;
     binary_t      binary_ex;
@@ -231,16 +230,17 @@ struct expr_st {
   } u;
 };
 
-struct lval_st {
-};
-
 // One operand expression
 struct unary_st {
   // The operator
   enum {
     NOT_OP,
     BIT_NOT_OP,
-    NEG_OP
+    NEG_OP, // (unimplemented) TODO: how does this parse?
+    PRE_INC_OP,
+    PRE_DEC_OP,
+    POST_INC_OP,
+    POST_DEC_OP
   } op;
 
   // The operand
@@ -262,7 +262,15 @@ struct binary_st {
     XOR_OP,
     BIT_AND_OP,
     BIT_OR_OP,
-    BIT_EXPR_OP
+    BIT_XOR_OP,
+    SHIFT_RIGHT_OP,
+    SHIFT_LEFT_OP,
+    EQ_EQ_OP,
+    LT_OP,
+    GT_OP,
+    NOT_EQ_OP,
+    LT_EQ_OP,
+    GT_EQ_OP
   } op;
 
   // The operands
@@ -363,7 +371,7 @@ struct case_stmt_st {
 };
 
 struct assign_stmt_st {
-  lval_t   lval;
+  expr_t   lval;
   assign_t assign;
 };
 

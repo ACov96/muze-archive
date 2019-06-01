@@ -39,6 +39,7 @@
   return ret
 
 #define PARSE_FAIL_AT(_line, _col, ...) \
+  parse_log("Attempted parse failed: " __VA_ARGS__); \
   if (LEVEL_SPECIFIER > fail_info.level) { \
     snprintf(fail_info.msg, MAX_ERROR_SIZE, __VA_ARGS__); \
     fail_info.line = (_line); \
@@ -52,6 +53,7 @@
 
 #define PARSE_ASSERT(pred, title, msg, ...) \
   if (!(pred)) { \
+    parse_log("Assersion failed: " msg, ##__VA_ARGS__); \
     append_error("/to/do", BEGET->line_no, BEGET->col_no, \
                  (title), (msg), ##__VA_ARGS__); \
   }
@@ -64,6 +66,9 @@
   LL_NAME = LL_NAME->next
 
 #define PARSE_PARAMS ll_t LL_NAME, ll_t *LL_OUT, int LEVEL_SPECIFIER
+
+#define parse_log(str, ...) \
+  write_log("[%d] "str, LEVEL_SPECIFIER, ##__VA_ARGS__)
 
 // most recent mismatch
 static struct {
@@ -92,7 +97,26 @@ static var_decl_t parse_vars_decl(PARSE_PARAMS);
 static assign_t parse_assign(PARSE_PARAMS);
 
 static expr_t parse_expr(PARSE_PARAMS);
-static lval_t parse_lval(PARSE_PARAMS);
+static expr_t parse_lval(PARSE_PARAMS);
+
+
+// In order of precedence
+static expr_t parse_postfix_expr(PARSE_PARAMS);
+static expr_t parse_prefix_expr(PARSE_PARAMS);
+
+static expr_t parse_unit_expr(PARSE_PARAMS);
+static expr_t parse_unary_expr(PARSE_PARAMS);
+static expr_t parse_multiplicative_expr(PARSE_PARAMS);
+static expr_t parse_additive_expr(PARSE_PARAMS);
+static expr_t parse_bitshift_expr(PARSE_PARAMS);
+static expr_t parse_bit_and_expr(PARSE_PARAMS);
+static expr_t parse_bit_or_expr(PARSE_PARAMS);
+static expr_t parse_bit_xor_expr(PARSE_PARAMS);
+static expr_t parse_compare_expr(PARSE_PARAMS);
+static expr_t parse_and_expr(PARSE_PARAMS);
+static expr_t parse_or_expr(PARSE_PARAMS);
+static expr_t parse_xor_expr(PARSE_PARAMS);
+static expr_t parse_ternary_expr(PARSE_PARAMS);
 
 static morph_chain_t parse_morph_chain(PARSE_PARAMS);
 static literal_t parse_literal(PARSE_PARAMS);
@@ -107,6 +131,7 @@ static for_stmt_t parse_for_stmt(PARSE_PARAMS);
 static loop_stmt_t parse_loop_stmt(PARSE_PARAMS);
 static assign_stmt_t parse_assign_stmt(PARSE_PARAMS);
 static expr_stmt_t parse_expr_stmt(PARSE_PARAMS);
+
 
 static stmt_t parse_stmt(PARSE_PARAMS) {
   stmt_t stmt = malloc(sizeof(struct stmt_st));
@@ -177,6 +202,8 @@ static case_stmt_t parse_case_stmt(PARSE_PARAMS) {
   case_stmt_t case_stmt = malloc(sizeof(struct case_stmt_st));
 
   EXPECT_TOK(CASE);
+  EXPECT_FUN(parse_expr, case_stmt->test);
+  EXPECT_TOK(OF);
   // TODO
   EXPECT_TOK(ESAC);
 
@@ -230,28 +257,390 @@ static expr_stmt_t parse_expr_stmt(PARSE_PARAMS) {
 }
 
 static expr_t parse_expr(PARSE_PARAMS) {
-  expr_t ex = malloc(sizeof(struct expr_st));
+  expr_t ex;
 
-  if (MATCH_FUN(parse_lval, ex->u.lval_ex)) {
-    ex->kind = LVAL_EX;
-  }
-  else if (MATCH_FUN(parse_literal, ex->u.literal_ex)) {
-    ex->kind = LITERAL_EX;
-  }
-  else {
-    PARSE_FAIL("Expression expected");
-  }
-  // TODO
+  EXPECT_FUN(parse_ternary_expr, ex);
 
   PARSE_RETURN(ex);
 }
 
-static lval_t parse_lval(PARSE_PARAMS) {
-  lval_t lval = malloc(sizeof(struct lval_st));
+static expr_t parse_lval(PARSE_PARAMS) {
+  expr_t lval = malloc(sizeof(struct expr_st));
+
+  lval->kind = ID_EX;
+  lval->u.id_ex = BEGET->val;
+  EXPECT_TOK(IDENTIFIER);
 
   // TODO
 
   PARSE_RETURN(lval);
+}
+
+
+static expr_t parse_unit_expr(PARSE_PARAMS) {
+  expr_t unit = malloc(sizeof(struct expr_st));
+
+  parse_log("Attempting to parse unit expression");
+
+  if (MATCH_FUN(parse_lval, unit)) {
+    parse_log("Unit expression is lvalue");
+  }
+  // TODO: this segfaults because unit is set to a new value above
+  else if (MATCH_FUN(parse_right_identifier, unit->u.id_ex)) {
+    parse_log("Unit expression is right identifier");
+    unit->kind = ID_EX;
+  }
+  else if (MATCH_TOK(LPAREN)) {
+    parse_log("Unit expression is nested expression");
+    EXPECT_FUN(parse_expr, unit);
+    EXPECT_TOK(RPAREN);
+  }
+
+  parse_log("Successfully parsed unit expression");
+
+  PARSE_RETURN(unit);
+}
+
+static expr_t parse_postfix_expr(PARSE_PARAMS) {
+  expr_t expr = malloc(sizeof(struct expr_st));
+  unary_t unary = malloc(sizeof(struct unary_st));
+  expr->kind = UNARY_EX;
+  expr->u.unary_ex = unary;
+
+  EXPECT_FUN(parse_lval, unary->expr);
+
+  if (MATCH_TOK(INC)) {
+    unary->op = POST_INC_OP;
+  }
+  else if (MATCH_TOK(DEC)) {
+    unary->op = POST_DEC_OP;
+  }
+  else {
+    PARSE_FAIL("Expected postfix operator (++ or --), got %s",
+               token_names[BEGET->tok].pretty);
+  }
+
+  PARSE_RETURN(expr);
+}
+
+static expr_t parse_prefix_expr(PARSE_PARAMS) {
+  expr_t expr = malloc(sizeof(struct expr_st));
+  unary_t unary = malloc(sizeof(struct unary_st));
+  expr->kind = UNARY_EX;
+  expr->u.unary_ex = unary;
+
+  if (MATCH_TOK(INC)) {
+    unary->op = PRE_INC_OP;
+  }
+  else if (MATCH_TOK(DEC)) {
+    unary->op = PRE_DEC_OP;
+  }
+  else {
+    PARSE_FAIL("Expected prefix operator, got %s",
+               token_names[BEGET->tok].pretty);
+  }
+
+  EXPECT_FUN(parse_lval, unary->expr);
+
+  PARSE_RETURN(expr);
+}
+
+static expr_t parse_unary_expr(PARSE_PARAMS) {
+  expr_t expr = malloc(sizeof(struct expr_st));
+  unary_t unary = malloc(sizeof(struct unary_st));
+  expr->kind = UNARY_EX;
+  expr->u.unary_ex = unary;
+
+  if (MATCH_TOK(NOT)) {
+    unary->op = NOT_OP;
+    if (!MATCH_FUN(parse_unit_expr, unary->expr)) {
+      EXPECT_FUN(parse_unary_expr, unary->expr);
+    }
+  }
+  else if (MATCH_TOK(BIT_NOT)) {
+    unary->op = BIT_NOT_OP;
+    if (!MATCH_FUN(parse_unit_expr, unary->expr)) {
+      EXPECT_FUN(parse_unary_expr, unary->expr);
+    }
+  }
+  else {
+    EXPECT_FUN(parse_unit_expr, expr);
+  }
+
+  PARSE_RETURN(expr);
+}
+
+static expr_t parse_multiplicative_expr(PARSE_PARAMS) {
+  expr_t expr = malloc(sizeof(struct expr_st));
+  binary_t binary = malloc(sizeof(struct binary_st));
+  expr->kind = BINARY_EX;
+  expr->u.binary_ex = binary;
+
+  EXPECT_FUN(parse_unary_expr, binary->left);
+
+  if (MATCH_TOK(MULT)) {
+    binary->op = MUL_OP;
+    EXPECT_FUN(parse_multiplicative_expr, binary->right);
+  }
+  else if (MATCH_TOK(DIV)) {
+    binary->op = DIV_OP;
+    EXPECT_FUN(parse_multiplicative_expr, binary->right);
+  }
+  else if (MATCH_TOK(MODULO)) {
+    binary->op = MOD_OP;
+    EXPECT_FUN(parse_multiplicative_expr, binary->right);
+  }
+  else {
+    expr = binary->left;
+  }
+
+  PARSE_RETURN(expr);
+}
+
+static expr_t parse_additive_expr(PARSE_PARAMS) {
+  expr_t expr = malloc(sizeof(struct expr_st));
+  binary_t binary = malloc(sizeof(struct binary_st));
+  expr->kind = BINARY_EX;
+  expr->u.binary_ex = binary;
+
+  EXPECT_FUN(parse_multiplicative_expr, binary->left);
+
+  if (MATCH_TOK(PLUS)) {
+    binary->op = PLUS_OP;
+    EXPECT_FUN(parse_additive_expr, binary->right);
+  }
+  else if (MATCH_TOK(MINUS)) {
+    binary->op = MINUS_OP;
+    EXPECT_FUN(parse_additive_expr, binary->right);
+  }
+  else {
+    expr = binary->left;
+  }
+
+
+  PARSE_RETURN(expr);
+}
+
+static expr_t parse_bitshiftl_expr(PARSE_PARAMS) {
+  expr_t expr = malloc(sizeof(struct expr_st));
+  binary_t binary = malloc(sizeof(struct binary_st));
+  expr->kind = BINARY_EX;
+  expr->u.binary_ex = binary;
+
+  EXPECT_FUN(parse_additive_expr, binary->left);
+
+  if (MATCH_TOK(SHIFT_LEFT)) {
+    binary->op = SHIFT_LEFT_OP;
+    EXPECT_FUN(parse_bitshiftl_expr, binary->right);
+  }
+  else {
+    expr = binary->left;
+  }
+
+  PARSE_RETURN(expr);
+}
+
+static expr_t parse_bitshiftr_expr(PARSE_PARAMS) {
+  expr_t expr = malloc(sizeof(struct expr_st));
+  binary_t binary = malloc(sizeof(struct binary_st));
+  expr->kind = BINARY_EX;
+  expr->u.binary_ex = binary;
+
+  EXPECT_FUN(parse_additive_expr, binary->left);
+
+  if (MATCH_TOK(SHIFT_LEFT)) {
+    EXPECT_FUN(parse_bitshiftr_expr, binary->right);
+    binary->op = SHIFT_RIGHT_OP;
+  }
+  else {
+    expr = binary->left;
+  }
+
+  PARSE_RETURN(expr);
+}
+
+static expr_t parse_bitshift_expr(PARSE_PARAMS) {
+  expr_t expr;
+
+  if (!MATCH_FUN(parse_bitshiftl_expr, expr)
+      && !MATCH_FUN(parse_bitshiftr_expr, expr)) {
+    PARSE_FAIL("Expected bitshift, got %s", token_names[BEGET->tok].pretty);
+  }
+
+  PARSE_RETURN(expr);
+}
+
+static expr_t parse_bit_and_expr(PARSE_PARAMS) {
+  expr_t expr = malloc(sizeof(struct expr_st));
+  binary_t binary = malloc(sizeof(struct binary_st));
+  expr->kind = BINARY_EX;
+  expr->u.binary_ex = binary;
+
+  EXPECT_FUN(parse_bitshift_expr, binary->left);
+
+  if (MATCH_TOK(BIT_AND)) {
+    binary->op = BIT_AND_OP;
+    EXPECT_FUN(parse_bit_and_expr, binary->right);
+  }
+  else {
+    expr = binary->left;
+  }
+
+  PARSE_RETURN(expr);
+}
+
+static expr_t parse_bit_or_expr(PARSE_PARAMS) {
+  expr_t expr = malloc(sizeof(struct expr_st));
+  binary_t binary = malloc(sizeof(struct binary_st));
+  expr->kind = BINARY_EX;
+  expr->u.binary_ex = binary;
+
+  EXPECT_FUN(parse_bit_and_expr, binary->left);
+
+  if (MATCH_TOK(BIT_OR)) {
+    binary->op = BIT_OR_OP;
+    EXPECT_FUN(parse_bit_or_expr, binary->right);
+  }
+  else {
+    expr = binary->left;
+  }
+
+  PARSE_RETURN(expr);
+}
+
+static expr_t parse_bit_xor_expr(PARSE_PARAMS) {
+  expr_t expr = malloc(sizeof(struct expr_st));
+  binary_t binary = malloc(sizeof(struct binary_st));
+  expr->kind = BINARY_EX;
+  expr->u.binary_ex = binary;
+
+  EXPECT_FUN(parse_bit_or_expr, binary->left);
+
+  if (MATCH_TOK(BIT_XOR)) {
+    binary->op = BIT_XOR_OP;
+    EXPECT_FUN(parse_bit_xor_expr, binary->right);
+  }
+  else {
+    expr = binary->left;
+  }
+
+  PARSE_RETURN(expr);
+}
+
+static expr_t parse_compare_expr(PARSE_PARAMS) {
+  expr_t expr = malloc(sizeof(struct expr_st));
+  binary_t binary = malloc(sizeof(struct binary_st));
+  expr->kind = BINARY_EX;
+  expr->u.binary_ex = binary;
+
+  EXPECT_FUN(parse_bit_xor_expr, binary->left);
+
+  if (MATCH_TOK(EQ_EQ)) {
+    binary->op = EQ_EQ_OP;
+    EXPECT_FUN(parse_compare_expr, binary->right);
+  }
+  else if (MATCH_TOK(LT)) {
+    binary->op = LT_OP;
+    EXPECT_FUN(parse_compare_expr, binary->right);
+  }
+  else if (MATCH_TOK(GT)) {
+    binary->op = GT_OP;
+    EXPECT_FUN(parse_compare_expr, binary->right);
+  }
+  else if (MATCH_TOK(NOT_EQ)) {
+    binary->op = NOT_EQ_OP;
+    EXPECT_FUN(parse_compare_expr, binary->right);
+  }
+  else if (MATCH_TOK(LT_EQ)) {
+    binary->op = LT_EQ_OP;
+    EXPECT_FUN(parse_compare_expr, binary->right);
+  }
+  else if (MATCH_TOK(GT_EQ)) {
+    binary->op = GT_EQ_OP;
+    EXPECT_FUN(parse_compare_expr, binary->right);
+  }
+  else {
+    expr = binary->left;
+  }
+
+  PARSE_RETURN(expr);
+}
+
+static expr_t parse_and_expr(PARSE_PARAMS) {
+  expr_t expr = malloc(sizeof(struct expr_st));
+  binary_t binary = malloc(sizeof(struct binary_st));
+  expr->kind = BINARY_EX;
+  expr->u.binary_ex = binary;
+
+  EXPECT_FUN(parse_compare_expr, binary->left);
+
+  if (MATCH_TOK(AND)) {
+    EXPECT_FUN(parse_and_expr, binary->right);
+    binary->op = AND_OP;
+  }
+  else {
+    expr = binary->left;
+  }
+
+  PARSE_RETURN(expr);
+}
+
+static expr_t parse_or_expr(PARSE_PARAMS) {
+  expr_t expr = malloc(sizeof(struct expr_st));
+  binary_t binary = malloc(sizeof(struct binary_st));
+  expr->kind = BINARY_EX;
+  expr->u.binary_ex = binary;
+
+  EXPECT_FUN(parse_and_expr, binary->left);
+
+  if (MATCH_TOK(AND)) {
+    EXPECT_FUN(parse_compare_expr, binary->right);
+    binary->op = OR_OP;
+  }
+  else {
+    expr = binary->left;
+  }
+
+  PARSE_RETURN(expr);
+}
+
+static expr_t parse_xor_expr(PARSE_PARAMS) {
+  expr_t expr = malloc(sizeof(struct expr_st));
+  binary_t binary = malloc(sizeof(struct binary_st));
+  expr->kind = BINARY_EX;
+  expr->u.binary_ex = binary;
+
+  EXPECT_FUN(parse_or_expr, binary->left);
+
+  if (MATCH_TOK(AND)) {
+    EXPECT_FUN(parse_compare_expr, binary->right);
+    binary->op = XOR_OP;
+  }
+  else {
+    expr = binary->left;
+  }
+
+  PARSE_RETURN(expr);
+}
+
+static expr_t parse_ternary_expr(PARSE_PARAMS) {
+  expr_t expr = malloc(sizeof(struct expr_st));
+  ternary_t ternary = malloc(sizeof(struct ternary_st));
+  expr->kind = TERNARY_EX;
+  expr->u.ternary_ex = ternary;
+
+  EXPECT_FUN(parse_xor_expr, ternary->left);
+
+  if (MATCH_TOK(QUESTION)) {
+    EXPECT_FUN(parse_xor_expr, ternary->middle);
+    EXPECT_TOK(COLON);
+    EXPECT_FUN(parse_ternary_expr, ternary->right);
+  }
+  else {
+    expr = ternary->left;
+  }
+
+  PARSE_RETURN(expr);
 }
 
 static arg_t parse_arg_list(PARSE_PARAMS) {
@@ -338,7 +727,6 @@ static morph_chain_t parse_morph_chain(PARSE_PARAMS) {
     EXPECT_FUN(parse_type_expr, morph->ty);
   }
   else {
-    write_log("got here");
     PARSE_FAIL("Expected to find a morph chain, instead got %s",
                token_names[BEGET->tok].pretty);
   }

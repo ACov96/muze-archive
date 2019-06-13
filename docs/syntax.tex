@@ -740,6 +740,8 @@ A specification of a morph path. May be used for explicit morphs or as a type.
     \node[term] (dotdot) [above=0.25cm of bot] {->};
     \node[term] (dotdotdot) [below=0.25cm of bot] {...};
 
+    \coordinate[left=of entry] (left-start);
+
     \draw [arr] (entry) -| (bot-right-right) -- +(-0.05, 0);
 
     \draw [arr] (entry) -- (entry-loop);
@@ -753,17 +755,13 @@ A specification of a morph path. May be used for explicit morphs or as a type.
       -| (exit-choices)
       -- ++(0.2, 0);
 
-    \draw [arr]
+    \draw [narr]
       (dotdot)
-      -| (bot-left)
-      -| (entry-loop)
-      -- ++(0.2, 0);
+      -| (bot-left);
 
     \draw [narr]
       (dotdotdot)
-      -| (bot-left)
-      -| (entry-loop)
-      -- ++(0.2, 0);
+      -| (bot-left);
 
     \draw [narr]
       (exit-loop) + (-0.2, 0)
@@ -778,6 +776,8 @@ A specification of a morph path. May be used for explicit morphs or as a type.
       |- (dotdotdot);
 
     \draw [arr] (exit-loop) -- (exit);
+
+    \draw [arr] (bot-left) -| (left-start) |- (id);
 
   \end{tikzpicture}
 \end{figure}

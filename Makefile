@@ -3,7 +3,9 @@ SRCDIR = src
 INCLUDEDIR = include
 
 CC = gcc
-CFLAGS = -g -Wall -Werror -Wno-error=unused-function -I $(INCLUDEDIR)
+CFLAGS = -g -Wall -Wfatal-errors -Werror \
+	 -Wno-error=unused-function \
+	 -I $(INCLUDEDIR)
 
 OBJLST = util.o lexer.o main.o parser.o print_tree.o
 OBJS = $(foreach obj, $(OBJLST), $(BUILDDIR)/$(obj))
@@ -15,8 +17,10 @@ vpath %.h $(INCLUDEDIR)
 
 include SOURCEDEPS
 
-$(BUILDDIR)/%.o : %.c
-	mkdir -p $(BUILDDIR)
+$(BUILDDIR) :
+	mkdir -p $@
+
+$(BUILDDIR)/%.o : %.c | $(BUILDDIR)
 	$(CC) $(CFLAGS) -c -o $@ $<
 
 $(TARGET) : $(OBJS)
@@ -33,4 +37,5 @@ test: $(TARGET)
 
 clean:
 	rm -f $(OBJS) $(TARGET)
+	rm -d $(BUILDDIR)
 

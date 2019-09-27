@@ -278,15 +278,17 @@ static expr_t parse_lval(PARSE_PARAMS) {
 
 
 static expr_t parse_unit_expr(PARSE_PARAMS) {
-  expr_t unit = malloc(sizeof(struct expr_st));
+  expr_t unit;
+  char *id;
 
   parse_log("Attempting to parse unit expression");
 
   if (MATCH_FUN(parse_lval, unit)) {
     parse_log("Unit expression is lvalue");
   }
-  // TODO: this segfaults because unit is set to a new value above
-  else if (MATCH_FUN(parse_right_identifier, unit->u.id_ex)) {
+  else if (MATCH_FUN(parse_right_identifier, id)) {
+    unit = malloc(sizeof(struct expr_st));
+    unit->u.id_ex = id;
     parse_log("Unit expression is right identifier");
     unit->kind = ID_EX;
   }

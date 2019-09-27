@@ -73,7 +73,7 @@ int main(int argc, char* argv[]) {
   opts = parse_args(argc, argv);
 
   if (!*opts.input_files) {
-    fputs("Error: No input files given", stderr);
+    fputs("Error: No input files given\n", stderr);
     exit(EXIT_FAILURE);
   }
 

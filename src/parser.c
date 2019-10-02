@@ -264,14 +264,24 @@ static expr_t parse_expr(PARSE_PARAMS) {
   PARSE_RETURN(ex);
 }
 
+static expr_t parse_id_expr(PARSE_PARAMS) {
+  expr_t id = malloc(sizeof(struct expr_st));
+  id->kind = ID_EX;
+  id->u.id_ex = BEGET->val;
+  EXPECT_TOK(IDENTIFIER);
+
+  PARSE_RETURN(id);
+}
+
 static expr_t parse_lval(PARSE_PARAMS) {
   expr_t lval = malloc(sizeof(struct expr_st));
 
-  lval->kind = ID_EX;
-  lval->u.id_ex = BEGET->val;
-  EXPECT_TOK(IDENTIFIER);
-
-  // TODO
+  // TODO: delete this line and finish this function, maybe treat subscripting
+  // and property access as "operators"
+  EXPECT_FUN(parse_id_expr, lval);
+//  if (MATCH_FUN(parse_id_expr, lval)) {
+//  }
+//  else if (MATCH_FUN(
 
   PARSE_RETURN(lval);
 }

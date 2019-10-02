@@ -5,6 +5,10 @@ INCLUDEDIR = include
 CC = gcc
 CFLAGS = -g -Wall -Wfatal-errors -Werror \
 	 -Wno-error=unused-function \
+	 -Wno-error=unused-variable \
+	 -Wno-error=unused-parameter \
+	 -Wno-error=unused-value \
+	 -Wno-error=unused-label \
 	 -I $(INCLUDEDIR)
 
 OBJLST = util.o lexer.o main.o parser.o print_tree.o

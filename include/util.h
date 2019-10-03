@@ -30,6 +30,19 @@ void ll_append(ll_t l, void *data);
  * 
  * Prints error message and exits program with exit code 1 
  */
-void error_and_exit(char* message);
+void error_and_exit(char* message, int line_no);
+
+// Writes to the log file
+// (right now this is just pointed at stdout
+void write_log(char *msg, ...);
+
+// Append an error to the error queue
+// Errors are FIFO
+void append_error(char *file, int line, int col, char *title, char *msg, ...);
+
+// Print all errors in order that they were appended
+void print_errors();
+
+int had_errors();
 
 #endif

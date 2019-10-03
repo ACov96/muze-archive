@@ -1,2 +1,20 @@
+# binaries
 *.o
-morph
+build
+muzec
+
+# editor files
+*.swp
+
+# tex output
+*.pdf
+*.dvi
+*.aux
+*.fdb_latexmk
+*.fls
+*.log
+*.out
+
+# who even knows
+*.nfs*
+

@@ -1,0 +1,29 @@
+mod Main
+  import
+    A.B.C;
+    D;
+    Foo.Bar.Baz;
+
+  mod InnerModule
+  dom
+
+  // Comment should be ignored
+
+  const
+    a, b, c : integer = /* Is this ignored too?
+
+  type
+    Foo = integer;
+
+    Bar = ..Foo...Baz..(Quz..Baz)..Foo
+      mu
+      um;
+
+  var
+    a, b, c : (Foo...Bar);
+    d : Real;
+    e : Complex;
+
+  fun
+  nuf
+dom

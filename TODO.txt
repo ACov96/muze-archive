@@ -1,0 +1,8 @@
+From Spring:
+- Parsing is not finished or up to date
+- I noticed that there were quite a few 'if/else if' blocks in the parser which
+      did not have an 'else' fail condition when there needed to be one.
+- A proper test script would be nice, that is why I added the 'test' folder
+
+9/26/19:
+- Fix segfault when run against examples/test.mz

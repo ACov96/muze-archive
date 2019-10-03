@@ -15,3 +15,6 @@ muzec
 *.log
 *.out
 
+# who even knows
+*.nfs*
+

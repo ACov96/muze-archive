@@ -1,0 +1,85 @@
+mod Util
+  fun
+    qsort(ls : list) : list
+      var
+        sorted : list := ls;
+        pivot : unit; // What is pivot's type?
+        i, pt : integer;
+    begin
+      if list'length > 1 then
+        pivot = sorted'last;
+        pt = sorted'start;
+
+        for i in sorted'start..sorted'end
+          if sorted[j] < pivot then
+            sorted[pt] .=. sorted[j];
+            pt++;
+          fi
+        rof
+
+        sorted[pt] .=. sorted[sorted'end];
+
+        sorted[sorted'start..(pt - 1)] = qsort(sorted'start..(pt - 1));
+        sorted[(pt + 1)..sorted'end] = qsort((pt + 1)..sorted'end);
+      fi
+
+      return sorted;
+    nuf qsort
+
+  type
+dom Util
+
+mod Test
+  import
+    Util.qsort;
+
+  type
+    linked_list = rec
+                    value : ...; // Empty morph? Placeholder value?
+                    next : linked_list | null; // How are we going to do, really?
+                  cer;
+      mu list
+        var
+          i : integer;
+          curr : linked_list = null;
+      begin
+        if that'len == 0 then
+          this = null;
+        else
+          this = { that'first, null };
+        fi
+
+        curr = this;
+
+        for i in (that'start + 1)..that'end
+          curr.next = { that[i], null };
+          curr = curr.next;
+        rof
+      um list
+
+    sorted_list = list;
+      mu list
+        this = qsort(that);
+      um
+
+    sorted_linked_list = ...linked_list...sorted_list...linked_list;
+
+  extend
+    list
+      mu linked_list
+        var node : linked_list = that;
+      begin
+        this = {};
+
+        loop
+          if (node == null) then // null checking?
+            break
+          fi
+
+          this += node.value; // Using '+' as a placeholder for appending
+          node = node.next;
+        pool
+      um
+
+dom Test
+

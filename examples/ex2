@@ -1,0 +1,20 @@
+mod test_mod
+  const
+    a:integer = 10;
+    b:integer = 11;
+    c:integer = 12;
+  type
+    celsius = ...integer->real;
+    mu
+    um
+    fahr = real;
+    kelvin = real;
+  var
+    temp_in_WA : integer  = 0;
+    temp_in_CA : integer = 30;
+    temp_on_moon : integer = 125;
+
+  fun foo(x:integer; temp:celcius):celcius
+    begin
+  nuf foo
+dom test_mod

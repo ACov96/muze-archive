@@ -1,6 +1,7 @@
 # binaries
 *.o
-morph
+build
+muzec
 
 # editor files
 *.swp

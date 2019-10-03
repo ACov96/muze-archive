@@ -1,25 +1,106 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <getopt.h>
 #include "lexer.h"
 #include "util.h"
+#include "ast.h"
+#include "print_tree.h"
+
+struct prog_opts {
+  int print_help;
+  int print_tokens;
+  int print_tree;
+  char *output_file;
+  char **input_files;
+};
+
+struct prog_opts parse_args(int argc, char **argv) {
+  struct prog_opts opts = {
+    .print_help = 0,
+    .print_tokens = 0,
+    .print_tree = 0,
+    .output_file = "a.out",
+  };
+
+  const char *opt_string = "hko:t";
+  const struct option long_opts[] = {
+    { "--help",   no_argument,       NULL, 'h' },
+    { "--tokens", no_argument,       NULL, 'k' },
+    { "--output", required_argument, NULL, 'o' },
+    { "--tree",   no_argument,       NULL, 't' }
+  };
+
+  for (int opt = getopt_long(argc, argv, opt_string, long_opts, NULL);
+       opt != -1;
+       opt = getopt_long(argc, argv, opt_string, long_opts, NULL)) {
+    switch (opt) {
+      case 'h':
+        opts.print_help = 1;
+        break;
+
+      case 'o':
+        opts.output_file = optarg;
+        break;
+
+      case 'k':
+        opts.print_tokens = 1;
+        break;
+
+      case 't':
+        opts.print_tree = 1;
+        break;
+
+      // Error cases
+      case '?':
+        break;
+
+      case ':':
+        break;
+
+      default:
+        break;
+    }
+  }
+
+  opts.input_files = argv + optind;
+
+  return opts;
+}
 
 int main(int argc, char* argv[]) {
-  if (argc < 2) {
-    fprintf(stderr, "Missing file argument\n");
-    exit(1);
+  struct prog_opts opts;
+  
+  opts = parse_args(argc, argv);
+
+  if (!*opts.input_files) {
+    fputs("Error: No input files given\n", stderr);
+    exit(EXIT_FAILURE);
   }
-  ll_t tokens = lex(argv[1]);
-  while (tokens) {
-    token_t t = tokens->val;
-    if (t->tok == STRING_VAL)
-      printf("\"%s\"\n", t->val);
-    else if (t->tok == INT_VAL)
-      printf("<%s>\n", t->val);
-    else if (t->tok == REAL_VAL)
-      printf("$%s$\n", t->val);
-    else
-      printf("%d:%s\n", t->line_no, t->val);
-    tokens = tokens->next;
+
+  ll_t tokens = lex(*opts.input_files);
+
+  if (!tokens) {
+    print_errors();
+    exit(EXIT_FAILURE);
   }
-  printf("\n");
+
+  if (opts.print_tokens) {
+    print_tokens(tokens);
+  }
+
+  root_t ast_root = parse(tokens);
+
+  if (!ast_root) {
+    print_errors();
+    exit(EXIT_FAILURE);
+  }
+
+  if (opts.print_tree) {
+    print_tree(stdout, ast_root);
+  }
+
+  if (had_errors()) {
+    print_errors();
+  }
 }
+

@@ -119,6 +119,9 @@ struct fun_decl_st {
   // Inner function declarations
   decl_t decl;
 
+  // Function implementation
+  stmt_t stmts;
+
   // next function in the declaration
   fun_decl_t next; // NULLABLE
 };

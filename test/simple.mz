@@ -9,6 +9,12 @@ mod Main
     b, e : integer = d;
     c : string = s + (r + t);
     d : string;
+  fun f(x : integer) : void
+    begin
+      c = a + b;
+      b = t + a;
+      return;
+    nuf f
 dom Main
 
 mod Test

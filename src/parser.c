@@ -241,6 +241,7 @@ static assign_stmt_t parse_assign_stmt(PARSE_PARAMS) {
   assign_stmt_t assign_stmt = malloc(sizeof(struct assign_stmt_st));
 
   EXPECT_FUN(parse_lval, assign_stmt->lval);
+
   EXPECT_FUN(parse_assign, assign_stmt->assign);
   EXPECT_TOK(SEMICOLON);
 
@@ -795,8 +796,10 @@ static fun_decl_t parse_fun_decl(PARSE_PARAMS) {
   MATCH_FUN(parse_decl, fun->decl);
 
   EXPECT_TOK(BEGIN);
+
   // parse statements
-  // MATCH_FUN()
+  fun->stmts = NULL;
+  MATCH_FUN(parse_stmt, fun->stmts);
   EXPECT_TOK(NUF);
   EXPECT_TOK(IDENTIFIER);
   MATCH_FUN(parse_fun_decl, fun->next);

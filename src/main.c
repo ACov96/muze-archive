@@ -4,12 +4,14 @@
 #include "lexer.h"
 #include "util.h"
 #include "ast.h"
+#include "codegen.h"
 #include "print_tree.h"
 
 struct prog_opts {
   int print_help;
   int print_tokens;
   int print_tree;
+  int print_asm;
   char *output_file;
   char **input_files;
 };
@@ -19,6 +21,7 @@ struct prog_opts parse_args(int argc, char **argv) {
     .print_help = 0,
     .print_tokens = 0,
     .print_tree = 0,
+    .print_asm = 0,
     .output_file = "a.out",
   };
 
@@ -27,7 +30,8 @@ struct prog_opts parse_args(int argc, char **argv) {
     { "--help",   no_argument,       NULL, 'h' },
     { "--tokens", no_argument,       NULL, 'k' },
     { "--output", required_argument, NULL, 'o' },
-    { "--tree",   no_argument,       NULL, 't' }
+    { "--tree",   no_argument,       NULL, 't' },
+    { "--asm",    no_argument,       NULL, 'a' }
   };
 
   for (int opt = getopt_long(argc, argv, opt_string, long_opts, NULL);
@@ -50,6 +54,10 @@ struct prog_opts parse_args(int argc, char **argv) {
         opts.print_tree = 1;
         break;
 
+      case 'a':
+        opts.print_asm = 1;
+        break;
+        
       // Error cases
       case '?':
         break;
@@ -102,5 +110,11 @@ int main(int argc, char* argv[]) {
   if (had_errors()) {
     print_errors();
   }
+
+  char *assembly = codegen(ast_root);
+  if (opts.print_asm) {
+    printf("Assembly Output:\n%s\n", assembly);
+  }
+  
 }
 

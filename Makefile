@@ -11,7 +11,7 @@ CFLAGS = -g -Wall -Wfatal-errors -Werror \
 	 -Wno-error=unused-label \
 	 -I $(INCLUDEDIR)
 
-OBJLST = util.o lexer.o main.o parser.o print_tree.o
+OBJLST = util.o lexer.o main.o parser.o print_tree.o codegen.o
 OBJS = $(foreach obj, $(OBJLST), $(BUILDDIR)/$(obj))
 
 TARGET = muzec

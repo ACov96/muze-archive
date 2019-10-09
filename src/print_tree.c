@@ -100,23 +100,23 @@ static void print_name(char *name, PARAMS) {
 }
 
 static void print_expr(expr_t expr, PARAMS) {
-  // switch (kind) {
-  //   case ID_EX:
+  /* switch (kind) { */
+  /*   case ID_EX: */
 
-  //     break;
-  //   case LITERAL_EX:
-  //     break;
-  //   case UNARY_EX:
-  //     break;
-  //   case BINARY_EX:
-  //     break;
-  //   case TERNARY_EX:
-  //     break;
-  //   case CALL_EX:
-  //     break;
-  //   case RANGE_EX:
-  //     break;
-  // }
+  /*     break; */
+  /*   case LITERAL_EX: */
+  /*     break; */
+  /*   case UNARY_EX: */
+  /*     break; */
+  /*   case BINARY_EX: */
+  /*     break; */
+  /*   case TERNARY_EX: */
+  /*     break; */
+  /*   case CALL_EX: */
+  /*     break; */
+  /*   case RANGE_EX: */
+  /*     break; */
+  /* } */
 }
 
 static void print_assign_kind(enum assign_kind kind, PARAMS) {

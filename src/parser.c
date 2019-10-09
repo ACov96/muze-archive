@@ -123,6 +123,8 @@ static literal_t parse_literal(PARSE_PARAMS);
 static type_t parse_type_expr(PARSE_PARAMS);
 static arg_t parse_arg_list(PARSE_PARAMS);
 static char *parse_right_identifier(PARSE_PARAMS);
+static call_t parse_fun_call(PARSE_PARAMS);
+static expr_list_t parse_expr_list(PARSE_PARAMS);
 
 static stmt_t parse_stmt(PARSE_PARAMS);
 static cond_stmt_t parse_cond_stmt(PARSE_PARAMS);
@@ -287,21 +289,46 @@ static expr_t parse_lval(PARSE_PARAMS) {
   PARSE_RETURN(lval);
 }
 
-
 static expr_t parse_unit_expr(PARSE_PARAMS) {
-  expr_t unit;
-  char *id;
+  expr_t    unit;
+  char      *id;
+  literal_t literal;
+  call_t    call;
 
   parse_log("Attempting to parse unit expression");
 
-  if (MATCH_FUN(parse_lval, unit)) {
-    parse_log("Unit expression is lvalue");
+  /* if (MATCH_FUN(parse_lval, unit)) { */
+  /*   parse_log("Unit expression is lvalue"); */
+  /* } */
+  /* else  */
+  if (MATCH_FUN(parse_literal, literal)) {
+    parse_log("Unit expression is literal");
+    unit = malloc(sizeof(struct expr_st));
+    unit->kind = LITERAL_EX;
+    unit->u.literal_ex = literal;
   }
   else if (MATCH_FUN(parse_right_identifier, id)) {
     unit = malloc(sizeof(struct expr_st));
-    unit->u.id_ex = id;
-    parse_log("Unit expression is right identifier");
-    unit->kind = ID_EX;
+
+    /* Sorry, Rory, I did a lazy. - Alex
+     *
+     * This function call stuff should probably be in parse_lval, but it was 
+     * easier to do it here for the time being.
+     */
+    if (MATCH_TOK(LPAREN)) {
+      // Function call
+      MATCH_FUN(parse_fun_call, call);
+      EXPECT_TOK(RPAREN);
+      call->id = id;
+      unit->kind = CALL_EX;
+      unit->u.call_ex = call;
+      parse_log("Unit expression is function call");
+    } else {
+      // Just an identifier
+      unit->kind = ID_EX;
+      unit->u.id_ex = id;
+      parse_log("Unit expression is right identifier");
+    }
   }
   else if (MATCH_TOK(LPAREN)) {
     parse_log("Unit expression is nested expression");
@@ -1004,6 +1031,27 @@ static root_t parse_root(PARSE_PARAMS) {
   EXPECT_FUN(parse_module_decl, root->mods);
 
   PARSE_RETURN(root);
+}
+
+static call_t parse_fun_call(PARSE_PARAMS) {
+  call_t call = malloc(sizeof(struct call_st));
+
+  // The identifier for this call was parsed before, so it'll be populated after this returns
+  MATCH_FUN(parse_expr_list, call->args);
+
+  PARSE_RETURN(call);
+}
+
+static expr_list_t parse_expr_list(PARSE_PARAMS) {
+  expr_list_t curr;
+  if (!MATCH_TOK(RPAREN)) {
+    curr = malloc(sizeof(struct expr_list_st));
+    MATCH_FUN(parse_expr, curr->expr);
+    if (MATCH_TOK(COMMA)) {
+      MATCH_FUN(parse_expr_list, curr->next);
+    }
+  }
+  PARSE_RETURN(curr);
 }
 
 // start parse

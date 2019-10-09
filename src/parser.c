@@ -101,6 +101,8 @@ static expr_t parse_lval(PARSE_PARAMS);
 
 
 // In order of precedence
+static expr_t parse_literal_expr(PARSE_PARAMS);
+
 static expr_t parse_postfix_expr(PARSE_PARAMS);
 static expr_t parse_prefix_expr(PARSE_PARAMS);
 
@@ -291,11 +293,18 @@ static expr_t parse_lval(PARSE_PARAMS) {
 static expr_t parse_unit_expr(PARSE_PARAMS) {
   expr_t unit;
   char *id;
+  literal_t literal;
 
   parse_log("Attempting to parse unit expression");
 
   if (MATCH_FUN(parse_lval, unit)) {
     parse_log("Unit expression is lvalue");
+  }
+  else if (MATCH_FUN(parse_literal, literal)) {
+    parse_log("Unit expression is literal");
+    unit = malloc(sizeof(struct expr_st));
+    unit->kind = LITERAL_EX;
+    unit->u.literal_ex = literal;
   }
   else if (MATCH_FUN(parse_right_identifier, id)) {
     unit = malloc(sizeof(struct expr_st));

@@ -138,7 +138,7 @@ This is the result of a normal identifier not including certain keywords, which 
     \node[term] (boolean) [below=of real] {boolean};
     \node[term] (string) [below=of boolean] {string};
     \node[term] (array) [below=of string] {array};
-    \node[term] (map) [below=of array] {map};
+    \node[term] (map) [below=of array] {hash};
     \node[term] (set) [below=of map] {set};
 
     \coordinate[right=1cm of set] (aggr);
@@ -201,27 +201,29 @@ A literal value representing a string. It should be noted that \textit{Character
 
 \subsection{Integer Literal}
 
-A literal value representing an integer. \textit{Digit} is any single digit from the set \{0, 1, 2, 3, 4, 5, 6, 7, 8 , 9\}.
+A literal value representing an integer. \textit{Digit} is any single digit from the set \{0, 1, 2, 3, 4, 5, 6, 7, 8, 9\}, \textit{Non-Zero} is any single digit from the set \{1, 2, 3, 4, 5, 6, 7, 8, 9\}.
 
 \begin{figure}[H]
   \centering
   \begin{tikzpicture}
     \node[entry] (entry) {};
-    \coordinate [right=of entry] (entry-digit);
-    \node[nterm] (digit) [right=of entry-digit] {Digit};
+    \coordinate [right=of entry] (entry-non-zero);
+    \node[nterm] (non-zero) [right=of entry-non-zero] {Non-Zero};
+    \coordinate [right=of non-zero] (non-zero-digit);
+    \node[nterm] (digit) [right=of non-zero-digit] {Digit};
     \coordinate [above=of digit] (digit-above);
     \coordinate [right=of digit] (digit-exit);
     \node[exit] (exit) [right=of digit-exit] {};
 
     \draw[arrs] (entry)
-    -- (entry-digit)
+    -- (non-zero)
     -- (digit)
     -- (digit-exit)
     -- (exit);
     \draw[arr] (digit)
     -- (digit-exit)
     |- (digit-above)
-    -| (entry-digit)
+    -| (non-zero-digit)
     -- (digit);
   \end{tikzpicture}
 \end{figure}
@@ -257,7 +259,7 @@ A literal value representing an real. \textit{Digit} is any single digit from th
     -- (exit);
 
     \draw[arr] (digit)
-    -- (digit-exit)
+    -- (digit-decimal)
     |- (digit-above)
     -| (entry-digit)
     -- (digit);
@@ -273,6 +275,27 @@ A literal value representing an real. \textit{Digit} is any single digit from th
     |- (second-above)
     -| (decimal-digit)
     -- (second-digit);
+  \end{tikzpicture}
+\end{figure}
+
+\subsection{Boolean Literal}
+
+A literal value representing a boolean.
+
+\begin{figure}[H]
+  \centering
+  \begin{tikzpicture}
+    \node[entry] (entry) {};
+    \coordinate [right=of entry] (entry-list);
+    \node[term] (false) [below right=.75cm of entry-list] {false};
+    \node[term] (true) [above=1cm of false] {true};
+    \coordinate [above right=.75cm of false] (list-exit);
+    \node[exit] (exit) [right=of list-exit] {};
+
+    \draw[arr] (entry) -- (entry-list) |- (true);
+    \draw[arr] (entry) -- (entry-list) |- (false);
+    \draw[arr] (true) -| (list-exit) -- (exit);
+    \draw[arr] (false) -| (list-exit) -- (exit);
   \end{tikzpicture}
 \end{figure}
 
@@ -510,10 +533,11 @@ One or more constant declarations.
     \node[term] (const) [right=of entry] {const};
     \coordinate[right=of const] (const-name);
     \node[nterm] (name) [right=of const-name] {Identifier};
+    \node[term] (comma) [above=of name] {,};
     \node[term] (colon) [right=of name] {:};
     \node[nterm] (type) [right=of colon] {Type Expression};
-    \node[term] (eq) [below left=0.5cm and 0cm of type] {=};
-    \node[nterm] (literal) [left=of eq] {Literal};
+    \node[term] (eq) [below left=0.5cm and -0.5cm of type] {=};
+    \node[nterm] (literal) [left=of eq] {Expression};
     \node[term] (semi) [left=of literal] {;};
     \node[exit] (exit) [left=1.2cm of semi] {};
 
@@ -523,7 +547,7 @@ One or more constant declarations.
       -- (colon)
       -- (type);
 
-    \draw[narr, mid arrow = 0.6] (type) |- (eq);
+    \draw[narr, mid arrow = 0.75] (type) |- (eq);
 
     \draw[arrs] (eq)
       -- (literal)
@@ -532,7 +556,8 @@ One or more constant declarations.
     \draw[narr, mid arrow = 0.75] (semi) -- (exit);
     
     \draw[arr] (semi) -| (const-name) -- (name);
-
+    \draw[arr] (name) -- (comma);
+    \draw[arr] (comma) -| (const-name) -- (name);
   \end{tikzpicture}
 \end{figure}
 
@@ -552,6 +577,7 @@ One or more variable declarations.
     \node[nterm] (type) [right=of colon] {Type Expression};
     \node[term] (eq) [below left=0.5cm and -0.5cm of type] {=};
     \node[nterm] (expr) [left=of eq] {Expression};
+    \coordinate [below=of expr] (expr-below);
     \node[term] (semi) [left=of expr] {;};
     \node[exit] (exit) [left=1cm of semi] {};
     
@@ -560,20 +586,15 @@ One or more variable declarations.
     \draw[arrs] (name)
       -- (colon)
       -- (type);
-
     \draw[arr] (name) -- (comma) ;
     \draw[arr] (comma) -| (var-name) -- (name);
-
     \draw[narr, mid arrow = 0.75] (type) |- (eq);
-
     \draw[arrs] (eq)
       -- (expr)
       -- (semi);
-
     \draw[narr, mid arrow = 0.75] (semi) -- (exit);
-    
     \draw[arr] (semi) -| (var-name) -- (name);
-
+    \draw[arr] (type) |- (expr-below) -| (semi);
   \end{tikzpicture}
 \end{figure}
 
@@ -591,9 +612,8 @@ One or more type declarations
     \node[term] (equals) [right=of name] {=};
     \node[nterm] (typexp) [right=of equals] {Type Expression};
     \node[nterm] (morphs) [right=of typexp] {Morphs};
-    \node[term] (semi) [right=of morphs] {;};
-    \coordinate[right=of semi] (semi-exit);
-    \node[exit] (exit) [right=of semi-exit] {};
+    \coordinate[right=of morphs] (morph-exit);
+    \node[exit] (exit) [right=of morph-exit] {};
 
     \draw[arrs] (entry)
     -- (type)
@@ -602,15 +622,35 @@ One or more type declarations
     -- (equals)
     -- (typexp)
     -- (morphs)
-    -- (semi)
-    -- (semi-exit)
+    -- (morph-exit)
     -- (exit);
 
-    \draw[arr] (semi)
-    -- (semi-exit)
+    \draw[arr] (morphs)
+    -- (morph-exit)
     |- ++(0, -.75)
     -| (type-name)
     -- (name);
+  \end{tikzpicture}
+\end{figure}
+
+\subsection{Extend Block}
+
+Extend the morphs of an already declared type.
+
+\begin{figure}[H]
+  \centering
+  \begin{tikzpicture}
+    \node[entry] (entry) {};
+    \node[term] (extend) [right=of entry] {extend};
+    \coordinate [right=of extend] (extend-id);
+    \node[nterm] (id) [right=of extend-id] {Identifier};
+    \coordinate [below=of id] (id-below);
+    \node[nterm] (morphs) [right=of id] {Morphs};
+    \coordinate [right=of morphs] (morphs-exit);
+    \node[exit] (exit) [right=of morphs-exit] {};
+
+    \draw[arrs] (entry) -- (extend) -- (id) -- (morphs) -- (exit);
+    \draw[arr] (morphs) -- (morphs-exit) |- (id-below) -| (extend-id) -- (id);
   \end{tikzpicture}
 \end{figure}
 
@@ -697,52 +737,31 @@ A specification of a morph path. May be used for explicit morphs or as a type.
 
     \node[nterm] (id) [below=0.25cm of top] {Right Identifier};
 
-    \node[nterm] (inner) [above=0.25cm of top] {Morph Chain};
-    \node[term] (lparen) [left=of inner] {(};
-    \node[term] (rparen) [right=of inner] {)};
-
     \node[term] (dotdot) [above=0.25cm of bot] {->};
     \node[term] (dotdotdot) [below=0.25cm of bot] {...};
+
+    \coordinate[left=of entry] (left-start);
 
     \draw [arr] (entry) -| (bot-right-right) -- +(-0.05, 0);
 
     \draw [arr] (entry) -- (entry-loop);
 
-    \draw [arr]
-      (entry-choices) + (-0.2, 0)
-      -- (entry-choices)
-      |- (top-left)
-      |- (lparen);
-
     \draw [narr, mid arrow = 0.8]
       (entry-loop)
-      -- (entry-choices)
-      |- (top-left)
       |- (id);
-
-    \draw [narr, mid arrow = 0.45]
-      (rparen)
-      -| (top-right)
-      -| (exit-choices)
-      -- (exit-loop);
 
     \draw [narr, mid arrow = 0.2]
       (id)
-      -| (top-right)
       -| (exit-choices)
       -- ++(0.2, 0);
 
-    \draw [arr]
+    \draw [narr]
       (dotdot)
-      -| (bot-left)
-      -| (entry-loop)
-      -- ++(0.2, 0);
+      -| (bot-left);
 
     \draw [narr]
       (dotdotdot)
-      -| (bot-left)
-      -| (entry-loop)
-      -- ++(0.2, 0);
+      -| (bot-left);
 
     \draw [narr]
       (exit-loop) + (-0.2, 0)
@@ -758,7 +777,32 @@ A specification of a morph path. May be used for explicit morphs or as a type.
 
     \draw [arr] (exit-loop) -- (exit);
 
-    \draw [arrs] (lparen) -- (inner) -- (rparen);
+    \draw [arr] (bot-left) -| (left-start) |- (id);
+
+  \end{tikzpicture}
+\end{figure}
+
+\subsection{Morphs}
+
+Define the incoming morphs for a type.
+
+\begin{figure}[H]
+  \centering
+  \begin{tikzpicture}
+    \node[entry] (entry) {};
+    \coordinate [right=of entry] (entry-mu);
+    \node[term] (mu) [right=of entry-mu] {mu};
+    \node[nterm] (id) [right=of mu] {Identifier};
+    \node[nterm] (dec) [right=of id] {Declarations};
+    \node[term] (begin) [right=of dec] {begin};
+    \node[nterm] (statements) [right=of begin] {Statement List};
+    \node[term] (um) [right=of statements] {um};
+    \coordinate [right=of um] (um-exit);
+    \node[exit] (exit) [right=of um-exit] {};
+    \coordinate [below=of dec] (dec-below);
+
+    \draw[arrs] (entry) -- (mu) -- (id) -- (dec) -- (begin) -- (statements) -- (um) -- (exit);
+    \draw[arr] (um) -- (um-exit) |- (dec-below) -| (entry-mu) -- (mu);
   \end{tikzpicture}
 \end{figure}
 
@@ -1092,6 +1136,27 @@ Case statement.
   \centering
   \begin{tikzpicture}
     \node[entry] (entry) {};
+    \node[term] (case) [right=of entry] {case};
+    \node[term] (open) [right=of case] {(};
+    \node[nterm] (case-var) [right=of open] {Identifier};
+    \node[term] (close) [right=of case-var] {)};
+    \node[term] (colon) [right=of close] {:};
+    \coordinate [below=of case] (case-below);
+    \node[nterm] (expr) [below=of case-below] {Expression};
+    \node[term] (arrow) [right=of expr] {=>};
+    \node[nterm] (decl) [below=of arrow] {Declaration Block};
+    \node[term] (begin) [right=of decl] {begin};
+    \node[nterm] (statements) [right=of begin] {Statement List};
+    \node[term] (end) [right=of statements] {end};
+    \coordinate [right=of end] (end-esac);
+    \node[term] (esac) [right=of end-esac] {esac};
+    \node[exit] (exit) [right=of esac] {};
+
+    \draw[arrs] (entry) -- (case) -- (open) -- (case-var) -- (close) -- (colon);
+    \draw[arr] (colon) |- (case-below) -- (expr);
+    \draw[arrs] (expr) -- (arrow) -- (decl) -- (begin) -- (statements) -- (end);
+    \draw[arrs] (end) -- (esac) -- (exit);
+    \draw[arr] (end) -- (end-esac) |- (case-below) -- (expr);
   \end{tikzpicture}
 \end{figure}
 
@@ -1267,6 +1332,129 @@ Call a function with or without arguments.
     \draw[arr] (open) -- (open-loop) -- ++(0, -1) -| (loop-close) -- (close);
     \draw[narr, mid arrow = 0.75] (expr) -- (expr-loop) |- (comma);
     \draw[narr, mid arrow = 0.25] (comma) -| (loop-expr) -- (expr);
+  \end{tikzpicture}
+\end{figure}
+
+\subsection{Arithmetic Expression}
+
+\begin{figure}[H]
+  \centering
+  \begin{tikzpicture}
+    \node[entry] (entry) {};
+    \node[nterm] (left-expr) [right=of entry] {Expression};
+    \coordinate [right=of left-expr] (expr-op);
+    \node[term] (plus) [above right=.5cm and .75cm of expr-op] {+};
+    \node[term] (minus) [above=of plus] {-};
+    \node[term] (multiply) [below right=.5cm and .75cm of expr-op] {*};
+    \node[term] (divide) [below=of multiply] {/};
+    \coordinate [below right=.5cm and .75cm of plus] (op-expr);
+    \node[nterm] (right-expr) [right=of op-expr] {Expression};
+    \node[exit] (exit) [right=of right-expr] {};
+
+    \draw[arrs] (entry) -- (left-expr) -- (expr-op);
+    \draw[arr] (expr-op) |- (plus);
+    \draw[arr] (expr-op) |- (minus);
+    \draw[arr] (expr-op) |- (multiply);
+    \draw[arr] (expr-op) |- (divide);
+
+    \draw[arr] (plus) -| (op-expr);
+    \draw[arr] (minus) -| (op-expr);
+    \draw[arr] (multiply) -| (op-expr);
+    \draw[arr] (divide) -| (op-expr);
+
+    \draw[arrs] (op-expr) -- (right-expr) -- (exit);
+  \end{tikzpicture}
+\end{figure}
+
+\subsection{Logical}
+
+Logical expressions. \&\& is logical and, || (there's some weird font issue here) is logical or, and ! is logical not.
+
+\begin{figure}[H]
+  \centering
+  \begin{tikzpicture}
+    \node[entry] (entry) {};
+    \node[nterm] (left-expr) [right=of entry] {Expression};
+    \coordinate [right=of left-expr] (expr-op);
+    \node[term] (and) [right=of expr-op] {\&\&};
+    \node[term] (or) [above=of and] {||};
+    \node[term] (not) [below=of and] {!};
+    \coordinate [right=of and] (op-expr);
+    \node[nterm] (right-expr) [right=of op-expr] {Expression};
+    \node[exit] (exit) [right=of right-expr] {};
+
+    \draw[arrs] (entry) -- (left-expr) -- (expr-op);
+    \draw[arrs] (op-expr) -- (right-expr) -- (exit);
+
+    \draw[arr] (expr-op) -- (and);
+    \draw[arr] (expr-op) |- (or);
+    \draw[arr] (expr-op) |- (not);
+    \draw[arr] (and) -- (op-expr);
+    \draw[arr] (or) -| (op-expr);
+    \draw[arr] (not) -| (op-expr);
+  \end{tikzpicture}
+\end{figure}
+
+\subsection{Range}
+
+Range expression. Both literal expressions must be of the same type.
+
+\begin{figure}[H]
+  \centering
+  \begin{tikzpicture}
+    \node[entry] (entry) {};
+    \node[nterm] (exp1) [right=of entry] {Expression};
+    \node[term] (dotdot) [right=of exp1] {..};
+    \node[nterm] (exp2) [right=of dotdot] {Expression};
+    \node[exit] (exit) [right=of exp2] {};
+
+    \draw[arrs] (entry) -- (exp1) -- (dotdot) -- (exp2) -- (exit);
+  \end{tikzpicture}
+\end{figure}
+
+\subsection{Ternary}
+
+Ternary statement.
+
+\begin{figure}[H]
+  \centering
+  \begin{tikzpicture}
+    \node[entry] (entry) {};
+    \node[nterm] (expr-base) [right=of entry] {Expression};
+    \node[term] (question) [right=of expr-base] {?};
+    \node[nterm] (expr-true) [right=of question] {Expression};
+    \node[term] (colon) [right=of expr-true] {:};
+    \node[nterm] (expr-false) [right=of colon] {Expression};
+    \node[exit] (exit) [right=of expr-false] {};
+
+    \draw[arrs] (entry)
+    -- (expr-base)
+    -- (question)
+    -- (expr-true)
+    -- (colon)
+    -- (expr-false)
+    -- (exit);
+  \end{tikzpicture}
+\end{figure}
+
+\subsection{Value}
+
+An expression that results in a value. This is used when you need to access a value in a variable, array, or record.
+
+\begin{figure}[H]
+  \centering
+  \begin{tikzpicture}
+    \node[entry] (entry) {};
+    \coordinate [right=of entry] (entry-list);
+    \node[nterm] (target) [above right=.75cm of entry-list] {Left Target};
+    \node[nterm] (literal) [below=of target] {Literal};
+    \coordinate [below right=.75cm of target] (list-exit);
+    \node[exit] (exit) [right=of list-exit] {};
+
+    \draw[arr] (entry) -- (entry-list) |- (target);
+    \draw[arr] (entry) -- (entry-list) |- (literal);
+    \draw[arr] (target) -| (list-exit) -- (exit);
+    \draw[arr] (literal) -| (list-exit) -- (exit);
   \end{tikzpicture}
 \end{figure}
 

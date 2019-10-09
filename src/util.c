@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <assert.h>
 #include <stdarg.h>
+#include <string.h>
 #include "util.h"
 #include "limits.h"
 
@@ -92,3 +93,14 @@ int had_errors() {
   return errors != NULL;
 }
 
+char *concat(char* s1, char* s2) {
+  /* TODO: Wow, there has to be a better way to concatenate two strings, but
+   *       I'm far too tired to do this cleanly.
+   */
+  char *res = malloc(strlen(s1) + strlen(s2));
+  for (int i = 0; i < strlen(s1); i++)
+    res[i] = s1[i];
+  for (int i = strlen(s1); i < (strlen(s1) + strlen(s2)); i++)
+    res[i] = s2[i - strlen(s1)];
+  return res;
+}

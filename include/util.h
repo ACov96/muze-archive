@@ -45,4 +45,6 @@ void print_errors();
 
 int had_errors();
 
+char* concat(char* s1, char* s2);
+
 #endif

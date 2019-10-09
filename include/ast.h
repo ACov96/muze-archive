@@ -7,6 +7,7 @@ typedef struct root_st          *root_t;
 typedef struct mod_st           *mod_t;
 typedef struct decl_st          *decl_t;
 typedef struct id_list_st       *id_list_t;
+typedef struct expr_list_st     *expr_list_t;
 typedef struct assign_st        *assign_t;
 typedef struct const_decl_st    *const_decl_t;
 typedef struct type_decl_st     *type_decl_t;
@@ -380,6 +381,16 @@ struct assign_stmt_st {
 
 struct expr_stmt_st {
   expr_t expr;
+};
+
+struct call_st {
+  char        *id;
+  expr_list_t  args;
+};
+
+struct expr_list_st {
+  expr_t      expr;
+  expr_list_t next;
 };
 
 

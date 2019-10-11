@@ -807,29 +807,29 @@ static literal_t parse_literal(PARSE_PARAMS) {
 
   switch(BEGET->tok) {
   case STRING_VAL:
-    MATCH_TOK(STRING_VAL);
     lit->kind = STRING_LIT;
     lit->u.string_lit = BEGET->val;
+    MATCH_TOK(STRING_VAL);
     break;
   case INT_VAL:
-    MATCH_TOK(INT_VAL);
     lit->kind = INTEGER_LIT;
     lit->u.integer_lit = BEGET->val;
+    MATCH_TOK(INT_VAL);
     break;
   case REAL_VAL:
-    MATCH_TOK(REAL_VAL);
     lit->kind = REAL_LIT;
     lit->u.real_lit = BEGET->val;
+    MATCH_TOK(REAL_VAL);
     break;
   case TRUE:
-    MATCH_TOK(TRUE);
     lit->kind = BOOLEAN_LIT;
     lit->u.bool_lit = TRUE_BOOL;
+    MATCH_TOK(TRUE);
     break;
   case FALSE:
-    MATCH_TOK(FALSE);
     lit->kind = BOOLEAN_LIT;
     lit->u.bool_lit = FALSE_BOOL;
+    MATCH_TOK(FALSE);
     break;
   default:
     PARSE_FAIL("Literal expected");

@@ -8,6 +8,7 @@
 
 /* MACROS */
 #define WORD 8
+#define NO_OPERANDS ""
 #define CREATE_BUFFER char *buf = ""
 #define RETURN_BUFFER return buf
 #define PRINT_BUFFER printf("%s\n", buf)
@@ -280,6 +281,7 @@ char* gen_call_expr(call_t call, reg_t out) {
 
   POP_CALLER_SAVES;
   ADD_INSTR("mov", concat("%rax", concat(", ", out)));
+  ADD_INSTR("ret", NO_OPERANDS);
   RETURN_BUFFER;
 }
 
@@ -288,11 +290,12 @@ char* gen_literal_expr(literal_t literal, reg_t out) {
   CREATE_BUFFER;
   switch(literal->kind) {
   case STRING_LIT:
-    // TODO
     str_label = concat("$", register_or_get_string_label(literal->u.string_lit));
-    str_label = concat(str_label, ", ");
-    printf("STRING LABEL: %s\n", str_label);
-    ADD_INSTR("mov", concat(str_label, out));
+    ADD_INSTR("push", "%rdi");
+    ADD_INSTR("mov", concat(str_label, ", %rdi"));
+    ADD_INSTR("call", "alloc_str");
+    ADD_INSTR("pop", "%rdi");
+    ADD_INSTR("mov", concat("%rax, ", out));
     break;
   case INTEGER_LIT:
     // TODO

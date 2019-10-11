@@ -17,10 +17,11 @@ typedef void* data_t;
 typedef struct string_st *string_t;
 
 CREATE_TYPE_HEADER(TYPE_MASK, 0xFFFF);
+CREATE_TYPE_HEADER(STR_HEADER, 0);
 CREATE_TYPE_HEADER(INT_HEADER, 1);
 
 void print(data_t d) {
-  char* msg = (char*)((unsigned long)d & ~TYPE_MASK);
+  char* msg = ((string_t)d)->str;
   printf("%s\n", msg);
 }
 
@@ -28,6 +29,14 @@ data_t alloc_int(long x) {
   long *p = malloc(sizeof(long));
   *p = x;
   return (data_t) (INT_HEADER | (unsigned long)p);
+}
+
+data_t alloc_str(char *s) {
+  string_t heap_str = malloc(sizeof(struct string_st));
+  heap_str->length = strlen(s);
+  heap_str->str = malloc(heap_str->length + 1);
+  strcpy(heap_str->str, s);
+  return (data_t) (STR_HEADER | (unsigned long)heap_str);
 }
 
 /* METHODS TO BE REMOVED

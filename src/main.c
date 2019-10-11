@@ -22,7 +22,7 @@ struct prog_opts parse_args(int argc, char **argv) {
     .print_tokens = 0,
     .print_tree = 0,
     .print_asm = 0,
-    .output_file = "a.out",
+    .output_file = "a.s",
   };
 
   const char *opt_string = "hko:ta";
@@ -115,6 +115,9 @@ int main(int argc, char* argv[]) {
   if (opts.print_asm) {
     printf("Assembly Output:\n\n%s\n", assembly);
   }
-  
+
+  FILE *out_file = fopen(opts.output_file, "w");
+  fputs(assembly, out_file);
+  fclose(out_file);
 }
 

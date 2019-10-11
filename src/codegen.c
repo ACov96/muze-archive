@@ -75,6 +75,7 @@ char* register_or_get_string_label(char *str);
 
 // Generator functions
 char* gen_label(char *label);
+char* gen_data_segment();
 char* gen_mod(mod_t mod);
 char* gen_fun(fun_decl_t fun);
 char* gen_stmt(stmt_t stmt);
@@ -128,6 +129,7 @@ char* register_or_get_string_label(char *str) {
   strings->val = str_label;
   str_label->str = str;
   str_label->label = gen_label("STR");
+  ll_append(strings, str_label);
   return str_label->label;
 }
 
@@ -308,10 +310,23 @@ char* gen_literal_expr(literal_t literal, reg_t out) {
   RETURN_BUFFER;
 }
 
-char* codegen(root_t root) {
-  char *assembly = "\t.global main\n";
-  for (mod_t mod = root->mods; mod; mod = mod->next) {
-    assembly = concat(assembly, gen_mod(mod));
+char* gen_data_segment() {
+  CREATE_BUFFER;
+  for (ll_t l = strings; l; l = l->next) {
+    string_label_t str_label = l->val;
+    ADD_LABEL(str_label->label);
+    ADD_INSTR(".asciz", concat("\"", concat(str_label->str, "\"")));
   }
-  return assembly;
+  RETURN_BUFFER;
+}
+
+char* codegen(root_t root) {
+  CREATE_BUFFER;
+  ADD_BLOCK("\t.global main\n");
+  for (mod_t mod = root->mods; mod; mod = mod->next) {
+    ADD_BLOCK(gen_mod(mod));
+  }
+  ADD_BLOCK("\t.data\n");
+  ADD_BLOCK(gen_data_segment());
+  RETURN_BUFFER;
 }

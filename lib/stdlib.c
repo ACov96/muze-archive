@@ -4,10 +4,17 @@
  */
 #include <stdlib.h>
 #include <stdio.h>
+#include <string.h>
 
 #define CREATE_TYPE_HEADER(T, V) const unsigned long T = (unsigned long)(V) << 48;
 
+struct string_st {
+  long length;
+  char *str;
+};
+
 typedef void* data_t;
+typedef struct string_st *string_t;
 
 CREATE_TYPE_HEADER(TYPE_MASK, 0xFFFF);
 CREATE_TYPE_HEADER(INT_HEADER, 1);
@@ -31,4 +38,11 @@ data_t alloc_int(long x) {
 void _print_int(data_t d) {
   long *p = (long *)((~TYPE_MASK) & (unsigned long)d);
   printf("%ld\n", *p);
+}
+
+void _print_str(string_t s) {
+  char *local_str = malloc(s->length + 1);
+  // strcpy(local_str, s->str);
+  printf("%s\n", s->str);
+  free(local_str);
 }

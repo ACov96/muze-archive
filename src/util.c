@@ -93,14 +93,21 @@ int had_errors() {
   return errors != NULL;
 }
 
+/* TODO: Wow, there has to be a better way to concatenate two strings, but
+ *       I'm far too tired to do this cleanly.
+ */
 char *concat(char* s1, char* s2) {
-  /* TODO: Wow, there has to be a better way to concatenate two strings, but
-   *       I'm far too tired to do this cleanly.
-   */
-  char *res = malloc(strlen(s1) + strlen(s2));
+  // Allocate the total number of characters of each string, plus 1 extra byte for null terminator
+  char *res = malloc(strlen(s1) + strlen(s2) + 1);
   for (int i = 0; i < strlen(s1); i++)
     res[i] = s1[i];
   for (int i = strlen(s1); i < (strlen(s1) + strlen(s2)); i++)
     res[i] = s2[i - strlen(s1)];
+  return res;
+}
+
+char *itoa(unsigned int x) {
+  char *res = malloc(16);
+  sprintf(res, "%d", x);
   return res;
 }

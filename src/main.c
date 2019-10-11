@@ -25,7 +25,7 @@ struct prog_opts parse_args(int argc, char **argv) {
     .output_file = "a.out",
   };
 
-  const char *opt_string = "hko:t";
+  const char *opt_string = "hko:ta";
   const struct option long_opts[] = {
     { "--help",   no_argument,       NULL, 'h' },
     { "--tokens", no_argument,       NULL, 'k' },
@@ -113,7 +113,7 @@ int main(int argc, char* argv[]) {
 
   char *assembly = codegen(ast_root);
   if (opts.print_asm) {
-    printf("Assembly Output:\n%s\n", assembly);
+    printf("Assembly Output:\n\n%s\n", assembly);
   }
   
 }

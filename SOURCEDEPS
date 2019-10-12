@@ -2,4 +2,5 @@ util.o    : util.h
 lexer.o   : lexer.h util.h limits.h
 parser.o  : ast.h lexer.h
 codegen.o : codegen.h
+context.o : context.h
 print_tree.o : print_tree.h ast.h util.h

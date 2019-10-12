@@ -5,6 +5,7 @@
 #include "codegen.h"
 #include "ast.h"
 #include "util.h"
+#include "context.h"
 
 /* MACROS */
 #define WORD 8
@@ -70,30 +71,46 @@ reg_t arg_registers[6] = {
 
 /* PROTOTYPES */
 // Helper functions
+void gen_error(char *msg);
 unsigned int count_consts_and_vars(decl_t decl);
 int get_id_offset(char *id, decl_t decl);
 char* register_or_get_string_label(char *str);
+void populate_decl_into_ctx(context_t ctx, decl_t decl);
 
 // Generator functions
 char* gen_label(char *label);
 char* gen_data_segment();
 char* gen_mod(mod_t mod);
-char* gen_fun(fun_decl_t fun);
-char* gen_stmt(stmt_t stmt);
-char* gen_expr_stmt(expr_stmt_t expr);
-char* gen_expr(expr_t expr, reg_t out);
-char* gen_call_expr(call_t call, reg_t out);
-char* gen_literal_expr(literal_t literal, reg_t out);
+char* gen_fun(context_t ctx, fun_decl_t fun);
+char* gen_stmt(context_t ctx, stmt_t stmt);
+char* gen_expr_stmt(context_t ctx, expr_stmt_t expr);
+char* gen_expr(context_t ctx, expr_t expr, reg_t out);
+char* gen_call_expr(context_t ctx, call_t call, reg_t out);
+char* gen_literal_expr(context_t ctx, literal_t literal, reg_t out);
+char* gen_id_expr(context_t ctx, char *id, reg_t out);
 
 /* HELPERS */
+void gen_error(char *msg) {
+  fprintf(stderr, "%s\n", msg);
+  exit(1);
+}
+
 unsigned int count_consts_and_vars(decl_t decl) {
   unsigned int total = 0;
   for (const_decl_t c = decl->constants; c; c = c->next)
     total++;
   for (var_decl_t var = decl->vars; var; var = var->next)
-    for (id_list_t id = id; id; id = id->next)
+    for (id_list_t id = var->names; id; id = id->next)
       total++;
   return total * WORD;
+}
+
+void populate_decl_into_ctx(context_t ctx, decl_t decl) {
+  for (const_decl_t c = decl->constants; c; c = c->next)
+    ctx_add_constant(ctx, c->name);
+  for (var_decl_t v = decl->vars; v; v = v->next)
+    for (id_list_t id = v->names; id; id = id->next)
+      ctx_add_variable(ctx, id->name);
 }
 
 int get_id_offset(char *id, decl_t decl) {
@@ -174,30 +191,84 @@ char* gen_mod(mod_t mod) {
 
   // Define functions
   for (fun_decl_t f = mod->decl->funs; f; f = f->next) {
-    buf = concat(buf, gen_fun(f));
+    context_t ctx = ctx_new();
+    buf = concat(buf, gen_fun(ctx, f));
   }
   RETURN_BUFFER;
 }
 
-char* gen_fun(fun_decl_t fun) {
+char* gen_fun(context_t ctx, fun_decl_t fun) {
+  // Calculate activation record space
   unsigned int preamble_space = count_consts_and_vars(fun->decl);
-  char *sub_inst = malloc(32);
-  sprintf(sub_inst, "$%d, %%rsp", preamble_space);
+  for (arg_t arg = fun->args; arg; arg = arg->next) {
+    preamble_space += WORD;
+  }
+  preamble_space += WORD; // Increment for static link
+  char *space_str = concat("$", itoa(preamble_space));
+
+  // Initialize activation record
   CREATE_BUFFER;
   ADD_LABEL(fun->name);
+  ADD_INSTR("push", "%rbp");
   ADD_INSTR("movq", "%rsp, %rbp");
-  ADD_INSTR("sub", sub_inst);
-  for (stmt_t s = fun->stmts; s; s = s->next) {
-    ADD_BLOCK(gen_stmt(s));
+  ADD_INSTR("sub", concat(space_str, ", %rsp"));
+
+  // Setup static link
+  
+  // Push arguments to stack
+  unsigned int idx = 0;
+  for (arg_t arg = fun->args; arg; arg = arg->next) {
+    // TODO: Make sure it handles 6+ arguments correctly. This only does registers
+    ctx_add_argument(ctx, arg->name);
+    char *save_inst = malloc(32);
+    sprintf(save_inst, "%s, %d(%%rbp)", arg_registers[idx], (idx + 1) * WORD);
+    ADD_INSTR("movq", save_inst);
+    idx++;
   }
+
+  // Push constants and variables to stack
+  populate_decl_into_ctx(ctx, fun->decl);
+  ADD_INSTR("push", "%rax");
+  for (const_decl_t c = fun->decl->constants; c; c = c-> next) {
+    // TODO: Handle the different kinds of assignment
+    ADD_BLOCK(gen_expr(ctx, c->assign->expr, "%rax"));
+    char *save_inst = malloc(32);
+    sprintf(save_inst, "%%rax, %d(%%rbp)", (idx + 1) * WORD);
+    ADD_INSTR("movq", save_inst);
+    idx++;
+  }
+
+  for (var_decl_t v = fun->decl->vars; v; v = v->next) {
+    // TODO: Handle the different kinds of assignment
+    expr_t expr = v->assign->expr;
+    for (id_list_t id = v->names; id; id = id->next) {
+      ADD_BLOCK(gen_expr(ctx, expr, "%rax"));
+      char *save_inst = malloc(32);
+      sprintf(save_inst, "%%rax, %d(%%rbp)", (idx + 1) * WORD);
+      ADD_INSTR("movq", save_inst);
+      idx++;
+    }
+  }
+  ADD_INSTR("pop", "%rax");
+
+  // Start executing statements
+  for (stmt_t s = fun->stmts; s; s = s->next) {
+    ADD_BLOCK(gen_stmt(ctx, s));
+  }
+
+  // Cleanup activation record
+  ADD_INSTR("movq", "%rbp, %rsp");
+  ADD_INSTR("pop", "%rbp");
+  ADD_INSTR("movq", "$0, %rax");
+  ADD_INSTR("ret", NO_OPERANDS);
   RETURN_BUFFER;
 }
 
-char* gen_stmt(stmt_t stmt) {
+char* gen_stmt(context_t ctx, stmt_t stmt) {
   CREATE_BUFFER;
   switch(stmt->kind) {
   case EXPR_STMT:
-    ADD_BLOCK(gen_expr_stmt(stmt->u.expr_stmt));
+    ADD_BLOCK(gen_expr_stmt(ctx, stmt->u.expr_stmt));
     break;
   case COND_STMT:
     // TODO
@@ -221,19 +292,19 @@ char* gen_stmt(stmt_t stmt) {
   RETURN_BUFFER;
 }
 
-char* gen_expr_stmt(expr_stmt_t expr) {
-  return gen_expr(expr->expr, "%rax");
+char* gen_expr_stmt(context_t ctx, expr_stmt_t expr) {
+  return gen_expr(ctx, expr->expr, "%rax");
 }
 
-char* gen_expr(expr_t expr, reg_t out) {
+char* gen_expr(context_t ctx, expr_t expr, reg_t out) {
   CREATE_BUFFER;
   switch(expr->kind) {
   case ID_EX:
-    // TODO
+    ADD_BLOCK(gen_id_expr(ctx, expr->u.id_ex, out));
     break;
   case LITERAL_EX:
     // TODO
-    ADD_BLOCK(gen_literal_expr(expr->u.literal_ex, out));
+    ADD_BLOCK(gen_literal_expr(ctx, expr->u.literal_ex, out));
     break;
   case UNARY_EX:
     // TODO
@@ -245,7 +316,7 @@ char* gen_expr(expr_t expr, reg_t out) {
     // TODO
     break;
   case CALL_EX:
-    ADD_BLOCK(gen_call_expr(expr->u.call_ex, out));
+    ADD_BLOCK(gen_call_expr(ctx, expr->u.call_ex, out));
     break;
   case RANGE_EX:
     // TODO
@@ -257,16 +328,16 @@ char* gen_expr(expr_t expr, reg_t out) {
   RETURN_BUFFER;
 }
 
-char* gen_call_expr(call_t call, reg_t out) {
+char* gen_call_expr(context_t ctx, call_t call, reg_t out) {
   int arg_idx = 0;
   expr_list_t curr_arg = call->args;
   CREATE_BUFFER;
-  PUSH_CALLER_SAVES;
+  // PUSH_CALLER_SAVES;
 
   // Put arguments in registers
   while (curr_arg) {
     ADD_INSTR("push", arg_registers[arg_idx]);
-    ADD_BLOCK(gen_expr(curr_arg->expr, arg_registers[arg_idx]));
+    ADD_BLOCK(gen_expr(ctx, curr_arg->expr, arg_registers[arg_idx]));
     curr_arg = curr_arg->next;
     arg_idx++;
   }
@@ -279,13 +350,12 @@ char* gen_call_expr(call_t call, reg_t out) {
     ADD_INSTR("pop", arg_registers[i]);
   }
 
-  POP_CALLER_SAVES;
-  ADD_INSTR("mov", concat("%rax", concat(", ", out)));
-  ADD_INSTR("ret", NO_OPERANDS);
+  // POP_CALLER_SAVES;
+  ADD_INSTR("movq", concat("%rax, ", out));
   RETURN_BUFFER;
 }
 
-char* gen_literal_expr(literal_t literal, reg_t out) {
+char* gen_literal_expr(context_t ctx, literal_t literal, reg_t out) {
   char *str_label;
   char *int_literal;
   CREATE_BUFFER;
@@ -293,18 +363,18 @@ char* gen_literal_expr(literal_t literal, reg_t out) {
   case STRING_LIT:
     str_label = concat("$", register_or_get_string_label(literal->u.string_lit));
     ADD_INSTR("push", "%rdi");
-    ADD_INSTR("mov", concat(str_label, ", %rdi"));
+    ADD_INSTR("movq", concat(str_label, ", %rdi"));
     ADD_INSTR("call", "alloc_str");
     ADD_INSTR("pop", "%rdi");
-    ADD_INSTR("mov", concat("%rax, ", out));
+    ADD_INSTR("movq", concat("%rax, ", out));
     break;
   case INTEGER_LIT:
     int_literal = concat("$", literal->u.integer_lit);
     ADD_INSTR("push", "%rdi");
-    ADD_INSTR("mov", concat(int_literal, ", %rdi"));
+    ADD_INSTR("movq", concat(int_literal, ", %rdi"));
     ADD_INSTR("call", "alloc_int");
     ADD_INSTR("pop", "%rdi");
-    ADD_INSTR("mov", concat("%rax, ", out));
+    ADD_INSTR("movq", concat("%rax, ", out));
     break;
   case REAL_LIT:
     // TODO
@@ -326,6 +396,16 @@ char* gen_data_segment() {
     ADD_LABEL(str_label->label);
     ADD_INSTR(".asciz", concat("\"", concat(str_label->str, "\"")));
   }
+  RETURN_BUFFER;
+}
+
+char* gen_id_expr(context_t ctx, char *id, reg_t out) {
+  // TODO: Add static link traversal
+  CREATE_BUFFER;
+  static_link_t sl = ctx_get_id(ctx, id);
+  char *read_inst = malloc(64);
+  sprintf(read_inst, "%d(%%rbp), %s", WORD * (sl->offset + 1), out);
+  ADD_INSTR("movq", read_inst);
   RETURN_BUFFER;
 }
 

@@ -44,14 +44,7 @@ data_t alloc_str(char *s) {
  * Methods below this point are solely here for debugging purposes. They should eventually be removed.
  */
 
-void _print_int(data_t d) {
+void print_int(data_t d) {
   long *p = (long *)((~TYPE_MASK) & (unsigned long)d);
   printf("%ld\n", *p);
-}
-
-void _print_str(string_t s) {
-  char *local_str = malloc(s->length + 1);
-  // strcpy(local_str, s->str);
-  printf("%s\n", s->str);
-  free(local_str);
 }

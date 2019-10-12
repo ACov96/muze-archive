@@ -287,6 +287,7 @@ char* gen_call_expr(call_t call, reg_t out) {
 
 char* gen_literal_expr(literal_t literal, reg_t out) {
   char *str_label;
+  char *int_literal;
   CREATE_BUFFER;
   switch(literal->kind) {
   case STRING_LIT:
@@ -298,7 +299,12 @@ char* gen_literal_expr(literal_t literal, reg_t out) {
     ADD_INSTR("mov", concat("%rax, ", out));
     break;
   case INTEGER_LIT:
-    // TODO
+    int_literal = concat("$", literal->u.integer_lit);
+    ADD_INSTR("push", "%rdi");
+    ADD_INSTR("mov", concat(int_literal, ", %rdi"));
+    ADD_INSTR("call", "alloc_int");
+    ADD_INSTR("pop", "%rdi");
+    ADD_INSTR("mov", concat("%rax, ", out));
     break;
   case REAL_LIT:
     // TODO

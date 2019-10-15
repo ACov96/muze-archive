@@ -353,7 +353,6 @@ char* gen_call_expr(context_t ctx, call_t call, reg_t out) {
   }
 
   // POP_CALLER_SAVES;
-  printf("Out reg %s\n", out);
   if (strcmp("%rax", out) != 0) {
     ADD_INSTR("movq", concat("%rax, ", out));
   }
@@ -363,6 +362,8 @@ char* gen_call_expr(context_t ctx, call_t call, reg_t out) {
 char* gen_literal_expr(context_t ctx, literal_t literal, reg_t out) {
   char *str_label;
   char *int_literal;
+  char *real_literal;
+  char *bool_literal;
   CREATE_BUFFER;
   switch(literal->kind) {
   case STRING_LIT:
@@ -385,7 +386,12 @@ char* gen_literal_expr(context_t ctx, literal_t literal, reg_t out) {
     // TODO
     break;
   case BOOLEAN_LIT:
-    // TODO
+    bool_literal = concat("$", itoa(literal->u.bool_lit == TRUE_BOOL));
+    ADD_INSTR("push", "%rdi");
+    ADD_INSTR("movq", concat(bool_literal, ", %rdi"));
+    ADD_INSTR("call", "alloc_bool");
+    ADD_INSTR("pop", "%rdi");
+    ADD_INSTR("movq", concat("%rax, ", out));
     break;
   default:
     // TODO

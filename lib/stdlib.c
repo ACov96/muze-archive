@@ -19,6 +19,7 @@ typedef struct string_st *string_t;
 CREATE_TYPE_HEADER(TYPE_MASK, 0xFFFF);
 CREATE_TYPE_HEADER(STR_HEADER, 0);
 CREATE_TYPE_HEADER(INT_HEADER, 0);
+CREATE_TYPE_HEADER(BOOL_HEADER, 0);
 
 void print(data_t d) {
   char* msg = ((string_t)d)->str;
@@ -39,6 +40,12 @@ data_t alloc_str(char *s) {
   return (data_t) (STR_HEADER | (unsigned long)heap_str);
 }
 
+data_t alloc_bool(long x) {
+  long *p = malloc(sizeof(long));
+  *p = x;
+  return (data_t)(BOOL_HEADER | (unsigned long)p);
+}
+
 /* METHODS TO BE REMOVED
  *
  * Methods below this point are solely here for debugging purposes. They should eventually be removed.
@@ -47,4 +54,13 @@ data_t alloc_str(char *s) {
 void print_int(data_t d) {
   long *p = (long *)((~TYPE_MASK) & (unsigned long)d);
   printf("%ld\n", *p);
+}
+
+void print_bool(data_t d) {
+  long *p = (long *)((~TYPE_MASK) & (unsigned long)d);
+  if (*p) {
+    printf("true\n");
+  } else {
+    printf("false\n");
+  }
 }

@@ -91,6 +91,8 @@ char* gen_expr(context_t ctx, expr_t expr, reg_t out);
 char* gen_call_expr(context_t ctx, call_t call, reg_t out);
 char* gen_literal_expr(context_t ctx, literal_t literal, reg_t out);
 char* gen_id_expr(context_t ctx, char *id, reg_t out);
+char* gen_assign_stmt(context_t ctx, assign_stmt_t assign);
+char* gen_lval_expr(context_t ctx, expr_t lval, reg_t out);
 
 /* HELPERS */
 void gen_error(char *msg) {
@@ -283,7 +285,7 @@ char* gen_stmt(context_t ctx, stmt_t stmt) {
     // TODO
     break;
   case ASSIGN_STMT:
-    // TODO
+    ADD_BLOCK(gen_assign_stmt(ctx, stmt->u.assign_stmt));
     break;
   default:
     // TODO
@@ -411,6 +413,42 @@ char* gen_id_expr(context_t ctx, char *id, reg_t out) {
   char *read_inst = malloc(64);
   sprintf(read_inst, "-%d(%%rbp), %s", WORD * (sl->offset + 1), out);
   ADD_INSTR("movq", read_inst);
+  RETURN_BUFFER;
+}
+
+char* gen_assign_stmt(context_t ctx, assign_stmt_t assign) {
+  CREATE_BUFFER;
+  ADD_INSTR("push", "%r10");
+  ADD_INSTR("push", "%r11");
+  ADD_BLOCK(gen_expr(ctx, assign->assign->expr, "%r10"));
+  ADD_BLOCK(gen_lval_expr(ctx, assign->lval, "%r11"));
+  ADD_INSTR("movq", "%r10, (%r11)");
+  ADD_INSTR("pop", "%r11");
+  ADD_INSTR("pop", "%r10");
+  RETURN_BUFFER;
+}
+
+char* gen_lval_expr(context_t ctx, expr_t lval, reg_t out) {
+  static_link_t sl;
+  char *read_inst;
+  CREATE_BUFFER;
+  switch(lval->kind) {
+  case ID_EX:
+    sl = ctx_get_id(ctx, lval->u.id_ex);
+    read_inst = malloc(64);
+    sprintf(read_inst, "-%d(%%rbp), ", WORD * (sl->offset + 1));
+    ADD_INSTR("leaq", concat(read_inst, out));
+    break;
+  case LITERAL_EX:
+  case UNARY_EX:
+  case BINARY_EX:
+  case TERNARY_EX:
+  case CALL_EX:
+  case RANGE_EX:
+  default:
+    // TODO: This should error
+    break;
+  }
   RETURN_BUFFER;
 }
 

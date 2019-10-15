@@ -34,6 +34,7 @@
 
 
 struct context_st {
+  char *module_name;
   context_t parent;
   ll_t arguments;
   ll_t constants;
@@ -41,12 +42,15 @@ struct context_st {
 };
 
 /* PROTOTYPES */
+// None
 
 context_t ctx_new() {
   context_t ctx = malloc(sizeof(struct context_st));
   ctx->arguments = NULL;
   ctx->constants = NULL;
   ctx->variables = NULL;
+  ctx->parent = NULL;
+  ctx->module_name = "";
   return ctx;
 }
 

@@ -14,8 +14,10 @@
 #define RETURN_BUFFER return buf
 #define PRINT_BUFFER printf("%s\n", buf)
 
-#define ADD_BLOCK(B) buf = concat(buf, B);      \
-  buf = concat(buf, "\n")
+#define ADD_BLOCK(B) if (strlen(B) > 0 && strcmp("\n", B) != 0) {    \
+    buf = concat(buf, B);                                            \
+    buf = concat(buf, "\n");                                         \
+  }
 
 #define ADD_LABEL(L) buf = concat(buf, L);      \
   buf = concat(buf, ":\n")
@@ -68,6 +70,7 @@ reg_t arg_registers[6] = {
                         "%r8",
                         "%r9"
 };
+char *entrypoint;
 
 /* PROTOTYPES */
 // Helper functions
@@ -228,12 +231,11 @@ char* gen_fun(context_t ctx, fun_decl_t fun) {
 
   // Push constants and variables to stack
   populate_decl_into_ctx(ctx, fun->decl);
-  ADD_INSTR("push", "%rax");
   for (const_decl_t c = fun->decl->constants; c; c = c-> next) {
     // TODO: Handle the different kinds of assignment
     ADD_BLOCK(gen_expr(ctx, c->assign->expr, "%rax"));
     char *save_inst = malloc(32);
-    sprintf(save_inst, "%%rax, %d(%%rbp)", (idx + 1) * WORD);
+    sprintf(save_inst, "%%rax, -%d(%%rbp)", (idx + 1) * WORD);
     ADD_INSTR("movq", save_inst);
     idx++;
   }
@@ -244,12 +246,11 @@ char* gen_fun(context_t ctx, fun_decl_t fun) {
     for (id_list_t id = v->names; id; id = id->next) {
       ADD_BLOCK(gen_expr(ctx, expr, "%rax"));
       char *save_inst = malloc(32);
-      sprintf(save_inst, "%%rax, %d(%%rbp)", (idx + 1) * WORD);
+      sprintf(save_inst, "%%rax, -%d(%%rbp)", (idx + 1) * WORD);
       ADD_INSTR("movq", save_inst);
       idx++;
     }
   }
-  ADD_INSTR("pop", "%rax");
 
   // Start executing statements
   for (stmt_t s = fun->stmts; s; s = s->next) {
@@ -257,9 +258,8 @@ char* gen_fun(context_t ctx, fun_decl_t fun) {
   }
 
   // Cleanup activation record
-  ADD_INSTR("movq", "%rbp, %rsp");
-  ADD_INSTR("pop", "%rbp");
   ADD_INSTR("movq", "$0, %rax");
+  ADD_INSTR("leave", NO_OPERANDS);
   ADD_INSTR("ret", NO_OPERANDS);
   RETURN_BUFFER;
 }
@@ -351,7 +351,10 @@ char* gen_call_expr(context_t ctx, call_t call, reg_t out) {
   }
 
   // POP_CALLER_SAVES;
-  ADD_INSTR("movq", concat("%rax, ", out));
+  printf("Out reg %s\n", out);
+  if (strcmp("%rax", out) != 0) {
+    ADD_INSTR("movq", concat("%rax, ", out));
+  }
   RETURN_BUFFER;
 }
 
@@ -390,7 +393,9 @@ char* gen_literal_expr(context_t ctx, literal_t literal, reg_t out) {
 }
 
 char* gen_data_segment() {
+  if (strings == NULL) return "";
   CREATE_BUFFER;
+  ADD_BLOCK("\t.data\n");
   for (ll_t l = strings; l; l = l->next) {
     string_label_t str_label = l->val;
     ADD_LABEL(str_label->label);
@@ -404,7 +409,7 @@ char* gen_id_expr(context_t ctx, char *id, reg_t out) {
   CREATE_BUFFER;
   static_link_t sl = ctx_get_id(ctx, id);
   char *read_inst = malloc(64);
-  sprintf(read_inst, "%d(%%rbp), %s", WORD * (sl->offset + 1), out);
+  sprintf(read_inst, "-%d(%%rbp), %s", WORD * (sl->offset + 1), out);
   ADD_INSTR("movq", read_inst);
   RETURN_BUFFER;
 }
@@ -415,7 +420,6 @@ char* codegen(root_t root) {
   for (mod_t mod = root->mods; mod; mod = mod->next) {
     ADD_BLOCK(gen_mod(mod));
   }
-  ADD_BLOCK("\t.data\n");
   ADD_BLOCK(gen_data_segment());
   RETURN_BUFFER;
 }

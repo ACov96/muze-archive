@@ -18,7 +18,7 @@ typedef struct string_st *string_t;
 
 CREATE_TYPE_HEADER(TYPE_MASK, 0xFFFF);
 CREATE_TYPE_HEADER(STR_HEADER, 0);
-CREATE_TYPE_HEADER(INT_HEADER, 1);
+CREATE_TYPE_HEADER(INT_HEADER, 0);
 
 void print(data_t d) {
   char* msg = ((string_t)d)->str;

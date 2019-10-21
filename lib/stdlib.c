@@ -70,6 +70,25 @@ data_t _div(data_t x, data_t y) {
   return alloc_int(z);
 }
 
+data_t _and(data_t x, data_t y) {
+  // TODO: Take type header into account
+  long z = (*(long*)x) && (*(long*)y);
+  return alloc_bool(z);
+}
+
+data_t _or(data_t x, data_t y) {
+  // TODO: Take type header into account
+  long z = (*(long*)x) || (*(long*)y);
+  return alloc_bool(z);
+}
+
+data_t _xor(data_t x, data_t y) {
+  // TODO: Take type header into account
+  if ((*(long*)x) && !(*(long*)y)) return alloc_bool(1);
+  else if (!(*(long*)x) && (*(long*)y)) return alloc_bool(1);
+  else return alloc_bool(0);
+}
+
 /* METHODS TO BE REMOVED
  *
  * Methods below this point are solely here for debugging purposes. They should eventually be removed.

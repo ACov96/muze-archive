@@ -567,10 +567,13 @@ char* gen_binary_expr(context_t ctx, binary_t binary, reg_t out) {
     ADD_INSTR("call", "_mod");
     break;
   case AND_OP:
+    ADD_INSTR("call", "_and");
+    break;
   case OR_OP:
+    ADD_INSTR("call", "_or");
+    break;
   case XOR_OP:
-    // TODO
-    GEN_ERROR("Logical expressions not implemented");
+    ADD_INSTR("call", "_xor");
     break;
   case BIT_AND_OP:
   case BIT_OR_OP:

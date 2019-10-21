@@ -39,6 +39,7 @@ struct context_st {
   ll_t arguments;
   ll_t constants;
   ll_t variables;
+  ll_t break_labels;
 };
 
 /* PROTOTYPES */
@@ -93,6 +94,7 @@ int ctx_get_idx_of_id(context_t ctx, char *id) {
 ADDER(constant);
 ADDER(argument);
 ADDER(variable);
+ADDER(break_label);
 
 GET(constant);
 GET(argument);
@@ -106,4 +108,28 @@ static_link_t ctx_get_id(context_t ctx, char *id) {
   sl = ctx_get_variable(ctx, id, NULL);
   if (sl) return sl;
   return NULL;
+}
+
+char* ctx_pop_break_label(context_t ctx) {
+  // TODO: There is a memory leak here
+  ll_t l = NULL;
+  char *label = NULL;
+  if (ctx->break_labels == NULL) return NULL;
+  if (ctx->break_labels->next == NULL) {
+    // There is only one label
+    label = ctx->break_labels->val;
+    ctx->break_labels = NULL;
+    return label;
+  }
+  for (l = ctx->break_labels; l->next->next; l = l->next);
+  label = l->next->val;
+  l->next = NULL;
+  return label;
+} 
+
+char* ctx_curr_break_label(context_t ctx) {
+  ll_t l = NULL;
+  if (ctx->break_labels == NULL) return NULL;
+  for (l = ctx->break_labels; l->next; l = l->next);
+  return l->val;
 }

@@ -80,6 +80,7 @@ char* gen_id_expr(context_t ctx, char *id, reg_t out);
 char* gen_assign_stmt(context_t ctx, assign_stmt_t assign);
 char* gen_lval_expr(context_t ctx, expr_t lval, reg_t out);
 char* gen_cond_stmt(context_t ctx, cond_stmt_t cond);
+char* gen_loop_stmt(context_t ctx, loop_stmt_t loop);
 
 /* HELPERS */
 void gen_error(char *msg) {
@@ -266,8 +267,7 @@ char* gen_stmt(context_t ctx, stmt_t stmt) {
     GEN_ERROR("FOR STATMENT NOT IMPLEMENTED");
     break;
   case LOOP_STMT:
-    // TODO
-    GEN_ERROR("LOOP STATMENT NOT IMPLEMENTED");
+    ADD_BLOCK(gen_loop_stmt(ctx, stmt->u.loop_stmt));
     break;
   case CASE_STMT:
     // TODO
@@ -504,6 +504,20 @@ char* gen_cond_stmt(context_t ctx, cond_stmt_t cond) {
   // Add the end label
   ADD_LABEL(end_label);
 
+  RETURN_BUFFER;
+}
+
+char* gen_loop_stmt(context_t ctx, loop_stmt_t loop) {
+  char *loop_label = gen_label("L");
+  char *break_label = gen_label("L");
+  ctx_add_break_label(ctx, break_label);
+  CREATE_BUFFER;
+  ADD_LABEL(loop_label);
+  for (stmt_t s = loop->body; s; s = s->next) {
+    ADD_BLOCK(gen_stmt(ctx, s));
+  }
+  ADD_INSTR("jmp", loop_label);
+  ctx_pop_break_label(ctx);
   RETURN_BUFFER;
 }
 

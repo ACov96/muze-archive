@@ -15,8 +15,11 @@ context_t ctx_new();
 void ctx_set_parent(context_t ctx, context_t parent);
 context_t ctx_pop_child(context_t ctx);
 static_link_t ctx_get_id(context_t ctx, char *id);
+char* ctx_pop_break_label(context_t ctx);
+char* ctx_curr_break_label(context_t ctx);
 
 ADDER_HEADER(constant);
 ADDER_HEADER(variable);
 ADDER_HEADER(argument);
+ADDER_HEADER(break_label);
 #endif

@@ -83,6 +83,7 @@ char* gen_cond_stmt(context_t ctx, cond_stmt_t cond);
 char* gen_loop_stmt(context_t ctx, loop_stmt_t loop);
 char* gen_break_stmt(context_t ctx, break_stmt_t brk);
 char* gen_binary_expr(context_t ctx, binary_t binary, reg_t out);
+char* gen_ternary_expr(context_t ctx, ternary_t ternary, reg_t out);
 
 /* HELPERS */
 void gen_error(char *msg) {
@@ -299,7 +300,6 @@ char* gen_expr(context_t ctx, expr_t expr, reg_t out) {
     ADD_BLOCK(gen_id_expr(ctx, expr->u.id_ex, out));
     break;
   case LITERAL_EX:
-    // TODO
     ADD_BLOCK(gen_literal_expr(ctx, expr->u.literal_ex, out));
     break;
   case UNARY_EX:
@@ -307,12 +307,10 @@ char* gen_expr(context_t ctx, expr_t expr, reg_t out) {
     GEN_ERROR("Unary expression not implemented");
     break;
   case BINARY_EX:
-    // TODO
     ADD_BLOCK(gen_binary_expr(ctx, expr->u.binary_ex, out));
     break;
   case TERNARY_EX:
-    // TODO
-    GEN_ERROR("Ternary expression not implemented");
+    ADD_BLOCK(gen_ternary_expr(ctx, expr->u.ternary_ex, out));
     break;
   case CALL_EX:
     ADD_BLOCK(gen_call_expr(ctx, expr->u.call_ex, out));
@@ -614,6 +612,27 @@ char* gen_binary_expr(context_t ctx, binary_t binary, reg_t out) {
   ADD_INSTR("pop", "%rsi");
   ADD_INSTR("pop", "%rdi");
   ADD_INSTR("movq", concat("%rax, ", out));
+  RETURN_BUFFER;
+}
+
+char* gen_ternary_expr(context_t ctx, ternary_t ternary, reg_t out) {
+  // TODO: More morph stuff is probably needed here
+  char *middle_label = gen_label("T");
+  char *right_label = gen_label("T");
+  char *end_label = gen_label("T");
+  CREATE_BUFFER;
+  ADD_INSTR("push", "%rax");
+  ADD_BLOCK(gen_expr(ctx, ternary->left, "%rax"));
+  ADD_INSTR("movq", "(%rax), %rax");
+  ADD_INSTR("cmp", "$1, %rax");
+  ADD_INSTR("je", middle_label);
+  ADD_INSTR("jmp", right_label);
+  ADD_LABEL(middle_label);
+  ADD_BLOCK(gen_expr(ctx, ternary->middle, out));
+  ADD_INSTR("jmp", end_label);
+  ADD_LABEL(right_label);
+  ADD_BLOCK(gen_expr(ctx, ternary->right, out));
+  ADD_LABEL(end_label);
   RETURN_BUFFER;
 }
 

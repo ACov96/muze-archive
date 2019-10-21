@@ -44,6 +44,7 @@ typedef struct for_stmt_st      *for_stmt_t;
 typedef struct loop_stmt_st     *loop_stmt_t;
 typedef struct case_stmt_st     *case_stmt_t;
 typedef struct expr_stmt_st     *expr_stmt_t;
+typedef struct break_stmt_st    *break_stmt_t;
 
 // Entry node in the AST
 struct root_st {
@@ -338,7 +339,8 @@ struct arg_st {
 struct stmt_st {
   enum{
     COND_STMT, FOR_STMT, LOOP_STMT,
-    CASE_STMT, ASSIGN_STMT, EXPR_STMT  
+    CASE_STMT, ASSIGN_STMT, EXPR_STMT,
+    BREAK_STMT
   } kind;
 
   union{
@@ -348,6 +350,7 @@ struct stmt_st {
     loop_stmt_t    loop_stmt;
     assign_stmt_t  assign_stmt;
     expr_stmt_t    expr_stmt;
+    break_stmt_t   break_stmt;
   } u;
 
   stmt_t next;
@@ -381,6 +384,10 @@ struct assign_stmt_st {
 
 struct expr_stmt_st {
   expr_t expr;
+};
+
+struct break_stmt_st {
+  // Empty
 };
 
 struct call_st {

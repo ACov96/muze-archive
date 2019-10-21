@@ -574,7 +574,7 @@ static expr_t parse_bitshiftr_expr(PARSE_PARAMS) {
 
   EXPECT_FUN(parse_additive_expr, binary->left);
 
-  if (MATCH_TOK(SHIFT_LEFT)) {
+  if (MATCH_TOK(SHIFT_RIGHT)) {
     EXPECT_FUN(parse_bitshiftr_expr, binary->right);
     binary->op = SHIFT_RIGHT_OP;
   }

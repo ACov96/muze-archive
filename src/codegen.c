@@ -498,7 +498,9 @@ char* gen_cond_stmt(context_t ctx, cond_stmt_t cond) {
     ADD_LABEL(cl->val);
     cl = cl->next;
     if (c->body != NULL) {
-      ADD_BLOCK(gen_stmt(ctx, c->body));
+      for (stmt_t s = c->body; s; s = s->next) {
+        ADD_BLOCK(gen_stmt(ctx, s));
+      }
       ADD_INSTR("jmp", end_label);
     } else {
       ADD_INSTR("nop", NO_OPERANDS);

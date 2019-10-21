@@ -123,6 +123,9 @@ char *remove_empty_lines(char *s) {
         new_s[new_s_idx] = s[i];
         new_s_idx++;
       }
+    } else {
+      new_s[new_s_idx] = s[i];
+      new_s_idx++;
     }
   }
   return new_s;

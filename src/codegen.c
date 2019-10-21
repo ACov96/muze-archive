@@ -576,12 +576,19 @@ char* gen_binary_expr(context_t ctx, binary_t binary, reg_t out) {
     ADD_INSTR("call", "_xor");
     break;
   case BIT_AND_OP:
+    ADD_INSTR("call", "_b_and");
+    break;
   case BIT_OR_OP:
+    ADD_INSTR("call", "_b_or");
+    break;
   case BIT_XOR_OP:
+    ADD_INSTR("call", "_b_xor");
+    break;
   case SHIFT_RIGHT_OP:
+    ADD_INSTR("call", "_b_r_shift");
+    break;
   case SHIFT_LEFT_OP:
-    // TODO
-    GEN_ERROR("Bitwise expressions not implemented");
+    ADD_INSTR("call", "_b_l_shift");
     break;
   case EQ_EQ_OP:
   case LT_OP:

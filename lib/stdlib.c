@@ -89,6 +89,31 @@ data_t _xor(data_t x, data_t y) {
   else return alloc_bool(0);
 }
 
+data_t _b_and(data_t x, data_t y) {
+  long z = (*(long*)x) & (*(long*)y);
+  return alloc_int(z);
+}
+
+data_t _b_or(data_t x, data_t y) {
+  long z = (*(long*)x) | (*(long*)y);
+  return alloc_int(z);
+}
+
+data_t _b_xor(data_t x, data_t y) {
+  long z = (*(long*)x) ^ (*(long*)y);
+  return alloc_int(z);
+}
+
+data_t _b_r_shift(data_t x, data_t y) {
+  long z = (*(long*)x) >> (*(long*)y);
+  return alloc_int(z);
+}
+
+data_t _b_l_shift(data_t x, data_t y) {
+  long z = (*(long*)x) << (*(long*)y);
+  return alloc_int(z);
+}
+
 /* METHODS TO BE REMOVED
  *
  * Methods below this point are solely here for debugging purposes. They should eventually be removed.

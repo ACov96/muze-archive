@@ -207,7 +207,12 @@ static cond_stmt_t parse_cond_stmt(PARSE_PARAMS) {
 
   if (MATCH_TOK(ELSE)) {
     parse_log("Found 'else' block");
-    MATCH_FUN(parse_stmt, curr->else_stmt);
+    curr->else_stmt = malloc(sizeof(struct stmt_st));
+    curr->else_stmt->kind = COND_STMT;
+    curr->else_stmt->u.cond_stmt = malloc(sizeof(struct cond_stmt_st));
+    curr = curr->else_stmt->u.cond_stmt;
+    curr->test = NULL;
+    MATCH_FUN(parse_stmt, curr->body);
   }
 
   EXPECT_TOK(FI);
@@ -299,7 +304,7 @@ static expr_stmt_t parse_expr_stmt(PARSE_PARAMS) {
 static expr_t parse_expr(PARSE_PARAMS) {
   parse_log("Attempting to parse expression");
 
-  expr_t ex;
+  expr_t ex = malloc(sizeof(struct expr_st));
 
   EXPECT_FUN(parse_ternary_expr, ex);
 
@@ -340,10 +345,10 @@ static expr_t parse_lval(PARSE_PARAMS) {
 static expr_t parse_unit_expr(PARSE_PARAMS) {
   parse_log("Attempting to parse unit expression");
 
-  expr_t    unit;
-  char      *id;
-  literal_t literal;
-  call_t    call;
+  expr_t    unit    = NULL;
+  char      *id     = NULL;
+  literal_t literal = NULL;
+  call_t    call    = NULL;
 
   /* if (MATCH_FUN(parse_lval, unit)) { */
   /*   parse_log("Unit expression is lvalue"); */
@@ -576,7 +581,7 @@ static expr_t parse_bitshiftr_expr(PARSE_PARAMS) {
 }
 
 static expr_t parse_bitshift_expr(PARSE_PARAMS) {
-  expr_t expr;
+  expr_t expr = malloc(sizeof(struct expr_st));
 
   if (!MATCH_FUN(parse_bitshiftl_expr, expr)
       && !MATCH_FUN(parse_bitshiftr_expr, expr)) {
@@ -840,7 +845,7 @@ static literal_t parse_literal(PARSE_PARAMS) {
 
 // Right identifier, basically anything taht can
 static char *parse_right_identifier(PARSE_PARAMS) {
-  char *id;
+  char *id = NULL;
 
   id = BEGET->val;
   if (!(MATCH_TOK(STRING)
@@ -1148,7 +1153,7 @@ static call_t parse_fun_call(PARSE_PARAMS) {
 }
 
 static expr_list_t parse_expr_list(PARSE_PARAMS) {
-  expr_list_t curr;
+  expr_list_t curr = NULL;
   if (!MATCH_TOK(RPAREN)) {
     curr = malloc(sizeof(struct expr_list_st));
     MATCH_FUN(parse_expr, curr->expr);
@@ -1161,7 +1166,7 @@ static expr_list_t parse_expr_list(PARSE_PARAMS) {
 
 // start parse
 root_t parse(ll_t LL_NAME) {
-  root_t root;
+  root_t root = malloc(sizeof(struct root_st));
   int LEVEL_SPECIFIER;
 
   init_fail();

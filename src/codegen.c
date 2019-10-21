@@ -14,10 +14,8 @@
 #define RETURN_BUFFER return buf
 #define PRINT_BUFFER printf("%s\n", buf)
 
-#define ADD_BLOCK(B) if (strlen(B) > 0 && strcmp("\n", B) != 0) {    \
-    buf = concat(buf, B);                                            \
-    buf = concat(buf, "\n");                                         \
-  }
+#define ADD_BLOCK(B) buf = concat(buf, B);                           \
+  buf = concat(buf, "\n");                                           
 
 #define ADD_LABEL(L) buf = concat(buf, L);      \
   buf = concat(buf, ":\n")
@@ -28,20 +26,8 @@
   buf = concat(buf, O);                                 \
   buf = concat(buf, "\n")
 
-#define PUSH_CALLER_SAVES ADD_INSTR("push", "%r10");    \
-  ADD_INSTR("push", "%r11");                            \
-  ADD_INSTR("push", "%r12");                            \
-  ADD_INSTR("push", "%r13");                            \
-  ADD_INSTR("push", "%r14");                            \
-  ADD_INSTR("push", "%r15");
-
-#define POP_CALLER_SAVES ADD_INSTR("pop", "%r15");     \
-  ADD_INSTR("pop", "%r14");                            \
-  ADD_INSTR("pop", "%r13");                            \
-  ADD_INSTR("pop", "%r12");                            \
-  ADD_INSTR("pop", "%r11");                            \
-  ADD_INSTR("pop", "%r10");
-
+#define GEN_ERROR(S) fprintf(stderr, "%s\n", S);        \
+  exit(1);
 
 /* TYPES */
 typedef struct label_st        *label_t;
@@ -59,8 +45,8 @@ struct string_label_st {
 };
 
 /* GLOBALS */
-ll_t labels;
-ll_t strings;
+ll_t labels = NULL;
+ll_t strings = NULL;
 unsigned int curr_label = 0;
 reg_t arg_registers[6] = {
                         "%rdi",
@@ -70,7 +56,7 @@ reg_t arg_registers[6] = {
                         "%r8",
                         "%r9"
 };
-char *entrypoint;
+char *entrypoint = NULL;
 
 /* PROTOTYPES */
 // Helper functions
@@ -93,6 +79,7 @@ char* gen_literal_expr(context_t ctx, literal_t literal, reg_t out);
 char* gen_id_expr(context_t ctx, char *id, reg_t out);
 char* gen_assign_stmt(context_t ctx, assign_stmt_t assign);
 char* gen_lval_expr(context_t ctx, expr_t lval, reg_t out);
+char* gen_cond_stmt(context_t ctx, cond_stmt_t cond);
 
 /* HELPERS */
 void gen_error(char *msg) {
@@ -149,7 +136,6 @@ char* register_or_get_string_label(char *str) {
       return sl->label;
   }
   string_label_t str_label = malloc(sizeof(struct string_label_st));
-  strings->val = str_label;
   str_label->str = str;
   str_label->label = gen_label("STR");
   ll_append(strings, str_label);
@@ -273,22 +259,25 @@ char* gen_stmt(context_t ctx, stmt_t stmt) {
     ADD_BLOCK(gen_expr_stmt(ctx, stmt->u.expr_stmt));
     break;
   case COND_STMT:
-    // TODO
+    ADD_BLOCK(gen_cond_stmt(ctx, stmt->u.cond_stmt));
     break;
   case FOR_STMT:
     // TODO
+    GEN_ERROR("FOR STATMENT NOT IMPLEMENTED");
     break;
   case LOOP_STMT:
     // TODO
+    GEN_ERROR("LOOP STATMENT NOT IMPLEMENTED");
     break;
   case CASE_STMT:
     // TODO
+    GEN_ERROR("CASE STATMENT NOT IMPLEMENTED");
     break;
   case ASSIGN_STMT:
     ADD_BLOCK(gen_assign_stmt(ctx, stmt->u.assign_stmt));
     break;
   default:
-    // TODO
+    GEN_ERROR("UNRECOGNIZED STATEMENT");
     break;
   }
   RETURN_BUFFER;
@@ -360,10 +349,10 @@ char* gen_call_expr(context_t ctx, call_t call, reg_t out) {
 }
 
 char* gen_literal_expr(context_t ctx, literal_t literal, reg_t out) {
-  char *str_label;
-  char *int_literal;
-  char *real_literal;
-  char *bool_literal;
+  char *str_label = NULL;
+  char *int_literal = NULL;
+  char *real_literal = NULL;
+  char *bool_literal = NULL;
   CREATE_BUFFER;
   switch(literal->kind) {
   case STRING_LIT:
@@ -435,8 +424,8 @@ char* gen_assign_stmt(context_t ctx, assign_stmt_t assign) {
 }
 
 char* gen_lval_expr(context_t ctx, expr_t lval, reg_t out) {
-  static_link_t sl;
-  char *read_inst;
+  static_link_t sl = NULL;
+  char *read_inst = NULL;
   CREATE_BUFFER;
   switch(lval->kind) {
   case ID_EX:
@@ -452,9 +441,69 @@ char* gen_lval_expr(context_t ctx, expr_t lval, reg_t out) {
   case CALL_EX:
   case RANGE_EX:
   default:
-    // TODO: This should error
+    GEN_ERROR("INVALID LVAL");
     break;
   }
+  RETURN_BUFFER;
+}
+
+char* gen_cond_stmt(context_t ctx, cond_stmt_t cond) {
+  // TODO: This needs to generate morph stuff
+  ll_t condition_labels = NULL;
+  char *curr_label = NULL;
+  char *end_label = NULL;
+  CREATE_BUFFER;
+
+  // Generate all of the condition labels
+  for (cond_stmt_t c = cond; c; c = c->else_stmt ? c->else_stmt->u.cond_stmt : NULL) {
+    if (condition_labels == NULL) {
+      condition_labels = ll_new();
+      condition_labels->val = gen_label("C");
+      condition_labels->next = NULL;
+    } else {
+      ll_append(condition_labels, gen_label("C"));
+    }
+  }
+
+  // Generate end label
+  end_label = gen_label("C");
+
+  // Add label, test condition, jump to end of conditional if necessary
+  ll_t cl = condition_labels;
+  for (cond_stmt_t c = cond; c; c = c->else_stmt ? c->else_stmt->u.cond_stmt : NULL) {
+    if (c->test != NULL) {
+      ADD_BLOCK(gen_expr(ctx, c->test, "%rax"));
+
+      // TODO: This should be a morph
+      ADD_INSTR("push", "%r10");
+      ADD_INSTR("movq", "(%rax), %r10"); 
+      ADD_INSTR("cmp", "$1, %r10");
+      ADD_INSTR("pop", "%r10");
+      ADD_INSTR("je", cl->val);
+    } else {
+      // NULL c->test means just assume the condition is true
+      ADD_INSTR("jmp", cl->val);
+    }
+    cl = cl->next;
+  }
+  ADD_INSTR("jmp", end_label);
+
+  // Condition labels w/ bodies
+  cl = condition_labels;
+  for (cond_stmt_t c = cond; c; c = c->else_stmt ? c->else_stmt->u.cond_stmt : NULL) {
+    ADD_LABEL(cl->val);
+    cl = cl->next;
+    if (c->body != NULL) {
+      ADD_BLOCK(gen_stmt(ctx, c->body));
+      ADD_INSTR("jmp", end_label);
+    } else {
+      ADD_INSTR("nop", NO_OPERANDS);
+    }
+  }
+
+  // Add the end label
+  ADD_LABEL(end_label);
+
   RETURN_BUFFER;
 }
 

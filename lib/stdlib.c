@@ -46,6 +46,30 @@ data_t alloc_bool(long x) {
   return (data_t)(BOOL_HEADER | (unsigned long)p);
 }
 
+data_t _add(data_t x, data_t y) {
+  // TODO: Take type header into account
+  long z = (*(long*)x) + (*(long*)y);
+  return alloc_int(z);
+}
+
+data_t _sub(data_t x, data_t y) {
+  // TODO: Take type header into account
+  long z = (*(long*)x) - (*(long*)y);
+  return alloc_int(z);
+}
+
+data_t _mul(data_t x, data_t y) {
+  // TODO: Take type header into account
+  long z = (*(long*)x) * (*(long*)y);
+  return alloc_int(z);
+}
+
+data_t _div(data_t x, data_t y) {
+  // TODO: Take type header into account
+  long z = (*(long*)x) / (*(long*)y);
+  return alloc_int(z);
+}
+
 /* METHODS TO BE REMOVED
  *
  * Methods below this point are solely here for debugging purposes. They should eventually be removed.

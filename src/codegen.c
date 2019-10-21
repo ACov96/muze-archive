@@ -82,6 +82,7 @@ char* gen_lval_expr(context_t ctx, expr_t lval, reg_t out);
 char* gen_cond_stmt(context_t ctx, cond_stmt_t cond);
 char* gen_loop_stmt(context_t ctx, loop_stmt_t loop);
 char* gen_break_stmt(context_t ctx, break_stmt_t brk);
+char* gen_binary_expr(context_t ctx, binary_t binary, reg_t out);
 
 /* HELPERS */
 void gen_error(char *msg) {
@@ -265,14 +266,14 @@ char* gen_stmt(context_t ctx, stmt_t stmt) {
     break;
   case FOR_STMT:
     // TODO
-    GEN_ERROR("FOR STATMENT NOT IMPLEMENTED");
+    GEN_ERROR("For statement not implemented");
     break;
   case LOOP_STMT:
     ADD_BLOCK(gen_loop_stmt(ctx, stmt->u.loop_stmt));
     break;
   case CASE_STMT:
     // TODO
-    GEN_ERROR("CASE STATMENT NOT IMPLEMENTED");
+    GEN_ERROR("Case statement not implemented");
     break;
   case ASSIGN_STMT:
     ADD_BLOCK(gen_assign_stmt(ctx, stmt->u.assign_stmt));
@@ -281,7 +282,7 @@ char* gen_stmt(context_t ctx, stmt_t stmt) {
     ADD_BLOCK(gen_break_stmt(ctx, stmt->u.break_stmt));
     break;
   default:
-    GEN_ERROR("UNRECOGNIZED STATEMENT");
+    GEN_ERROR("Unrecognized statement");
     break;
   }
   RETURN_BUFFER;
@@ -303,21 +304,25 @@ char* gen_expr(context_t ctx, expr_t expr, reg_t out) {
     break;
   case UNARY_EX:
     // TODO
+    GEN_ERROR("Unary expression not implemented");
     break;
   case BINARY_EX:
     // TODO
+    ADD_BLOCK(gen_binary_expr(ctx, expr->u.binary_ex, out));
     break;
   case TERNARY_EX:
     // TODO
+    GEN_ERROR("Ternary expression not implemented");
     break;
   case CALL_EX:
     ADD_BLOCK(gen_call_expr(ctx, expr->u.call_ex, out));
     break;
   case RANGE_EX:
     // TODO
+    GEN_ERROR("Range expression not implemented");
     break;
   default:
-    // TODO
+    GEN_ERROR("Unrecognized expression");
     break;
   }
   RETURN_BUFFER;
@@ -485,7 +490,8 @@ char* gen_cond_stmt(context_t ctx, cond_stmt_t cond) {
       ADD_INSTR("pop", "%r10");
       ADD_INSTR("je", cl->val);
     } else {
-      // NULL c->test means just assume the condition is true
+      // NULL c->test means just assume the condition is true. This is because it was likely
+      // an 'else' statement
       ADD_INSTR("jmp", cl->val);
     }
     cl = cl->next;
@@ -535,6 +541,60 @@ char* gen_break_stmt(context_t ctx, break_stmt_t brk) {
     GEN_ERROR("No break label");
   }
   ADD_INSTR("jmp", break_label);
+  RETURN_BUFFER;
+}
+
+char* gen_binary_expr(context_t ctx, binary_t binary, reg_t out) {
+  CREATE_BUFFER;
+  ADD_INSTR("push", "%rdi");
+  ADD_INSTR("push", "%rsi");
+  ADD_BLOCK(gen_expr(ctx, binary->left, "%rdi"));
+  ADD_BLOCK(gen_expr(ctx, binary->right, "%rsi"));
+  switch(binary->op){
+  case PLUS_OP:
+    ADD_INSTR("call", "_add");
+    break;
+  case MINUS_OP:
+    ADD_INSTR("call", "_sub");
+    break;
+  case MUL_OP:
+    ADD_INSTR("call", "_mul");
+    break;
+  case DIV_OP:
+    ADD_INSTR("call", "_div");
+    break;
+  case MOD_OP:
+    ADD_INSTR("call", "_mod");
+    break;
+  case AND_OP:
+  case OR_OP:
+  case XOR_OP:
+    // TODO
+    GEN_ERROR("Logical expressions not implemented");
+    break;
+  case BIT_AND_OP:
+  case BIT_OR_OP:
+  case BIT_XOR_OP:
+  case SHIFT_RIGHT_OP:
+  case SHIFT_LEFT_OP:
+    // TODO
+    GEN_ERROR("Bitwise expressions not implemented");
+    break;
+  case EQ_EQ_OP:
+  case LT_OP:
+  case GT_OP:
+  case NOT_EQ_OP:
+  case LT_EQ_OP:
+  case GT_EQ_OP:
+    // TODO
+    GEN_ERROR("Comparator expressions not implemented");
+    break;
+  default:
+    GEN_ERROR("Unrecognized binary expression");
+  }
+  ADD_INSTR("pop", "%rsi");
+  ADD_INSTR("pop", "%rdi");
+  ADD_INSTR("movq", concat("%rax, ", out));
   RETURN_BUFFER;
 }
 

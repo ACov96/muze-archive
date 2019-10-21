@@ -5,14 +5,8 @@ From Spring:
 - A proper test script would be nice, that is why I added the 'test' folder
 
 CODEGEN
-- Conditional
 - Better label naming based on module/function scope
   This will probably mean we need a __main__ function
-- Alg expressions
-- Bool expressions
-- Logical expressions
-- Bitwise expressions
-- Loop statement
 - Case statement
 - Records and arrays
 - Morphs?

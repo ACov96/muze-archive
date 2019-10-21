@@ -26,7 +26,7 @@
   buf = concat(buf, O);                                 \
   buf = concat(buf, "\n")
 
-#define GEN_ERROR(S) fprintf(stderr, "%s\n", S);        \
+#define GEN_ERROR(S) fprintf(stderr, "Codegen Error: %s\n", S);        \
   exit(1);
 
 /* TYPES */
@@ -81,6 +81,7 @@ char* gen_assign_stmt(context_t ctx, assign_stmt_t assign);
 char* gen_lval_expr(context_t ctx, expr_t lval, reg_t out);
 char* gen_cond_stmt(context_t ctx, cond_stmt_t cond);
 char* gen_loop_stmt(context_t ctx, loop_stmt_t loop);
+char* gen_break_stmt(context_t ctx, break_stmt_t brk);
 
 /* HELPERS */
 void gen_error(char *msg) {
@@ -275,6 +276,9 @@ char* gen_stmt(context_t ctx, stmt_t stmt) {
     break;
   case ASSIGN_STMT:
     ADD_BLOCK(gen_assign_stmt(ctx, stmt->u.assign_stmt));
+    break;
+  case BREAK_STMT:
+    ADD_BLOCK(gen_break_stmt(ctx, stmt->u.break_stmt));
     break;
   default:
     GEN_ERROR("UNRECOGNIZED STATEMENT");
@@ -517,7 +521,18 @@ char* gen_loop_stmt(context_t ctx, loop_stmt_t loop) {
     ADD_BLOCK(gen_stmt(ctx, s));
   }
   ADD_INSTR("jmp", loop_label);
+  ADD_LABEL(break_label);
   ctx_pop_break_label(ctx);
+  RETURN_BUFFER;
+}
+
+char* gen_break_stmt(context_t ctx, break_stmt_t brk) {
+  CREATE_BUFFER;
+  char *break_label = ctx_curr_break_label(ctx);
+  if (break_label == NULL) {
+    GEN_ERROR("No break label");
+  }
+  ADD_INSTR("jmp", break_label);
   RETURN_BUFFER;
 }
 

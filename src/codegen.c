@@ -591,13 +591,22 @@ char* gen_binary_expr(context_t ctx, binary_t binary, reg_t out) {
     ADD_INSTR("call", "_b_l_shift");
     break;
   case EQ_EQ_OP:
+    ADD_INSTR("call", "_eq_eq");
+    break;
   case LT_OP:
+    ADD_INSTR("call", "_lt");
+    break;
   case GT_OP:
+    ADD_INSTR("call", "_gt");
+    break;
   case NOT_EQ_OP:
+    ADD_INSTR("call", "_neq");
+    break;
   case LT_EQ_OP:
+    ADD_INSTR("call", "_lte");
+    break;
   case GT_EQ_OP:
-    // TODO
-    GEN_ERROR("Comparator expressions not implemented");
+    ADD_INSTR("call", "_gte");
     break;
   default:
     GEN_ERROR("Unrecognized binary expression");

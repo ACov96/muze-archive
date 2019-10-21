@@ -114,6 +114,37 @@ data_t _b_l_shift(data_t x, data_t y) {
   return alloc_int(z);
 }
 
+data_t _eq_eq(data_t x, data_t y) {
+  long z = (*(long*)x) == (*(long*)y);
+  return alloc_bool(z);
+}
+
+data_t _lt(data_t x, data_t y) {
+  long z = (*(long*)x) < (*(long*)y);
+  return alloc_bool(z);
+}
+
+data_t _gt(data_t x, data_t y) {
+  long z = (*(long*)x) > (*(long*)y);
+  return alloc_bool(z);
+}
+
+data_t _neq(data_t x, data_t y) {
+  long z = (*(long*)x) != (*(long*)y);
+  return alloc_bool(z);
+}
+
+data_t _lte(data_t x, data_t y) {
+  long z = (*(long*)x) >= (*(long*)y);
+  return alloc_bool(z);
+}
+
+data_t _gte(data_t x, data_t y) {
+  long z = (*(long*)x) <= (*(long*)y);
+  return alloc_bool(z);
+}
+
+
 /* METHODS TO BE REMOVED
  *
  * Methods below this point are solely here for debugging purposes. They should eventually be removed.

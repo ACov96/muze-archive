@@ -14,7 +14,7 @@
 #define RETURN_BUFFER return buf
 #define PRINT_BUFFER printf("%s\n", buf)
 
-#define ADD_BLOCK(B) buf = concat(buf, B);                           \
+#define ADD_BLOCK(B) buf = concat(buf, B);      \
   buf = concat(buf, "\n");                                           
 
 #define ADD_LABEL(L) buf = concat(buf, L);      \
@@ -26,7 +26,7 @@
   buf = concat(buf, O);                                 \
   buf = concat(buf, "\n")
 
-#define GEN_ERROR(S) fprintf(stderr, "Codegen Error: %s\n", S);        \
+#define GEN_ERROR(S) fprintf(stderr, "Codegen Error: %s\n", S); \
   exit(1);
 
 /* TYPES */

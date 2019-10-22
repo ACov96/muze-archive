@@ -1,6 +1,10 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <getopt.h>
+#include <unistd.h>
+#include <string.h>
+#include <sys/types.h>
+#include <sys/wait.h>
 #include "lexer.h"
 #include "util.h"
 #include "ast.h"
@@ -12,6 +16,7 @@ struct prog_opts {
   int print_tokens;
   int print_tree;
   int print_asm;
+  int save_asm;
   char *output_file;
   char **input_files;
 };
@@ -22,51 +27,56 @@ struct prog_opts parse_args(int argc, char **argv) {
     .print_tokens = 0,
     .print_tree = 0,
     .print_asm = 0,
-    .output_file = "a.s",
+    .save_asm = 0,
+    .output_file = "a.out",
   };
 
-  const char *opt_string = "hko:ta";
+  const char *opt_string = "hko:taS";
   const struct option long_opts[] = {
     { "--help",   no_argument,       NULL, 'h' },
     { "--tokens", no_argument,       NULL, 'k' },
     { "--output", required_argument, NULL, 'o' },
     { "--tree",   no_argument,       NULL, 't' },
-    { "--asm",    no_argument,       NULL, 'a' }
+    { "--asm",    no_argument,       NULL, 'a' },
   };
 
   for (int opt = getopt_long(argc, argv, opt_string, long_opts, NULL);
        opt != -1;
        opt = getopt_long(argc, argv, opt_string, long_opts, NULL)) {
     switch (opt) {
-      case 'h':
-        opts.print_help = 1;
-        break;
+    case 'h':
+      opts.print_help = 1;
+      break;
 
-      case 'o':
-        opts.output_file = optarg;
-        break;
+    case 'o':
+      opts.output_file = optarg;
+      break;
 
-      case 'k':
-        opts.print_tokens = 1;
-        break;
+    case 'k':
+      opts.print_tokens = 1;
+      break;
 
-      case 't':
-        opts.print_tree = 1;
-        break;
+    case 't':
+      opts.print_tree = 1;
+      break;
 
-      case 'a':
-        opts.print_asm = 1;
-        break;
+    case 'a':
+      opts.print_asm = 1;
+      break;
         
+    case 'S':
+      opts.save_asm = 1;
+      break;
+      
       // Error cases
-      case '?':
-        break;
+    case '?':
+      break;
 
-      case ':':
-        break;
+    case ':':
+      break;
 
-      default:
-        break;
+    default:
+      break;
     }
   }
 
@@ -76,6 +86,12 @@ struct prog_opts parse_args(int argc, char **argv) {
 }
 
 int main(int argc, char* argv[]) {
+  char *stdlib_path = getenv("MUZE_STDLIB_PATH");
+  if (stdlib_path == NULL) {
+    fputs("Error: No MUZE_STDLIB_PATH environment variable set\n", stderr);
+    exit(EXIT_FAILURE);
+  }
+
   struct prog_opts opts;
   
   opts = parse_args(argc, argv);
@@ -111,13 +127,43 @@ int main(int argc, char* argv[]) {
     print_errors();
   }
 
-  char *assembly = codegen(ast_root);
+  char *assembly = remove_empty_lines(codegen(ast_root));
   if (opts.print_asm) {
     printf("Assembly Output:\n\n%s\n", assembly);
   }
 
-  FILE *out_file = fopen(opts.output_file, "w");
-  fputs(remove_empty_lines(assembly), out_file);
-  fclose(out_file);
+  if (opts.save_asm) {
+    FILE *out_file = fopen("a.s", "w");
+    fputs(assembly, out_file);
+    fclose(out_file);
+  }
+
+  // Fork and exec out to as+gcc to finish compilation
+  int status;
+  int fd[2];
+  pipe(fd);
+  pid_t pid = fork();
+  if (pid > 0) {
+    close(fd[0]);
+    write(fd[1], assembly, strlen(assembly) + 1);
+    close(fd[1]);
+    status = 0;
+    waitpid(pid, &status, 0);
+  } else {
+    dup2(fd[0], STDIN_FILENO);
+    close(fd[0]);
+    close(fd[1]);
+    char *args[] = {"as", "-o", "a.o", "--", NULL};
+    execvp(args[0], args);
+  }
+
+  pid = fork();
+  if (pid > 0) {
+    status = 0;
+    waitpid(pid, &status, 0);
+  } else {
+    char *args[] = {"gcc", "-o", opts.output_file, stdlib_path, "a.o", NULL};
+    execvp(args[0], args);
+  }
 }
 

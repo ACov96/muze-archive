@@ -84,6 +84,7 @@ char* gen_loop_stmt(context_t ctx, loop_stmt_t loop);
 char* gen_break_stmt(context_t ctx, break_stmt_t brk);
 char* gen_binary_expr(context_t ctx, binary_t binary, reg_t out);
 char* gen_ternary_expr(context_t ctx, ternary_t ternary, reg_t out);
+char* gen_unary_expr(context_t ctx, unary_t unary, reg_t out);
 
 /* HELPERS */
 void gen_error(char *msg) {
@@ -303,8 +304,7 @@ char* gen_expr(context_t ctx, expr_t expr, reg_t out) {
     ADD_BLOCK(gen_literal_expr(ctx, expr->u.literal_ex, out));
     break;
   case UNARY_EX:
-    // TODO
-    GEN_ERROR("Unary expression not implemented");
+    ADD_BLOCK(gen_unary_expr(ctx, expr->u.unary_ex, out));
     break;
   case BINARY_EX:
     ADD_BLOCK(gen_binary_expr(ctx, expr->u.binary_ex, out));
@@ -621,7 +621,6 @@ char* gen_ternary_expr(context_t ctx, ternary_t ternary, reg_t out) {
   char *right_label = gen_label("T");
   char *end_label = gen_label("T");
   CREATE_BUFFER;
-  ADD_INSTR("push", "%rax");
   ADD_BLOCK(gen_expr(ctx, ternary->left, "%rax"));
   ADD_INSTR("movq", "(%rax), %rax");
   ADD_INSTR("cmp", "$1, %rax");
@@ -633,6 +632,41 @@ char* gen_ternary_expr(context_t ctx, ternary_t ternary, reg_t out) {
   ADD_LABEL(right_label);
   ADD_BLOCK(gen_expr(ctx, ternary->right, out));
   ADD_LABEL(end_label);
+  RETURN_BUFFER;
+}
+
+char* gen_unary_expr(context_t ctx, unary_t unary, reg_t out) {
+  // TODO: More morph stuff is needed here
+  CREATE_BUFFER;
+  ADD_INSTR("push", "%rdi");
+  ADD_BLOCK(gen_expr(ctx, unary->expr, "%rdi"));
+  switch(unary->op) {
+  case NOT_OP:
+    ADD_INSTR("call", "_not");
+    break;
+  case BIT_NOT_OP:
+    ADD_INSTR("call", "_b_not");
+    break;
+  case NEG_OP:
+    ADD_INSTR("call", "_neg");
+    break;
+  case PRE_INC_OP:
+    ADD_INSTR("call", "_pre_inc");
+    break;
+  case PRE_DEC_OP:
+    ADD_INSTR("call", "_pre_dec");
+    break;
+  case POST_INC_OP:
+    ADD_INSTR("call", "_post_inc");
+    break;
+  case POST_DEC_OP:
+    ADD_INSTR("call", "_post_dec");
+    break;
+  default:
+    GEN_ERROR("Unrecognized unary operator");
+  }
+  ADD_INSTR("pop", "%rdi");
+  ADD_INSTR("movq", concat("%rax, ", out));
   RETURN_BUFFER;
 }
 

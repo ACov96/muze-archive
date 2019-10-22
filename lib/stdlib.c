@@ -144,6 +144,41 @@ data_t _gte(data_t x, data_t y) {
   return alloc_bool(z);
 }
 
+data_t _not(data_t x) {
+  long z = (*(long*)x);
+  return alloc_bool(!z);
+}
+
+data_t _b_not(data_t x) {
+  long z = (*(long*)x);
+  return alloc_int(~z);
+}
+
+data_t _neg(data_t x) {
+  long z = (*(long*)x);
+  return alloc_int(-z);
+}
+
+data_t _pre_inc(data_t x) {
+  long z = (*(long*)x);
+  return alloc_int(++z);
+}
+
+data_t _pre_dec(data_t x) {
+  long z = (*(long*)x);
+  return alloc_int(--z);
+}
+
+data_t _post_inc(data_t x) {
+  long z = (*(long*)x);
+  return alloc_int(z++);
+}
+
+data_t _post_dec(data_t x) {
+  long z = (*(long*)x);
+  return alloc_int(z--);
+}
+
 
 /* METHODS TO BE REMOVED
  *

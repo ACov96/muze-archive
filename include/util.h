@@ -23,6 +23,8 @@ ll_t ll_new();
  */
 void ll_append(ll_t l, void *data);
 
+int ll_length(ll_t ll);
+
 // ERROR
 
 /* Print Error Message and Exit

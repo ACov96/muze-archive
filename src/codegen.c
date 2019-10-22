@@ -60,7 +60,6 @@ char *entrypoint = NULL;
 
 /* PROTOTYPES */
 // Helper functions
-void gen_error(char *msg);
 unsigned int count_consts_and_vars(decl_t decl);
 int get_id_offset(char *id, decl_t decl);
 char* register_or_get_string_label(char *str);
@@ -87,11 +86,6 @@ char* gen_ternary_expr(context_t ctx, ternary_t ternary, reg_t out);
 char* gen_unary_expr(context_t ctx, unary_t unary, reg_t out);
 
 /* HELPERS */
-void gen_error(char *msg) {
-  fprintf(stderr, "%s\n", msg);
-  exit(1);
-}
-
 unsigned int count_consts_and_vars(decl_t decl) {
   unsigned int total = 0;
   for (const_decl_t c = decl->constants; c; c = c->next)
@@ -178,6 +172,7 @@ char* gen_label(char *label) {
 }
 
 char* gen_mod(mod_t mod) {
+  context_t ctx = ctx_new();
   CREATE_BUFFER;
   // Allocate module constants
 
@@ -187,13 +182,24 @@ char* gen_mod(mod_t mod) {
 
   // Define functions
   for (fun_decl_t f = mod->decl->funs; f; f = f->next) {
-    context_t ctx = ctx_new();
     buf = concat(buf, gen_fun(ctx, f));
   }
   RETURN_BUFFER;
 }
 
 char* gen_fun(context_t ctx, fun_decl_t fun) {
+  CREATE_BUFFER;
+  context_t new_ctx = ctx_new();
+  ctx_set_parent(new_ctx, ctx);
+  populate_decl_into_ctx(new_ctx, fun->decl);
+
+  // TODO: Generate child modules
+  
+  // Generate child functions
+  for (fun_decl_t f = fun->decl->funs; f; f = f->next) {
+    ADD_BLOCK(gen_fun(new_ctx, f));
+  }
+  
   // Calculate activation record space
   unsigned int preamble_space = count_consts_and_vars(fun->decl);
   for (arg_t arg = fun->args; arg; arg = arg->next) {
@@ -203,30 +209,29 @@ char* gen_fun(context_t ctx, fun_decl_t fun) {
   char *space_str = concat("$", itoa(preamble_space));
 
   // Initialize activation record
-  CREATE_BUFFER;
   ADD_LABEL(fun->name);
   ADD_INSTR("push", "%rbp");
   ADD_INSTR("movq", "%rsp, %rbp");
   ADD_INSTR("sub", concat(space_str, ", %rsp"));
 
   // Setup static link
+  ADD_INSTR("movq", "%r15, -8(%rbp)");
   
   // Push arguments to stack
-  unsigned int idx = 0;
+  unsigned int idx = 1;
   for (arg_t arg = fun->args; arg; arg = arg->next) {
     // TODO: Make sure it handles 6+ arguments correctly. This only does registers
-    ctx_add_argument(ctx, arg->name);
+    ctx_add_argument(new_ctx, arg->name);
     char *save_inst = malloc(32);
-    sprintf(save_inst, "%s, %d(%%rbp)", arg_registers[idx], (idx + 1) * WORD);
+    sprintf(save_inst, "%s, -%d(%%rbp)", arg_registers[idx-1], (idx + 1) * WORD);
     ADD_INSTR("movq", save_inst);
     idx++;
   }
 
   // Push constants and variables to stack
-  populate_decl_into_ctx(ctx, fun->decl);
   for (const_decl_t c = fun->decl->constants; c; c = c-> next) {
     // TODO: Handle the different kinds of assignment
-    ADD_BLOCK(gen_expr(ctx, c->assign->expr, "%rax"));
+    ADD_BLOCK(gen_expr(new_ctx, c->assign->expr, "%rax"));
     char *save_inst = malloc(32);
     sprintf(save_inst, "%%rax, -%d(%%rbp)", (idx + 1) * WORD);
     ADD_INSTR("movq", save_inst);
@@ -237,7 +242,7 @@ char* gen_fun(context_t ctx, fun_decl_t fun) {
     // TODO: Handle the different kinds of assignment
     expr_t expr = v->assign->expr;
     for (id_list_t id = v->names; id; id = id->next) {
-      ADD_BLOCK(gen_expr(ctx, expr, "%rax"));
+      ADD_BLOCK(gen_expr(new_ctx, expr, "%rax"));
       char *save_inst = malloc(32);
       sprintf(save_inst, "%%rax, -%d(%%rbp)", (idx + 1) * WORD);
       ADD_INSTR("movq", save_inst);
@@ -247,13 +252,14 @@ char* gen_fun(context_t ctx, fun_decl_t fun) {
 
   // Start executing statements
   for (stmt_t s = fun->stmts; s; s = s->next) {
-    ADD_BLOCK(gen_stmt(ctx, s));
+    ADD_BLOCK(gen_stmt(new_ctx, s));
   }
 
   // Cleanup activation record
   ADD_INSTR("movq", "$0, %rax");
   ADD_INSTR("leave", NO_OPERANDS);
   ADD_INSTR("ret", NO_OPERANDS);
+  ctx_pop_child(new_ctx);
   RETURN_BUFFER;
 }
 
@@ -340,10 +346,15 @@ char* gen_call_expr(context_t ctx, call_t call, reg_t out) {
     arg_idx++;
   }
 
+  // Pass static link
+  ADD_INSTR("push", "%r15");
+  ADD_INSTR("leaq", "-8(%rbp), %r15");
+
   // Make call to function
   ADD_INSTR("call", call->id);
 
   // Restore argument registers
+  ADD_INSTR("pop", "%r15");
   for (int i = arg_idx - 1; i >= 0; i--) {
     ADD_INSTR("pop", arg_registers[i]);
   }
@@ -411,10 +422,18 @@ char* gen_data_segment() {
 char* gen_id_expr(context_t ctx, char *id, reg_t out) {
   // TODO: Add static link traversal
   CREATE_BUFFER;
+  ADD_INSTR("push", "%rax");
+  ADD_INSTR("leaq", "-8(%rbp), %rax");
   static_link_t sl = ctx_get_id(ctx, id);
+  if (sl->levels > 0) {
+    for (int i = 0; i < sl->levels; i++) {
+      ADD_INSTR("movq", "(%rax), %rax");
+    }
+  }
   char *read_inst = malloc(64);
-  sprintf(read_inst, "-%d(%%rbp), %s", WORD * (sl->offset + 1), out);
+  sprintf(read_inst, "-%d(%%rax), %s", WORD * (sl->offset + 1), out);
   ADD_INSTR("movq", read_inst);
+  ADD_INSTR("pop", "%rax");
   RETURN_BUFFER;
 }
 
@@ -436,10 +455,20 @@ char* gen_lval_expr(context_t ctx, expr_t lval, reg_t out) {
   CREATE_BUFFER;
   switch(lval->kind) {
   case ID_EX:
+    ADD_INSTR("push", "%rax");
+    ADD_INSTR("leaq", "-8(%rbp), %rax");
     sl = ctx_get_id(ctx, lval->u.id_ex);
+    if (sl == NULL) {
+      GEN_ERROR(concat("Cannot find l-value ", lval->u.id_ex));
+    } else if (sl->levels > 0) {
+      for (int i = 0; i < sl->levels; i++) {
+        ADD_INSTR("movq", "(%rax), %rax");
+      }
+    }
     read_inst = malloc(64);
-    sprintf(read_inst, "-%d(%%rbp), ", WORD * (sl->offset + 1));
+    sprintf(read_inst, "-%d(%%rax), ", WORD * (sl->offset + 1));
     ADD_INSTR("leaq", concat(read_inst, out));
+    ADD_INSTR("pop", "%rax");
     break;
   case LITERAL_EX:
   case UNARY_EX:

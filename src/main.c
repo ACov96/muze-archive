@@ -153,7 +153,7 @@ int main(int argc, char* argv[]) {
     dup2(fd[0], STDIN_FILENO);
     close(fd[0]);
     close(fd[1]);
-    char *args[] = {"as", "-o", "a.o", "--", NULL};
+    char *args[] = {"as", "-g", "-o", "a.o", "--", NULL};
     execvp(args[0], args);
   }
 
@@ -162,7 +162,7 @@ int main(int argc, char* argv[]) {
     status = 0;
     waitpid(pid, &status, 0);
   } else {
-    char *args[] = {"gcc", "-o", opts.output_file, stdlib_path, "a.o", NULL};
+    char *args[] = {"gcc", "-g", "-o", opts.output_file, stdlib_path, "a.o", NULL};
     execvp(args[0], args);
   }
 }

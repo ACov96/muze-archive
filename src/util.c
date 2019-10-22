@@ -23,6 +23,13 @@ void ll_append(ll_t l, void *data) {
   curr->next->val = data;
 }
 
+int ll_length(ll_t ll) {
+  int length = 0;
+  for (ll_t l = ll; l; l = l->next)
+    length++;
+  return length;
+}
+
 void error_and_exit(char* message, int line_no) {
   fprintf(stderr, "%d:%s\n", line_no, message);
   exit(1);

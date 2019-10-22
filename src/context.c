@@ -13,23 +13,14 @@
     }                                                           \
   }
 
-#define GET(T) static_link_t ctx_get_ ## T (context_t ctx, char *id, static_link_t sl) { \
-    if (sl == NULL) {                                                   \
-      sl = malloc(sizeof(struct static_link_st));                       \
-      sl->offset = 0;                                                   \
-      sl->levels = 0;                                                   \
-    }                                                                   \
+#define GET(T) int ctx_get_ ## T (context_t ctx, char *id) {            \
+    int offset = 0;                                                     \
     for (ll_t l = ctx->T ## s; l; l = l->next)                          \
       if (strcmp((char*)l->val, id) == 0)                               \
-        return sl;                                                      \
+        return offset;                                                  \
       else                                                              \
-        sl->offset++;                                                   \
-    if (ctx->parent != NULL) {                                          \
-      sl->offset = 0;                                                   \
-      sl->levels = 1;                                                   \
-      return ctx_get_ ## T (ctx->parent, id, sl);                       \
-    }                                                                   \
-    return NULL;                                                        \
+        offset++;                                                       \
+    return -1;                                                          \
   }
 
 
@@ -61,7 +52,8 @@ void ctx_set_parent(context_t ctx, context_t parent) {
 
 context_t ctx_pop_child(context_t ctx) {
   context_t parent = ctx->parent;
-  free(ctx);
+  // TODO: This is not a sufficient free, sue me. I'll fix it later. - Alex
+  free(ctx); 
   return parent;
 }
 
@@ -100,14 +92,38 @@ GET(constant);
 GET(argument);
 GET(variable);
 
-static_link_t ctx_get_id(context_t ctx, char *id) {
-  static_link_t sl = ctx_get_argument(ctx, id, NULL);
-  if (sl) return sl;
-  sl = ctx_get_constant(ctx, id, NULL);
-  if (sl) return sl;
-  sl = ctx_get_variable(ctx, id, NULL);
-  if (sl) return sl;
+static_link_t _ctx_get_id(context_t ctx, char *id, static_link_t sl) {
+  int offset;
+  if (sl == NULL) {
+    sl = malloc(sizeof(struct static_link_st));
+    sl->offset = 0;
+    sl->levels = 0;
+  }
+  offset = ctx_get_argument(ctx, id);
+  if (offset != -1) {
+    sl->offset = offset;
+    return sl;
+  }
+  offset = ctx_get_constant(ctx, id);
+  if (offset != -1) {
+    sl->offset = offset;
+    return sl;
+  }
+  offset = ctx_get_variable(ctx, id);
+  if (offset != -1) {
+    sl->offset = offset;
+    return sl;
+  }
+  if (ctx->parent != NULL) {
+    sl->offset = 0;
+    sl->levels += 1;
+    return _ctx_get_id(ctx->parent, id, sl);
+  }
   return NULL;
+}
+
+static_link_t ctx_get_id(context_t ctx, char *id) {
+  return _ctx_get_id(ctx, id, NULL);
 }
 
 char* ctx_pop_break_label(context_t ctx) {

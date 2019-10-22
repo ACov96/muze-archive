@@ -192,6 +192,9 @@ char* gen_fun(context_t ctx, fun_decl_t fun) {
   context_t new_ctx = ctx_new();
   ctx_set_parent(new_ctx, ctx);
   populate_decl_into_ctx(new_ctx, fun->decl);
+  for (arg_t arg = fun->args; arg; arg = arg->next) {
+    ctx_add_argument(new_ctx, arg->name);
+  }
 
   // TODO: Generate child modules
   
@@ -221,8 +224,7 @@ char* gen_fun(context_t ctx, fun_decl_t fun) {
   unsigned int idx = 1;
   for (arg_t arg = fun->args; arg; arg = arg->next) {
     // TODO: Make sure it handles 6+ arguments correctly. This only does registers
-    ctx_add_argument(new_ctx, arg->name);
-    char *save_inst = malloc(32);
+    char *save_inst = malloc(64);
     sprintf(save_inst, "%s, -%d(%%rbp)", arg_registers[idx-1], (idx + 1) * WORD);
     ADD_INSTR("movq", save_inst);
     idx++;
@@ -232,7 +234,7 @@ char* gen_fun(context_t ctx, fun_decl_t fun) {
   for (const_decl_t c = fun->decl->constants; c; c = c-> next) {
     // TODO: Handle the different kinds of assignment
     ADD_BLOCK(gen_expr(new_ctx, c->assign->expr, "%rax"));
-    char *save_inst = malloc(32);
+    char *save_inst = malloc(64);
     sprintf(save_inst, "%%rax, -%d(%%rbp)", (idx + 1) * WORD);
     ADD_INSTR("movq", save_inst);
     idx++;
@@ -242,9 +244,9 @@ char* gen_fun(context_t ctx, fun_decl_t fun) {
     // TODO: Handle the different kinds of assignment
     expr_t expr = v->assign->expr;
     for (id_list_t id = v->names; id; id = id->next) {
-      ADD_BLOCK(gen_expr(new_ctx, expr, "%rax"));
-      char *save_inst = malloc(32);
-      sprintf(save_inst, "%%rax, -%d(%%rbp)", (idx + 1) * WORD);
+      char *x = gen_expr(new_ctx, expr, "%rax");
+      ADD_BLOCK(x);
+      char *save_inst = concat("%rax, -", concat(itoa((idx+1)*WORD), "(%rbp)"));
       ADD_INSTR("movq", save_inst);
       idx++;
     }

@@ -4,14 +4,15 @@ INCLUDEDIR = include
 
 CC = gcc
 CFLAGS = -g -Wall -Wfatal-errors -Werror \
-	 -Wno-error=unused-function \
-	 -Wno-error=unused-variable \
-	 -Wno-error=unused-parameter \
-	 -Wno-error=unused-value \
-	 -Wno-error=unused-label \
-	 -I $(INCLUDEDIR)
+   -Wno-error=unused-function \
+   -Wno-error=unused-variable \
+   -Wno-error=unused-parameter \
+   -Wno-error=unused-value \
+   -Wno-error=unused-label \
+   -I $(INCLUDEDIR) \
+	 -no-pie
 
-OBJLST = util.o lexer.o main.o parser.o print_tree.o codegen.o
+OBJLST = util.o lexer.o main.o parser.o print_tree.o codegen.o morph_graph.o
 OBJS = $(foreach obj, $(OBJLST), $(BUILDDIR)/$(obj))
 
 TARGET = muzec
@@ -42,4 +43,3 @@ test: $(TARGET)
 clean:
 	rm -f $(OBJS) $(TARGET)
 	rm -d $(BUILDDIR)
-

@@ -5,7 +5,8 @@
 #include "util.h"
 #include "ast.h"
 #include "codegen.h"
-#include "print_tree.h"
+#include "morph_graph.h"
+//#include "print_tree.h"
 
 struct prog_opts {
   int print_help;
@@ -102,11 +103,11 @@ int main(int argc, char* argv[]) {
     print_errors();
     exit(EXIT_FAILURE);
   }
-
+	/*
   if (opts.print_tree) {
     print_tree(stdout, ast_root);
   }
-
+	*/
   if (had_errors()) {
     print_errors();
   }
@@ -116,6 +117,9 @@ int main(int argc, char* argv[]) {
     printf("Assembly Output:\n\n%s\n", assembly);
   }
 
+	type_node_t* morph_graph = build_graph(ast_root);
+	print_graph(morph_graph);
+	
   FILE *out_file = fopen(opts.output_file, "w");
   fputs(assembly, out_file);
   fclose(out_file);

@@ -71,7 +71,7 @@ struct decl_st {
   var_decl_t vars; // NULLABLE
   fun_decl_t funs; // NULLABLE
   mod_t mods; // NULLABLE
-};
+}; 
 
 
 // A variable declaration

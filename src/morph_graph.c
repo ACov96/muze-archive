@@ -23,6 +23,7 @@ void print_graph(type_node_t* graph);
 
 // global variable to keep track of next available 
 int next_index = 0;
+int num_types = NUM_PRIMITIVES;
 char* int_morphs[] = {"real", "string", "boolean"};
 
 void print_graph(type_node_t* graph){
@@ -107,6 +108,9 @@ type_node_t* build_graph(root_t root) {
 	type_node_t* graph = morph_graph();
 	type_decl_t type_decl = root->mods->decl->types;
 	for (; type_decl; type_decl = type_decl->next) {
+		if (next_index >= num_types)
+			// If the graph runs out of room double the size
+			graph = (type_node_t*) realloc(graph, sizeof(struct type_node_st)*num_types*2);
 		graph = add_type(graph, type_decl->name);
 	}
 	return graph;

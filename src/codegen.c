@@ -9,10 +9,13 @@
 
 /* MACROS */
 #define WORD 8
+#define MODULE_MIN_SIZE 16
 #define NO_OPERANDS ""
 #define CREATE_BUFFER char *buf = ""
 #define RETURN_BUFFER return buf
 #define PRINT_BUFFER printf("%s\n", buf)
+
+#define INT_LITERAL(I) (concat("$", itoa(I)))
 
 #define ADD_BLOCK(B) buf = concat(buf, B);      \
   buf = concat(buf, "\n");                                           
@@ -64,11 +67,12 @@ unsigned int count_consts_and_vars(decl_t decl);
 int get_id_offset(char *id, decl_t decl);
 char* register_or_get_string_label(char *str);
 void populate_decl_into_ctx(context_t ctx, decl_t decl);
+void set_entrypoint(root_t root);
 
 // Generator functions
 char* gen_label(char *label);
 char* gen_data_segment();
-char* gen_mod(mod_t mod);
+char* gen_mod(context_t ctx, mod_t mod);
 char* gen_fun(context_t ctx, fun_decl_t fun);
 char* gen_stmt(context_t ctx, stmt_t stmt);
 char* gen_expr_stmt(context_t ctx, expr_stmt_t expr);
@@ -141,6 +145,16 @@ char* register_or_get_string_label(char *str) {
   return str_label->label;
 }
 
+void set_entrypoint(root_t root) {
+  for (mod_t mod = root->mods; mod; mod = mod->next) {
+    for (fun_decl_t f = mod->decl->funs; f; f = f->next) {
+      if (strcmp(f->name, "main") == 0) {
+        entrypoint = concat(mod->name, concat("_", f->name));
+      }
+    }
+  }
+}
+
 /* GENERATORS */
 char* gen_label(char *label) {
   char *new_label = NULL;
@@ -171,35 +185,87 @@ char* gen_label(char *label) {
   return new_label;
 }
 
-char* gen_mod(mod_t mod) {
-  context_t ctx = ctx_new();
+char* gen_mod(context_t ctx, mod_t mod) {
   CREATE_BUFFER;
-  // Allocate module constants
+  if (strlen(ctx_get_scope_name(ctx)) == 0) {
+    ctx_set_scope_name(ctx, mod->name);
+  } else {
+    ctx_set_scope_name(ctx, concat(ctx_get_scope_name(ctx), concat("_", mod->name)));
+  }
+  for (fun_decl_t f = mod->decl->funs; f; f = f->next) {
+    ctx_add_function(ctx, f->name);
+  }
+  populate_decl_into_ctx(ctx, mod->decl);
 
-  // Allocate module variables
+  // Allocate module block
+  ADD_LABEL(concat("__module__", concat(ctx_get_scope_name(ctx), "_init")));
+
+  // Populate module block with constants and variables
+  int mod_size = MODULE_MIN_SIZE;
+  for (const_decl_t c = mod->decl->constants; c; c = c->next) {
+    mod_size += WORD;
+  }
+  for (var_decl_t v = mod->decl->vars; v; v = v->next) {
+    // TODO: This is incorrect
+    mod_size += WORD;
+  }
+  ADD_INSTR("push", "%r14");
+  ADD_INSTR("push", "%rdi");
+  ADD_INSTR("movq", concat(INT_LITERAL(mod_size), ", %rdi"));
+  ADD_INSTR("call", "malloc");
+  ADD_INSTR("pop", "%rdi");
+  ADD_INSTR("movq", "%rax, %r14");
+
+  int offset = 2;
+  for (const_decl_t c = mod->decl->constants; c; c = c->next) {
+    assign_t assign = c->assign;
+    ADD_BLOCK(gen_expr(ctx, assign->expr, "%rax"));
+    ADD_INSTR("movq", concat("%rax, ", concat(itoa(offset * WORD), "(%r14)")));
+    offset++;
+  }
+  for (var_decl_t v = mod->decl->vars; v; v = v->next) {
+    assign_t assign = v->assign;
+    ADD_BLOCK(gen_expr(ctx, assign->expr, "%rax"));
+    ADD_INSTR("movq", concat("%rax, ", concat(itoa(offset * WORD), "(%r14)")));
+    offset++;
+  }
+  ADD_INSTR("movq", "%r14, %rax");
+  ADD_INSTR("pop", "%r14");
+  ADD_INSTR("ret", NO_OPERANDS);
+
+  // Define sub modules
 
   // Define type morph functions
 
   // Define functions
   for (fun_decl_t f = mod->decl->funs; f; f = f->next) {
-    buf = concat(buf, gen_fun(ctx, f));
+    context_t func_ctx = ctx_new();
+    ctx_set_scope_name(func_ctx, ctx_get_scope_name(ctx));
+    ctx_set_parent(func_ctx, ctx);
+    // ctx_set_func_kind(func_ctx);
+    ADD_BLOCK(gen_fun(func_ctx, f));
   }
   RETURN_BUFFER;
 }
 
 char* gen_fun(context_t ctx, fun_decl_t fun) {
   CREATE_BUFFER;
-  context_t new_ctx = ctx_new();
-  ctx_set_parent(new_ctx, ctx);
-  populate_decl_into_ctx(new_ctx, fun->decl);
+  ctx_set_scope_name(ctx, concat(ctx_get_scope_name(ctx), concat("_", fun->name)));
+  populate_decl_into_ctx(ctx, fun->decl);
   for (arg_t arg = fun->args; arg; arg = arg->next) {
-    ctx_add_argument(new_ctx, arg->name);
+    ctx_add_argument(ctx, arg->name);
+  }
+  for (fun_decl_t f = fun->decl->funs; f; f = f->next) {
+    ctx_add_function(ctx, f->name);
   }
 
   // TODO: Generate child modules
   
   // Generate child functions
   for (fun_decl_t f = fun->decl->funs; f; f = f->next) {
+    context_t new_ctx = ctx_new();
+    ctx_set_parent(new_ctx, ctx);
+    ctx_set_scope_name(new_ctx, ctx_get_scope_name(ctx));
     ADD_BLOCK(gen_fun(new_ctx, f));
   }
   
@@ -208,17 +274,18 @@ char* gen_fun(context_t ctx, fun_decl_t fun) {
   for (arg_t arg = fun->args; arg; arg = arg->next) {
     preamble_space += WORD;
   }
-  preamble_space += WORD; // Increment for static link
+  preamble_space += WORD * 2; // Increment for module link and static link
   char *space_str = concat("$", itoa(preamble_space));
 
   // Initialize activation record
-  ADD_LABEL(fun->name);
+  ADD_LABEL(ctx_get_scope_name(ctx));
   ADD_INSTR("push", "%rbp");
   ADD_INSTR("movq", "%rsp, %rbp");
   ADD_INSTR("sub", concat(space_str, ", %rsp"));
 
   // Setup static link
-  ADD_INSTR("movq", "%r15, -8(%rbp)");
+  ADD_INSTR("movq", "%r14, -8(%rbp)");
+  ADD_INSTR("movq", "%r15, -16(%rbp)");
   
   // Push arguments to stack
   unsigned int idx = 1;
@@ -233,7 +300,7 @@ char* gen_fun(context_t ctx, fun_decl_t fun) {
   // Push constants and variables to stack
   for (const_decl_t c = fun->decl->constants; c; c = c-> next) {
     // TODO: Handle the different kinds of assignment
-    ADD_BLOCK(gen_expr(new_ctx, c->assign->expr, "%rax"));
+    ADD_BLOCK(gen_expr(ctx, c->assign->expr, "%rax"));
     char *save_inst = malloc(64);
     sprintf(save_inst, "%%rax, -%d(%%rbp)", (idx + 1) * WORD);
     ADD_INSTR("movq", save_inst);
@@ -244,7 +311,7 @@ char* gen_fun(context_t ctx, fun_decl_t fun) {
     // TODO: Handle the different kinds of assignment
     expr_t expr = v->assign->expr;
     for (id_list_t id = v->names; id; id = id->next) {
-      char *x = gen_expr(new_ctx, expr, "%rax");
+      char *x = gen_expr(ctx, expr, "%rax");
       ADD_BLOCK(x);
       char *save_inst = concat("%rax, -", concat(itoa((idx+1)*WORD), "(%rbp)"));
       ADD_INSTR("movq", save_inst);
@@ -254,14 +321,13 @@ char* gen_fun(context_t ctx, fun_decl_t fun) {
 
   // Start executing statements
   for (stmt_t s = fun->stmts; s; s = s->next) {
-    ADD_BLOCK(gen_stmt(new_ctx, s));
+    ADD_BLOCK(gen_stmt(ctx, s));
   }
 
   // Cleanup activation record
   ADD_INSTR("movq", "$0, %rax");
   ADD_INSTR("leave", NO_OPERANDS);
   ADD_INSTR("ret", NO_OPERANDS);
-  ctx_pop_child(new_ctx);
   RETURN_BUFFER;
 }
 
@@ -349,14 +415,22 @@ char* gen_call_expr(context_t ctx, call_t call, reg_t out) {
   }
 
   // Pass static link
+  ADD_INSTR("push", "%r14");
   ADD_INSTR("push", "%r15");
-  ADD_INSTR("leaq", "-8(%rbp), %r15");
+  ADD_INSTR("movq", "-8(%rbp), %r14");
+  ADD_INSTR("leaq", "-16(%rbp), %r15");
 
   // Make call to function
-  ADD_INSTR("call", call->id);
+  if (ctx_get_function(ctx, call->id) == NULL) {
+    // TODO: This basically means if we can't find the function, just call the name
+    ADD_INSTR("call", call->id);
+  } else {
+    ADD_INSTR("call", ctx_get_function(ctx, call->id));
+  }
 
   // Restore argument registers
   ADD_INSTR("pop", "%r15");
+  ADD_INSTR("pop", "%r14");
   for (int i = arg_idx - 1; i >= 0; i--) {
     ADD_INSTR("pop", arg_registers[i]);
   }
@@ -410,7 +484,7 @@ char* gen_literal_expr(context_t ctx, literal_t literal, reg_t out) {
 }
 
 char* gen_data_segment() {
-  if (strings == NULL) return "";
+  // if (strings == NULL) return "";
   CREATE_BUFFER;
   ADD_BLOCK("\t.data\n");
   for (ll_t l = strings; l; l = l->next) {
@@ -423,17 +497,12 @@ char* gen_data_segment() {
 
 char* gen_id_expr(context_t ctx, char *id, reg_t out) {
   // TODO: Add static link traversal
+  static_link_t sl = ctx_get_id(ctx, id);
   CREATE_BUFFER;
   ADD_INSTR("push", "%rax");
-  ADD_INSTR("leaq", "-8(%rbp), %rax");
-  static_link_t sl = ctx_get_id(ctx, id);
-  if (sl->levels > 0) {
-    for (int i = 0; i < sl->levels; i++) {
-      ADD_INSTR("movq", "(%rax), %rax");
-    }
-  }
+  // TODO: Big redo on walking static link and stuff
   char *read_inst = malloc(64);
-  sprintf(read_inst, "-%d(%%rax), %s", WORD * (sl->offset + 1), out);
+  sprintf(read_inst, "-%d(%%rax), %s", WORD * (sl->offset + 2), out);
   ADD_INSTR("movq", read_inst);
   ADD_INSTR("pop", "%rax");
   RETURN_BUFFER;
@@ -703,10 +772,39 @@ char* gen_unary_expr(context_t ctx, unary_t unary, reg_t out) {
 
 char* codegen(root_t root) {
   CREATE_BUFFER;
-  ADD_BLOCK("\t.global main\n");
+  ADD_INSTR(".global", "main");
   for (mod_t mod = root->mods; mod; mod = mod->next) {
-    ADD_BLOCK(gen_mod(mod));
+    context_t ctx = ctx_new();
+    // ctx_set_module_kind(ctx);
+    ADD_BLOCK(gen_mod(ctx, mod));
   }
+
+  // Generate main method 
+  set_entrypoint(root);
+  ADD_LABEL("main");
+  ADD_INSTR("push", "%r14");
+  ADD_INSTR("push", "%r15");
+  ADD_INSTR("push", "%rdi");
+  ADD_INSTR("push", "%rsi");
+  ADD_INSTR("movq", "$1, %rdi");
+  ADD_INSTR("call", "_init_modules");
+  ADD_INSTR("call", "__module__Hello_init");
+  ADD_INSTR("movq", "(__module__Hello_index), %rdi");
+  ADD_INSTR("movq", "%rax, %rsi");
+  ADD_INSTR("call", "_set_module");
+  ADD_INSTR("movq", "(__module__Hello_index), %rdi");
+  ADD_INSTR("call", "_get_module");
+  ADD_INSTR("movq", "%rax, %r14");
+  ADD_INSTR("movq", "$0, %r15");
+  ADD_INSTR("call", entrypoint);
+  ADD_INSTR("pop", "%rsi");
+  ADD_INSTR("pop", "%rdi");
+  ADD_INSTR("pop", "%r15");
+  ADD_INSTR("pop", "%r14");
+
+  // Generate data segment
   ADD_BLOCK(gen_data_segment());
+  ADD_LABEL("__module__Hello_index");
+  ADD_INSTR(".quad", "0");
   RETURN_BUFFER;
 }

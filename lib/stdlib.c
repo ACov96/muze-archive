@@ -21,6 +21,13 @@ CREATE_TYPE_HEADER(STR_HEADER, 0);
 CREATE_TYPE_HEADER(INT_HEADER, 0);
 CREATE_TYPE_HEADER(BOOL_HEADER, 0);
 
+data_t *modules;
+
+void panic(char *msg) {
+  fprintf(stderr, "PANIC: %s\n", msg);
+  exit(1);
+}
+
 void print(data_t d) {
   char* msg = ((string_t)d)->str;
   printf("%s\n", msg);
@@ -177,6 +184,18 @@ data_t _post_inc(data_t x) {
 data_t _post_dec(data_t x) {
   long z = (*(long*)x);
   return alloc_int(z--);
+}
+
+void _init_modules(int size) {
+  modules = malloc(sizeof(data_t) * size);
+}
+
+data_t _get_module(int idx) {
+  return modules[idx];
+}
+
+void _set_module(int idx, data_t module) {
+  modules[idx] = module;
 }
 
 

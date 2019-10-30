@@ -6,7 +6,6 @@
 
 #define NUM_PRIMITIVES 4
 
-
 struct type_node_st {
 	char* name;
 	int index;
@@ -21,11 +20,17 @@ type_node_t* morph_graph();
 int get_type_index(type_node_t* graph, char* name);
 void print_graph(type_node_t* graph);
 
-// global variable to keep track of next available 
-int next_index = 0;
-int num_types = NUM_PRIMITIVES;
+/* Gloabl variables */ 
+int next_index = 0;											// next available index in the morph graph
+int num_types = NUM_PRIMITIVES;					// number of types in the graph
+char* primitive_types[] = {"integer", "real", "string", "boolean"};
 char* int_morphs[] = {"real", "string", "boolean"};
 
+
+/* function for printing out the graph. 
+Should have a FILE* out added at some point soon
+and printing could defintely be prettier, but good
+enough for testing at the moment*/
 void print_graph(type_node_t* graph){
 	printf("Morph Graph:\n");
 	int i = 0;
@@ -42,6 +47,7 @@ void print_graph(type_node_t* graph){
 	}
 }
 
+/* type_node constructor */
 type_node_t type_node(char* name, int index) {
 	type_node_t node = malloc(sizeof(struct type_node_st));
 	node->name = name;
@@ -50,6 +56,8 @@ type_node_t type_node(char* name, int index) {
 	return node;
 }
 
+
+/* returns the index of the given type name from the given graph */
 int get_type_index(type_node_t* graph, char* type_name) {
 	int i = 0;
 	int type_index = -1;
@@ -63,6 +71,8 @@ int get_type_index(type_node_t* graph, char* type_name) {
 	return type_index;
 }
 
+
+/* Add a new type to the given graph */
 type_node_t* add_type(type_node_t* graph, char* type_name) {	 
 	type_node_t node = type_node(type_name, next_index); 
 	graph[node->index] = node;
@@ -70,6 +80,8 @@ type_node_t* add_type(type_node_t* graph, char* type_name) {
 	return graph;
 }
 
+
+/* Add a morph to the given type/graph */
 type_node_t* add_morph(type_node_t* graph, char* base_type, char* morph_type) {
 	int type_index = get_type_index(graph, base_type);
 	type_node_t curr = graph[type_index];
@@ -80,13 +92,15 @@ type_node_t* add_morph(type_node_t* graph, char* base_type, char* morph_type) {
 	return graph;
 }
 
+
+/* Morph graph constructor. Returns morph graph with primitives types and morphs added */
 type_node_t* morph_graph() {
 	type_node_t* graph = malloc(sizeof(struct type_node_st)*NUM_PRIMITIVES);
-	//add primitives to graph
- 	graph = add_type(graph, "integer");
-	graph = add_type(graph, "real");
-	graph = add_type(graph, "string");
-	graph = add_type(graph, "boolean");
+
+	// Add primitive types to graph
+	for (int i = 0; i < NUM_PRIMITIVES; i++){
+		graph = add_type(graph, primitive_types[i]);
+	}
 
 	//add primitive morphs
 	graph = add_morph(graph, "integer", "real");

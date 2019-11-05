@@ -111,3 +111,22 @@ char *itoa(unsigned int x) {
   sprintf(res, "%d", x);
   return res;
 }
+
+char *remove_empty_lines(char *s) {
+  char *new_s = malloc(strlen(s) + 1);
+  int new_s_idx = 0;
+  for (int i = 0; i < strlen(s); i++) {
+    if (i > 0) {
+      if (s[i] == '\n' && s[i-1] == '\n') {
+        continue;
+      } else {
+        new_s[new_s_idx] = s[i];
+        new_s_idx++;
+      }
+    } else {
+      new_s[new_s_idx] = s[i];
+      new_s_idx++;
+    }
+  }
+  return new_s;
+}

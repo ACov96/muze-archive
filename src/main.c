@@ -121,7 +121,7 @@ int main(int argc, char* argv[]) {
 	print_graph(morph_graph);
 	
   FILE *out_file = fopen(opts.output_file, "w");
-  fputs(assembly, out_file);
+  fputs(remove_empty_lines(assembly), out_file);
   fclose(out_file);
 }
 

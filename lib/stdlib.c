@@ -18,7 +18,8 @@ typedef struct string_st *string_t;
 
 CREATE_TYPE_HEADER(TYPE_MASK, 0xFFFF);
 CREATE_TYPE_HEADER(STR_HEADER, 0);
-CREATE_TYPE_HEADER(INT_HEADER, 1);
+CREATE_TYPE_HEADER(INT_HEADER, 0);
+CREATE_TYPE_HEADER(BOOL_HEADER, 0);
 
 void print(data_t d) {
   char* msg = ((string_t)d)->str;
@@ -39,19 +40,126 @@ data_t alloc_str(char *s) {
   return (data_t) (STR_HEADER | (unsigned long)heap_str);
 }
 
+data_t alloc_bool(long x) {
+  long *p = malloc(sizeof(long));
+  *p = x;
+  return (data_t)(BOOL_HEADER | (unsigned long)p);
+}
+
+data_t _add(data_t x, data_t y) {
+  // TODO: Take type header into account
+  long z = (*(long*)x) + (*(long*)y);
+  return alloc_int(z);
+}
+
+data_t _sub(data_t x, data_t y) {
+  // TODO: Take type header into account
+  long z = (*(long*)x) - (*(long*)y);
+  return alloc_int(z);
+}
+
+data_t _mul(data_t x, data_t y) {
+  // TODO: Take type header into account
+  long z = (*(long*)x) * (*(long*)y);
+  return alloc_int(z);
+}
+
+data_t _div(data_t x, data_t y) {
+  // TODO: Take type header into account
+  long z = (*(long*)x) / (*(long*)y);
+  return alloc_int(z);
+}
+
+data_t _and(data_t x, data_t y) {
+  // TODO: Take type header into account
+  long z = (*(long*)x) && (*(long*)y);
+  return alloc_bool(z);
+}
+
+data_t _or(data_t x, data_t y) {
+  // TODO: Take type header into account
+  long z = (*(long*)x) || (*(long*)y);
+  return alloc_bool(z);
+}
+
+data_t _xor(data_t x, data_t y) {
+  // TODO: Take type header into account
+  if ((*(long*)x) && !(*(long*)y)) return alloc_bool(1);
+  else if (!(*(long*)x) && (*(long*)y)) return alloc_bool(1);
+  else return alloc_bool(0);
+}
+
+data_t _b_and(data_t x, data_t y) {
+  long z = (*(long*)x) & (*(long*)y);
+  return alloc_int(z);
+}
+
+data_t _b_or(data_t x, data_t y) {
+  long z = (*(long*)x) | (*(long*)y);
+  return alloc_int(z);
+}
+
+data_t _b_xor(data_t x, data_t y) {
+  long z = (*(long*)x) ^ (*(long*)y);
+  return alloc_int(z);
+}
+
+data_t _b_r_shift(data_t x, data_t y) {
+  long z = (*(long*)x) >> (*(long*)y);
+  return alloc_int(z);
+}
+
+data_t _b_l_shift(data_t x, data_t y) {
+  long z = (*(long*)x) << (*(long*)y);
+  return alloc_int(z);
+}
+
+data_t _eq_eq(data_t x, data_t y) {
+  long z = (*(long*)x) == (*(long*)y);
+  return alloc_bool(z);
+}
+
+data_t _lt(data_t x, data_t y) {
+  long z = (*(long*)x) < (*(long*)y);
+  return alloc_bool(z);
+}
+
+data_t _gt(data_t x, data_t y) {
+  long z = (*(long*)x) > (*(long*)y);
+  return alloc_bool(z);
+}
+
+data_t _neq(data_t x, data_t y) {
+  long z = (*(long*)x) != (*(long*)y);
+  return alloc_bool(z);
+}
+
+data_t _lte(data_t x, data_t y) {
+  long z = (*(long*)x) >= (*(long*)y);
+  return alloc_bool(z);
+}
+
+data_t _gte(data_t x, data_t y) {
+  long z = (*(long*)x) <= (*(long*)y);
+  return alloc_bool(z);
+}
+
+
 /* METHODS TO BE REMOVED
  *
  * Methods below this point are solely here for debugging purposes. They should eventually be removed.
  */
 
-void _print_int(data_t d) {
+void print_int(data_t d) {
   long *p = (long *)((~TYPE_MASK) & (unsigned long)d);
   printf("%ld\n", *p);
 }
 
-void _print_str(string_t s) {
-  char *local_str = malloc(s->length + 1);
-  // strcpy(local_str, s->str);
-  printf("%s\n", s->str);
-  free(local_str);
+void print_bool(data_t d) {
+  long *p = (long *)((~TYPE_MASK) & (unsigned long)d);
+  if (*p) {
+    printf("true\n");
+  } else {
+    printf("false\n");
+  }
 }

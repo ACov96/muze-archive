@@ -5,6 +5,7 @@
 #include "codegen.h"
 #include "ast.h"
 #include "util.h"
+#include "context.h"
 
 /* MACROS */
 #define WORD 8
@@ -13,8 +14,8 @@
 #define RETURN_BUFFER return buf
 #define PRINT_BUFFER printf("%s\n", buf)
 
-#define ADD_BLOCK(B) buf = concat(buf, B);      \
-  buf = concat(buf, "\n")
+#define ADD_BLOCK(B) buf = concat(buf, B);                           \
+  buf = concat(buf, "\n");                                           
 
 #define ADD_LABEL(L) buf = concat(buf, L);      \
   buf = concat(buf, ":\n")
@@ -25,20 +26,8 @@
   buf = concat(buf, O);                                 \
   buf = concat(buf, "\n")
 
-#define PUSH_CALLER_SAVES ADD_INSTR("push", "%r10");    \
-  ADD_INSTR("push", "%r11");                            \
-  ADD_INSTR("push", "%r12");                            \
-  ADD_INSTR("push", "%r13");                            \
-  ADD_INSTR("push", "%r14");                            \
-  ADD_INSTR("push", "%r15");
-
-#define POP_CALLER_SAVES ADD_INSTR("pop", "%r15");     \
-  ADD_INSTR("pop", "%r14");                            \
-  ADD_INSTR("pop", "%r13");                            \
-  ADD_INSTR("pop", "%r12");                            \
-  ADD_INSTR("pop", "%r11");                            \
-  ADD_INSTR("pop", "%r10");
-
+#define GEN_ERROR(S) fprintf(stderr, "Codegen Error: %s\n", S);        \
+  exit(1);
 
 /* TYPES */
 typedef struct label_st        *label_t;
@@ -56,8 +45,8 @@ struct string_label_st {
 };
 
 /* GLOBALS */
-ll_t labels;
-ll_t strings;
+ll_t labels = NULL;
+ll_t strings = NULL;
 unsigned int curr_label = 0;
 reg_t arg_registers[6] = {
                         "%rdi",
@@ -67,33 +56,57 @@ reg_t arg_registers[6] = {
                         "%r8",
                         "%r9"
 };
+char *entrypoint = NULL;
 
 /* PROTOTYPES */
 // Helper functions
+void gen_error(char *msg);
 unsigned int count_consts_and_vars(decl_t decl);
 int get_id_offset(char *id, decl_t decl);
 char* register_or_get_string_label(char *str);
+void populate_decl_into_ctx(context_t ctx, decl_t decl);
 
 // Generator functions
 char* gen_label(char *label);
 char* gen_data_segment();
 char* gen_mod(mod_t mod);
-char* gen_fun(fun_decl_t fun);
-char* gen_stmt(stmt_t stmt);
-char* gen_expr_stmt(expr_stmt_t expr);
-char* gen_expr(expr_t expr, reg_t out);
-char* gen_call_expr(call_t call, reg_t out);
-char* gen_literal_expr(literal_t literal, reg_t out);
+char* gen_fun(context_t ctx, fun_decl_t fun);
+char* gen_stmt(context_t ctx, stmt_t stmt);
+char* gen_expr_stmt(context_t ctx, expr_stmt_t expr);
+char* gen_expr(context_t ctx, expr_t expr, reg_t out);
+char* gen_call_expr(context_t ctx, call_t call, reg_t out);
+char* gen_literal_expr(context_t ctx, literal_t literal, reg_t out);
+char* gen_id_expr(context_t ctx, char *id, reg_t out);
+char* gen_assign_stmt(context_t ctx, assign_stmt_t assign);
+char* gen_lval_expr(context_t ctx, expr_t lval, reg_t out);
+char* gen_cond_stmt(context_t ctx, cond_stmt_t cond);
+char* gen_loop_stmt(context_t ctx, loop_stmt_t loop);
+char* gen_break_stmt(context_t ctx, break_stmt_t brk);
+char* gen_binary_expr(context_t ctx, binary_t binary, reg_t out);
+char* gen_ternary_expr(context_t ctx, ternary_t ternary, reg_t out);
 
 /* HELPERS */
+void gen_error(char *msg) {
+  fprintf(stderr, "%s\n", msg);
+  exit(1);
+}
+
 unsigned int count_consts_and_vars(decl_t decl) {
   unsigned int total = 0;
   for (const_decl_t c = decl->constants; c; c = c->next)
     total++;
   for (var_decl_t var = decl->vars; var; var = var->next)
-    for (id_list_t id = id; id; id = id->next)
+    for (id_list_t id = var->names; id; id = id->next)
       total++;
   return total * WORD;
+}
+
+void populate_decl_into_ctx(context_t ctx, decl_t decl) {
+  for (const_decl_t c = decl->constants; c; c = c->next)
+    ctx_add_constant(ctx, c->name);
+  for (var_decl_t v = decl->vars; v; v = v->next)
+    for (id_list_t id = v->names; id; id = id->next)
+      ctx_add_variable(ctx, id->name);
 }
 
 int get_id_offset(char *id, decl_t decl) {
@@ -127,7 +140,6 @@ char* register_or_get_string_label(char *str) {
       return sl->label;
   }
   string_label_t str_label = malloc(sizeof(struct string_label_st));
-  strings->val = str_label;
   str_label->str = str;
   str_label->label = gen_label("STR");
   ll_append(strings, str_label);
@@ -174,99 +186,156 @@ char* gen_mod(mod_t mod) {
 
   // Define functions
   for (fun_decl_t f = mod->decl->funs; f; f = f->next) {
-    buf = concat(buf, gen_fun(f));
+    context_t ctx = ctx_new();
+    buf = concat(buf, gen_fun(ctx, f));
   }
   RETURN_BUFFER;
 }
 
-char* gen_fun(fun_decl_t fun) {
+char* gen_fun(context_t ctx, fun_decl_t fun) {
+  // Calculate activation record space
   unsigned int preamble_space = count_consts_and_vars(fun->decl);
-  char *sub_inst = malloc(32);
-  sprintf(sub_inst, "$%d, %%rsp", preamble_space);
+  for (arg_t arg = fun->args; arg; arg = arg->next) {
+    preamble_space += WORD;
+  }
+  preamble_space += WORD; // Increment for static link
+  char *space_str = concat("$", itoa(preamble_space));
+
+  // Initialize activation record
   CREATE_BUFFER;
   ADD_LABEL(fun->name);
+  ADD_INSTR("push", "%rbp");
   ADD_INSTR("movq", "%rsp, %rbp");
-  ADD_INSTR("sub", sub_inst);
-  for (stmt_t s = fun->stmts; s; s = s->next) {
-    ADD_BLOCK(gen_stmt(s));
+  ADD_INSTR("sub", concat(space_str, ", %rsp"));
+
+  // Setup static link
+  
+  // Push arguments to stack
+  unsigned int idx = 0;
+  for (arg_t arg = fun->args; arg; arg = arg->next) {
+    // TODO: Make sure it handles 6+ arguments correctly. This only does registers
+    ctx_add_argument(ctx, arg->name);
+    char *save_inst = malloc(32);
+    sprintf(save_inst, "%s, %d(%%rbp)", arg_registers[idx], (idx + 1) * WORD);
+    ADD_INSTR("movq", save_inst);
+    idx++;
   }
+
+  // Push constants and variables to stack
+  populate_decl_into_ctx(ctx, fun->decl);
+  for (const_decl_t c = fun->decl->constants; c; c = c-> next) {
+    // TODO: Handle the different kinds of assignment
+    ADD_BLOCK(gen_expr(ctx, c->assign->expr, "%rax"));
+    char *save_inst = malloc(32);
+    sprintf(save_inst, "%%rax, -%d(%%rbp)", (idx + 1) * WORD);
+    ADD_INSTR("movq", save_inst);
+    idx++;
+  }
+
+  for (var_decl_t v = fun->decl->vars; v; v = v->next) {
+    // TODO: Handle the different kinds of assignment
+    expr_t expr = v->assign->expr;
+    for (id_list_t id = v->names; id; id = id->next) {
+      ADD_BLOCK(gen_expr(ctx, expr, "%rax"));
+      char *save_inst = malloc(32);
+      sprintf(save_inst, "%%rax, -%d(%%rbp)", (idx + 1) * WORD);
+      ADD_INSTR("movq", save_inst);
+      idx++;
+    }
+  }
+
+  // Start executing statements
+  for (stmt_t s = fun->stmts; s; s = s->next) {
+    ADD_BLOCK(gen_stmt(ctx, s));
+  }
+
+  // Cleanup activation record
+  ADD_INSTR("movq", "$0, %rax");
+  ADD_INSTR("leave", NO_OPERANDS);
+  ADD_INSTR("ret", NO_OPERANDS);
   RETURN_BUFFER;
 }
 
-char* gen_stmt(stmt_t stmt) {
+char* gen_stmt(context_t ctx, stmt_t stmt) {
   CREATE_BUFFER;
   switch(stmt->kind) {
   case EXPR_STMT:
-    ADD_BLOCK(gen_expr_stmt(stmt->u.expr_stmt));
+    ADD_BLOCK(gen_expr_stmt(ctx, stmt->u.expr_stmt));
     break;
   case COND_STMT:
-    // TODO
+    ADD_BLOCK(gen_cond_stmt(ctx, stmt->u.cond_stmt));
     break;
   case FOR_STMT:
     // TODO
+    GEN_ERROR("For statement not implemented");
     break;
   case LOOP_STMT:
-    // TODO
+    ADD_BLOCK(gen_loop_stmt(ctx, stmt->u.loop_stmt));
     break;
   case CASE_STMT:
     // TODO
+    GEN_ERROR("Case statement not implemented");
     break;
   case ASSIGN_STMT:
-    // TODO
+    ADD_BLOCK(gen_assign_stmt(ctx, stmt->u.assign_stmt));
+    break;
+  case BREAK_STMT:
+    ADD_BLOCK(gen_break_stmt(ctx, stmt->u.break_stmt));
     break;
   default:
-    // TODO
+    GEN_ERROR("Unrecognized statement");
     break;
   }
   RETURN_BUFFER;
 }
 
-char* gen_expr_stmt(expr_stmt_t expr) {
-  return gen_expr(expr->expr, "%rax");
+char* gen_expr_stmt(context_t ctx, expr_stmt_t expr) {
+  return gen_expr(ctx, expr->expr, "%rax");
 }
 
-char* gen_expr(expr_t expr, reg_t out) {
+char* gen_expr(context_t ctx, expr_t expr, reg_t out) {
   CREATE_BUFFER;
   switch(expr->kind) {
   case ID_EX:
-    // TODO
+    ADD_BLOCK(gen_id_expr(ctx, expr->u.id_ex, out));
     break;
   case LITERAL_EX:
-    // TODO
-    ADD_BLOCK(gen_literal_expr(expr->u.literal_ex, out));
+    ADD_BLOCK(gen_literal_expr(ctx, expr->u.literal_ex, out));
     break;
   case UNARY_EX:
     // TODO
+    GEN_ERROR("Unary expression not implemented");
     break;
   case BINARY_EX:
-    // TODO
+    ADD_BLOCK(gen_binary_expr(ctx, expr->u.binary_ex, out));
     break;
   case TERNARY_EX:
-    // TODO
+    ADD_BLOCK(gen_ternary_expr(ctx, expr->u.ternary_ex, out));
     break;
   case CALL_EX:
-    ADD_BLOCK(gen_call_expr(expr->u.call_ex, out));
+    ADD_BLOCK(gen_call_expr(ctx, expr->u.call_ex, out));
     break;
   case RANGE_EX:
     // TODO
+    GEN_ERROR("Range expression not implemented");
     break;
   default:
-    // TODO
+    GEN_ERROR("Unrecognized expression");
     break;
   }
   RETURN_BUFFER;
 }
 
-char* gen_call_expr(call_t call, reg_t out) {
+char* gen_call_expr(context_t ctx, call_t call, reg_t out) {
   int arg_idx = 0;
   expr_list_t curr_arg = call->args;
   CREATE_BUFFER;
-  PUSH_CALLER_SAVES;
+  // PUSH_CALLER_SAVES;
 
   // Put arguments in registers
   while (curr_arg) {
     ADD_INSTR("push", arg_registers[arg_idx]);
-    ADD_BLOCK(gen_expr(curr_arg->expr, arg_registers[arg_idx]));
+    ADD_BLOCK(gen_expr(ctx, curr_arg->expr, arg_registers[arg_idx]));
     curr_arg = curr_arg->next;
     arg_idx++;
   }
@@ -279,32 +348,46 @@ char* gen_call_expr(call_t call, reg_t out) {
     ADD_INSTR("pop", arg_registers[i]);
   }
 
-  POP_CALLER_SAVES;
-  ADD_INSTR("mov", concat("%rax", concat(", ", out)));
-  ADD_INSTR("ret", NO_OPERANDS);
+  // POP_CALLER_SAVES;
+  if (strcmp("%rax", out) != 0) {
+    ADD_INSTR("movq", concat("%rax, ", out));
+  }
   RETURN_BUFFER;
 }
 
-char* gen_literal_expr(literal_t literal, reg_t out) {
-  char *str_label;
+char* gen_literal_expr(context_t ctx, literal_t literal, reg_t out) {
+  char *str_label = NULL;
+  char *int_literal = NULL;
+  char *real_literal = NULL;
+  char *bool_literal = NULL;
   CREATE_BUFFER;
   switch(literal->kind) {
   case STRING_LIT:
     str_label = concat("$", register_or_get_string_label(literal->u.string_lit));
     ADD_INSTR("push", "%rdi");
-    ADD_INSTR("mov", concat(str_label, ", %rdi"));
+    ADD_INSTR("movq", concat(str_label, ", %rdi"));
     ADD_INSTR("call", "alloc_str");
     ADD_INSTR("pop", "%rdi");
-    ADD_INSTR("mov", concat("%rax, ", out));
+    ADD_INSTR("movq", concat("%rax, ", out));
     break;
   case INTEGER_LIT:
-    // TODO
+    int_literal = concat("$", literal->u.integer_lit);
+    ADD_INSTR("push", "%rdi");
+    ADD_INSTR("movq", concat(int_literal, ", %rdi"));
+    ADD_INSTR("call", "alloc_int");
+    ADD_INSTR("pop", "%rdi");
+    ADD_INSTR("movq", concat("%rax, ", out));
     break;
   case REAL_LIT:
     // TODO
     break;
   case BOOLEAN_LIT:
-    // TODO
+    bool_literal = concat("$", itoa(literal->u.bool_lit == TRUE_BOOL));
+    ADD_INSTR("push", "%rdi");
+    ADD_INSTR("movq", concat(bool_literal, ", %rdi"));
+    ADD_INSTR("call", "alloc_bool");
+    ADD_INSTR("pop", "%rdi");
+    ADD_INSTR("movq", concat("%rax, ", out));
     break;
   default:
     // TODO
@@ -314,12 +397,242 @@ char* gen_literal_expr(literal_t literal, reg_t out) {
 }
 
 char* gen_data_segment() {
+  if (strings == NULL) return "";
   CREATE_BUFFER;
+  ADD_BLOCK("\t.data\n");
   for (ll_t l = strings; l; l = l->next) {
     string_label_t str_label = l->val;
     ADD_LABEL(str_label->label);
     ADD_INSTR(".asciz", concat("\"", concat(str_label->str, "\"")));
   }
+  RETURN_BUFFER;
+}
+
+char* gen_id_expr(context_t ctx, char *id, reg_t out) {
+  // TODO: Add static link traversal
+  CREATE_BUFFER;
+  static_link_t sl = ctx_get_id(ctx, id);
+  char *read_inst = malloc(64);
+  sprintf(read_inst, "-%d(%%rbp), %s", WORD * (sl->offset + 1), out);
+  ADD_INSTR("movq", read_inst);
+  RETURN_BUFFER;
+}
+
+char* gen_assign_stmt(context_t ctx, assign_stmt_t assign) {
+  CREATE_BUFFER;
+  ADD_INSTR("push", "%r10");
+  ADD_INSTR("push", "%r11");
+  ADD_BLOCK(gen_expr(ctx, assign->assign->expr, "%r10"));
+  ADD_BLOCK(gen_lval_expr(ctx, assign->lval, "%r11"));
+  ADD_INSTR("movq", "%r10, (%r11)");
+  ADD_INSTR("pop", "%r11");
+  ADD_INSTR("pop", "%r10");
+  RETURN_BUFFER;
+}
+
+char* gen_lval_expr(context_t ctx, expr_t lval, reg_t out) {
+  static_link_t sl = NULL;
+  char *read_inst = NULL;
+  CREATE_BUFFER;
+  switch(lval->kind) {
+  case ID_EX:
+    sl = ctx_get_id(ctx, lval->u.id_ex);
+    read_inst = malloc(64);
+    sprintf(read_inst, "-%d(%%rbp), ", WORD * (sl->offset + 1));
+    ADD_INSTR("leaq", concat(read_inst, out));
+    break;
+  case LITERAL_EX:
+  case UNARY_EX:
+  case BINARY_EX:
+  case TERNARY_EX:
+  case CALL_EX:
+  case RANGE_EX:
+  default:
+    GEN_ERROR("INVALID LVAL");
+    break;
+  }
+  RETURN_BUFFER;
+}
+
+char* gen_cond_stmt(context_t ctx, cond_stmt_t cond) {
+  // TODO: This needs to generate morph stuff
+  ll_t condition_labels = NULL;
+  char *curr_label = NULL;
+  char *end_label = NULL;
+  CREATE_BUFFER;
+
+  // Generate all of the condition labels
+  for (cond_stmt_t c = cond; c; c = c->else_stmt ? c->else_stmt->u.cond_stmt : NULL) {
+    if (condition_labels == NULL) {
+      condition_labels = ll_new();
+      condition_labels->val = gen_label("C");
+      condition_labels->next = NULL;
+    } else {
+      ll_append(condition_labels, gen_label("C"));
+    }
+  }
+
+  // Generate end label
+  end_label = gen_label("C");
+
+  // Add label, test condition, jump to end of conditional if necessary
+  ll_t cl = condition_labels;
+  for (cond_stmt_t c = cond; c; c = c->else_stmt ? c->else_stmt->u.cond_stmt : NULL) {
+    if (c->test != NULL) {
+      ADD_BLOCK(gen_expr(ctx, c->test, "%rax"));
+
+      // TODO: This should be a morph
+      ADD_INSTR("push", "%r10");
+      ADD_INSTR("movq", "(%rax), %r10"); 
+      ADD_INSTR("cmp", "$1, %r10");
+      ADD_INSTR("pop", "%r10");
+      ADD_INSTR("je", cl->val);
+    } else {
+      // NULL c->test means just assume the condition is true. This is because it was likely
+      // an 'else' statement
+      ADD_INSTR("jmp", cl->val);
+    }
+    cl = cl->next;
+  }
+  ADD_INSTR("jmp", end_label);
+
+  // Condition labels w/ bodies
+  cl = condition_labels;
+  for (cond_stmt_t c = cond; c; c = c->else_stmt ? c->else_stmt->u.cond_stmt : NULL) {
+    ADD_LABEL(cl->val);
+    cl = cl->next;
+    if (c->body != NULL) {
+      for (stmt_t s = c->body; s; s = s->next) {
+        ADD_BLOCK(gen_stmt(ctx, s));
+      }
+      ADD_INSTR("jmp", end_label);
+    } else {
+      ADD_INSTR("nop", NO_OPERANDS);
+    }
+  }
+
+  // Add the end label
+  ADD_LABEL(end_label);
+
+  RETURN_BUFFER;
+}
+
+char* gen_loop_stmt(context_t ctx, loop_stmt_t loop) {
+  char *loop_label = gen_label("L");
+  char *break_label = gen_label("L");
+  ctx_add_break_label(ctx, break_label);
+  CREATE_BUFFER;
+  ADD_LABEL(loop_label);
+  for (stmt_t s = loop->body; s; s = s->next) {
+    ADD_BLOCK(gen_stmt(ctx, s));
+  }
+  ADD_INSTR("jmp", loop_label);
+  ADD_LABEL(break_label);
+  ctx_pop_break_label(ctx);
+  RETURN_BUFFER;
+}
+
+char* gen_break_stmt(context_t ctx, break_stmt_t brk) {
+  CREATE_BUFFER;
+  char *break_label = ctx_curr_break_label(ctx);
+  if (break_label == NULL) {
+    GEN_ERROR("No break label");
+  }
+  ADD_INSTR("jmp", break_label);
+  RETURN_BUFFER;
+}
+
+char* gen_binary_expr(context_t ctx, binary_t binary, reg_t out) {
+  CREATE_BUFFER;
+  ADD_INSTR("push", "%rdi");
+  ADD_INSTR("push", "%rsi");
+  ADD_BLOCK(gen_expr(ctx, binary->left, "%rdi"));
+  ADD_BLOCK(gen_expr(ctx, binary->right, "%rsi"));
+  switch(binary->op){
+  case PLUS_OP:
+    ADD_INSTR("call", "_add");
+    break;
+  case MINUS_OP:
+    ADD_INSTR("call", "_sub");
+    break;
+  case MUL_OP:
+    ADD_INSTR("call", "_mul");
+    break;
+  case DIV_OP:
+    ADD_INSTR("call", "_div");
+    break;
+  case MOD_OP:
+    ADD_INSTR("call", "_mod");
+    break;
+  case AND_OP:
+    ADD_INSTR("call", "_and");
+    break;
+  case OR_OP:
+    ADD_INSTR("call", "_or");
+    break;
+  case XOR_OP:
+    ADD_INSTR("call", "_xor");
+    break;
+  case BIT_AND_OP:
+    ADD_INSTR("call", "_b_and");
+    break;
+  case BIT_OR_OP:
+    ADD_INSTR("call", "_b_or");
+    break;
+  case BIT_XOR_OP:
+    ADD_INSTR("call", "_b_xor");
+    break;
+  case SHIFT_RIGHT_OP:
+    ADD_INSTR("call", "_b_r_shift");
+    break;
+  case SHIFT_LEFT_OP:
+    ADD_INSTR("call", "_b_l_shift");
+    break;
+  case EQ_EQ_OP:
+    ADD_INSTR("call", "_eq_eq");
+    break;
+  case LT_OP:
+    ADD_INSTR("call", "_lt");
+    break;
+  case GT_OP:
+    ADD_INSTR("call", "_gt");
+    break;
+  case NOT_EQ_OP:
+    ADD_INSTR("call", "_neq");
+    break;
+  case LT_EQ_OP:
+    ADD_INSTR("call", "_lte");
+    break;
+  case GT_EQ_OP:
+    ADD_INSTR("call", "_gte");
+    break;
+  default:
+    GEN_ERROR("Unrecognized binary expression");
+  }
+  ADD_INSTR("pop", "%rsi");
+  ADD_INSTR("pop", "%rdi");
+  ADD_INSTR("movq", concat("%rax, ", out));
+  RETURN_BUFFER;
+}
+
+char* gen_ternary_expr(context_t ctx, ternary_t ternary, reg_t out) {
+  // TODO: More morph stuff is probably needed here
+  char *middle_label = gen_label("T");
+  char *right_label = gen_label("T");
+  char *end_label = gen_label("T");
+  CREATE_BUFFER;
+  ADD_INSTR("push", "%rax");
+  ADD_BLOCK(gen_expr(ctx, ternary->left, "%rax"));
+  ADD_INSTR("movq", "(%rax), %rax");
+  ADD_INSTR("cmp", "$1, %rax");
+  ADD_INSTR("je", middle_label);
+  ADD_INSTR("jmp", right_label);
+  ADD_LABEL(middle_label);
+  ADD_BLOCK(gen_expr(ctx, ternary->middle, out));
+  ADD_INSTR("jmp", end_label);
+  ADD_LABEL(right_label);
+  ADD_BLOCK(gen_expr(ctx, ternary->right, out));
+  ADD_LABEL(end_label);
   RETURN_BUFFER;
 }
 
@@ -329,7 +642,6 @@ char* codegen(root_t root) {
   for (mod_t mod = root->mods; mod; mod = mod->next) {
     ADD_BLOCK(gen_mod(mod));
   }
-  ADD_BLOCK("\t.data\n");
   ADD_BLOCK(gen_data_segment());
   RETURN_BUFFER;
 }

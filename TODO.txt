@@ -4,5 +4,11 @@ From Spring:
       did not have an 'else' fail condition when there needed to be one.
 - A proper test script would be nice, that is why I added the 'test' folder
 
-9/26/19:
-- Fix segfault when run against examples/test.mz
+CODEGEN
+- Better label naming based on module/function scope
+  This will probably mean we need a __main__ function
+- Unary expressions
+- Case statement
+- Records and arrays
+- Morphs?
+- Closures?

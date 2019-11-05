@@ -23,6 +23,13 @@ void ll_append(ll_t l, void *data) {
   curr->next->val = data;
 }
 
+int ll_length(ll_t ll) {
+  int length = 0;
+  for (ll_t l = ll; l; l = l->next)
+    length++;
+  return length;
+}
+
 void error_and_exit(char* message, int line_no) {
   fprintf(stderr, "%d:%s\n", line_no, message);
   exit(1);
@@ -98,7 +105,7 @@ int had_errors() {
  */
 char *concat(char* s1, char* s2) {
   // Allocate the total number of characters of each string, plus 1 extra byte for null terminator
-  char *res = malloc(strlen(s1) + strlen(s2) + 1);
+  char *res = calloc(strlen(s1) + strlen(s2) + 1, sizeof(char));
   for (int i = 0; i < strlen(s1); i++)
     res[i] = s1[i];
   for (int i = strlen(s1); i < (strlen(s1) + strlen(s2)); i++)

@@ -50,7 +50,7 @@ struct context_st {
 
 context_t ctx_new() {
   context_t ctx = malloc(sizeof(struct context_st));
-  ctx->kind = FUNC_KIND;
+  ctx->kind = FUNC_CTX;
   ctx->arguments = NULL;
   ctx->constants = NULL;
   ctx->variables = NULL;
@@ -102,7 +102,7 @@ static_link_t ctx_get_id(context_t ctx, char *id) {
   }
   if (ctx->parent != NULL) {
     sl->offset = 0;
-    sl->next = ctx_get_id(ctx->parent, id, sl);
+    sl->next = ctx_get_id(ctx->parent, id);
     return sl;
   }
   return NULL; 

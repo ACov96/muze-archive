@@ -788,7 +788,7 @@ char* codegen(root_t root) {
   ADD_INSTR(".global", "main");
   for (mod_t mod = root->mods; mod; mod = mod->next) {
     context_t ctx = ctx_new();
-    ctx_set_module(ctx);
+    ctx_set_mod(ctx);
     ADD_BLOCK(gen_mod(ctx, mod));
   }
 

@@ -408,7 +408,8 @@ char* gen_call_expr(context_t ctx, call_t call, reg_t out) {
   // Put arguments in registers
   while (curr_arg) {
     ADD_INSTR("push", arg_registers[arg_idx]);
-    ADD_BLOCK(gen_expr(ctx, curr_arg->expr, arg_registers[arg_idx]));
+    char *temp = gen_expr(ctx, curr_arg->expr, arg_registers[arg_idx]);
+    ADD_BLOCK(temp);
     curr_arg = curr_arg->next;
     arg_idx++;
   }
@@ -494,21 +495,31 @@ char* gen_data_segment() {
 }
 
 char* gen_id_expr(context_t ctx, char *id, reg_t out) {
+  CREATE_BUFFER;
+  char *read_inst = malloc(64);
   static_link_t link = NULL;
   static_link_t sl = ctx_get_id(ctx, id);
-  CREATE_BUFFER;
-  ADD_INSTR("push", "%rax");
-  ADD_INSTR("movq", "-8(%rbp), %rax");
-  // TODO: Big redo on walking static link and stuff
-  for (link = sl; link->next && !link->next->is_mod; link = link->next) {
-    ADD_INSTR("movq", "(%rax), %rax");
-  }
-  char *read_inst = malloc(64);
+  if (sl->next == NULL) {
+    // Dealing with local variable, just grab it from the current activation record
+    sprintf(read_inst, "-%d(%%rbp), %s", WORD * (sl->offset + 2), out);
+    ADD_INSTR("movq", read_inst);
+  } else {
+    // Dealing with a variable that's in a more global scope
+    ADD_INSTR("push", "%rax");
+    ADD_INSTR("movq", "-8(%rbp), %rax");
+    // TODO: Big redo on walking static link and stuff
+    for (link = sl; link->next && !link->next->is_mod; link = link->next) {
+      ADD_INSTR("movq", "(%rax), %rax");
+    }
 
-  // TODO: This line needs to figure out if we're in a module or an activation record
-  sprintf(read_inst, "%d(%%rax), %s", WORD * (sl->offset + 1), out);
-  ADD_INSTR("movq", read_inst);
-  ADD_INSTR("pop", "%rax");
+    // TODO: This line needs to figure out if we're in a module or an activation record
+    if (link->next && link->next->is_mod)
+      sprintf(read_inst, "%d(%%rax), %s", WORD * (sl->offset + 1), out);
+    else
+      sprintf(read_inst, "-%d(%%rax), %s", WORD * (sl->offset + 1), out);
+    ADD_INSTR("movq", read_inst);
+    ADD_INSTR("pop", "%rax");
+  }
   RETURN_BUFFER;
 }
 

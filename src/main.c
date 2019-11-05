@@ -134,7 +134,7 @@ int main(int argc, char* argv[]) {
   }
 
   type_node_t* morph_graph = build_graph(ast_root);
-  print_graph(morph_graph);
+  // print_graph(morph_graph);
 	
   if (opts.save_asm) {
     FILE *out_file = fopen("a.s", "w");

@@ -209,28 +209,28 @@ char* gen_mod(context_t ctx, mod_t mod) {
     // TODO: This is incorrect and should loop over the id list
     mod_size += WORD;
   }
-  ADD_INSTR("push", "%r14");
+  ADD_INSTR("push", "%r15");
   ADD_INSTR("push", "%rdi");
   ADD_INSTR("movq", concat(INT_LITERAL(mod_size), ", %rdi"));
   ADD_INSTR("call", "malloc");
   ADD_INSTR("pop", "%rdi");
-  ADD_INSTR("movq", "%rax, %r14");
+  ADD_INSTR("movq", "%rax, %r15");
 
-  int offset = 2;
+  int offset = 1;
   for (const_decl_t c = mod->decl->constants; c; c = c->next) {
     assign_t assign = c->assign;
     ADD_BLOCK(gen_expr(ctx, assign->expr, "%rax"));
-    ADD_INSTR("movq", concat("%rax, ", concat(itoa(offset * WORD), "(%r14)")));
+    ADD_INSTR("movq", concat("%rax, ", concat(itoa(offset * WORD), "(%r15)")));
     offset++;
   }
   for (var_decl_t v = mod->decl->vars; v; v = v->next) {
     assign_t assign = v->assign;
     ADD_BLOCK(gen_expr(ctx, assign->expr, "%rax"));
-    ADD_INSTR("movq", concat("%rax, ", concat(itoa(offset * WORD), "(%r14)")));
+    ADD_INSTR("movq", concat("%rax, ", concat(itoa(offset * WORD), "(%r15)")));
     offset++;
   }
-  ADD_INSTR("movq", "%r14, %rax");
-  ADD_INSTR("pop", "%r14");
+  ADD_INSTR("movq", "%r15, %rax");
+  ADD_INSTR("pop", "%r15");
   ADD_INSTR("ret", NO_OPERANDS);
 
   // Define sub modules
@@ -274,7 +274,7 @@ char* gen_fun(context_t ctx, fun_decl_t fun) {
   for (arg_t arg = fun->args; arg; arg = arg->next) {
     preamble_space += WORD;
   }
-  preamble_space += WORD * 2; // Increment for module link and static link
+  preamble_space += WORD; // Increment for static link
   char *space_str = concat("$", itoa(preamble_space));
 
   // Initialize activation record
@@ -284,8 +284,7 @@ char* gen_fun(context_t ctx, fun_decl_t fun) {
   ADD_INSTR("sub", concat(space_str, ", %rsp"));
 
   // Setup static link
-  ADD_INSTR("movq", "%r14, -8(%rbp)");
-  ADD_INSTR("movq", "%r15, -16(%rbp)");
+  ADD_INSTR("movq", "%r15, -8(%rbp)");
   
   // Push arguments to stack
   unsigned int idx = 1;
@@ -415,10 +414,10 @@ char* gen_call_expr(context_t ctx, call_t call, reg_t out) {
   }
 
   // Pass static link
-  ADD_INSTR("push", "%r14");
   ADD_INSTR("push", "%r15");
-  ADD_INSTR("movq", "-8(%rbp), %r14");
-  ADD_INSTR("leaq", "-16(%rbp), %r15");
+
+  // TODO: Only change the static link function is inner function 
+  ADD_INSTR("leaq", "-8(%rbp), %r15");
 
   // Make call to function
   if (ctx_get_function(ctx, call->id) == NULL) {
@@ -430,7 +429,6 @@ char* gen_call_expr(context_t ctx, call_t call, reg_t out) {
 
   // Restore argument registers
   ADD_INSTR("pop", "%r15");
-  ADD_INSTR("pop", "%r14");
   for (int i = arg_idx - 1; i >= 0; i--) {
     ADD_INSTR("pop", arg_registers[i]);
   }
@@ -496,26 +494,19 @@ char* gen_data_segment() {
 }
 
 char* gen_id_expr(context_t ctx, char *id, reg_t out) {
+  static_link_t link = NULL;
   static_link_t sl = ctx_get_id(ctx, id);
   CREATE_BUFFER;
   ADD_INSTR("push", "%rax");
+  ADD_INSTR("movq", "-8(%rbp), %rax");
   // TODO: Big redo on walking static link and stuff
-  for (static_link_t link = sl; link; link = link->next) {
-    if (link == sl) {
-      // This is the first link traversal, so we have to use the current
-      // activation record's links
-      if (link->is_mod) {
-        ADD_INSTR("movq", "-8(%rbp), %rax");
-      } else {
-        ADD_INSTR("leaq", "-16(%rbp), %rax");
-      }
-    } else {
-      // We are mid traversal
-    }
+  for (link = sl; link->next && !link->next->is_mod; link = link->next) {
     ADD_INSTR("movq", "(%rax), %rax");
   }
   char *read_inst = malloc(64);
-  sprintf(read_inst, "-%d(%%rax), %s", WORD * (sl->offset + 2), out);
+
+  // TODO: This line needs to figure out if we're in a module or an activation record
+  sprintf(read_inst, "%d(%%rax), %s", WORD * (sl->offset + 1), out);
   ADD_INSTR("movq", read_inst);
   ADD_INSTR("pop", "%rax");
   RETURN_BUFFER;
@@ -795,29 +786,17 @@ char* codegen(root_t root) {
   // Generate main method 
   set_entrypoint(root);
   ADD_LABEL("main");
-  ADD_INSTR("push", "%r14");
   ADD_INSTR("push", "%r15");
   ADD_INSTR("push", "%rdi");
   ADD_INSTR("push", "%rsi");
-  ADD_INSTR("movq", "$1, %rdi");
-  ADD_INSTR("call", "_init_modules");
-  ADD_INSTR("call", "__module__Foo_init");
-  ADD_INSTR("movq", "(__module__Foo_index), %rdi");
-  ADD_INSTR("movq", "%rax, %rsi");
-  ADD_INSTR("call", "_set_module");
-  ADD_INSTR("movq", "(__module__Foo_index), %rdi");
-  ADD_INSTR("call", "_get_module");
-  ADD_INSTR("movq", "%rax, %r14");
-  ADD_INSTR("movq", "$0, %r15");
+  ADD_INSTR("call", "__module__Main_init");
+  ADD_INSTR("movq", "%rax, %r15");
   ADD_INSTR("call", entrypoint);
   ADD_INSTR("pop", "%rsi");
   ADD_INSTR("pop", "%rdi");
   ADD_INSTR("pop", "%r15");
-  ADD_INSTR("pop", "%r14");
 
   // Generate data segment
   ADD_BLOCK(gen_data_segment());
-  ADD_LABEL("__module__Foo_index");
-  ADD_INSTR(".quad", "0");
   RETURN_BUFFER;
 }

@@ -24,7 +24,6 @@ void print_graph(type_node_t* graph);
 int next_index = 0;											// next available index in the morph graph
 int num_types = NUM_PRIMITIVES;					// number of types in the graph
 char* primitive_types[] = {"integer", "real", "string", "boolean"};
-char* int_morphs[] = {"real", "string", "boolean"};
 
 
 /* function for printing out the graph. 

@@ -3,6 +3,7 @@ mod Main
     a : integer = 1;
   type
     celsius = ...integer...real;
+		Kelvin = ...integer...real;
     mu
     um
   var

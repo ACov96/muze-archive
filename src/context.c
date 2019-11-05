@@ -31,6 +31,10 @@ struct func_map_st {
 };
 
 struct context_st {
+  enum {
+        FUNC_CTX,
+        MOD_CTX,
+  } kind;
   char *scope_name;
   context_t parent;
   context_t curr_mod;
@@ -46,6 +50,7 @@ struct context_st {
 
 context_t ctx_new() {
   context_t ctx = malloc(sizeof(struct context_st));
+  ctx->kind = FUNC_KIND;
   ctx->arguments = NULL;
   ctx->constants = NULL;
   ctx->variables = NULL;
@@ -66,32 +71,6 @@ context_t ctx_pop_child(context_t ctx) {
   return parent;
 }
 
-int ctx_get_idx_of_id(context_t ctx, char *id) {
-  int check = 0;
-  int idx = 0;
-
-  int _list_check(ll_t l) {
-    if (l == NULL)
-      return -1;
-    for(; l; l = l->next)
-      if (strcmp(l->val, id) == 0)
-        return idx;
-      else
-        idx++;
-    return -1;
-  }
-
-  if (ctx->arguments == NULL && ctx->constants == NULL && ctx->variables == NULL)
-    return -1;
-  check = _list_check(ctx->arguments);
-  if (check != -1) return check;
-  check = _list_check(ctx->constants);
-  if (check != -1) return check;
-  check = _list_check(ctx->variables);
-  if (check != -1) return check;
-  return -1;
-}
-
 ADDER(constant);
 ADDER(argument);
 ADDER(variable);
@@ -101,13 +80,11 @@ GET(constant);
 GET(argument);
 GET(variable);
 
-static_link_t _ctx_get_id(context_t ctx, char *id, static_link_t sl) {
-  int offset;
-  if (sl == NULL) {
-    sl = malloc(sizeof(struct static_link_st));
-    sl->offset = 0;
-    sl->levels = 0;
-  }
+static_link_t ctx_get_id(context_t ctx, char *id) {
+  int offset = 0;
+  static_link_t sl = malloc(sizeof(struct static_link_st));
+  sl->offset = 0;
+  sl->is_mod = ctx_get_kind(ctx);
   offset = ctx_get_argument(ctx, id);
   if (offset != -1) {
     sl->offset = offset;
@@ -115,24 +92,20 @@ static_link_t _ctx_get_id(context_t ctx, char *id, static_link_t sl) {
   }
   offset = ctx_get_constant(ctx, id);
   if (offset != -1) {
-    sl->offset = offset;
+    sl->offset = offset + ll_length(ctx->arguments);
     return sl;
   }
   offset = ctx_get_variable(ctx, id);
   if (offset != -1) {
-    sl->offset = offset;
+    sl->offset = offset + ll_length(ctx->arguments) + ll_length(ctx->constants);
     return sl;
   }
   if (ctx->parent != NULL) {
     sl->offset = 0;
-    sl->levels += 1;
-    return _ctx_get_id(ctx->parent, id, sl);
+    sl->next = ctx_get_id(ctx->parent, id, sl);
+    return sl;
   }
-  return NULL;
-}
-
-static_link_t ctx_get_id(context_t ctx, char *id) {
-  return _ctx_get_id(ctx, id, NULL);
+  return NULL; 
 }
 
 char* ctx_pop_break_label(context_t ctx) {
@@ -196,4 +169,16 @@ void ctx_set_curr_mod(context_t ctx, context_t mod) {
 
 context_t ctx_get_curr_mod(context_t ctx) {
   return ctx->curr_mod;
+}
+
+void ctx_set_func(context_t ctx) {
+  ctx->kind = FUNC_CTX;
+}
+
+void ctx_set_mod(context_t ctx) {
+  ctx->kind = MOD_CTX;
+}
+
+int ctx_get_kind(context_t ctx) {
+  return ctx->kind;
 }

@@ -10,6 +10,7 @@ struct static_link_st {
   int is_mod;
   int offset;
   int levels;
+  static_link_t next;
 };
 
 context_t ctx_new();
@@ -23,6 +24,9 @@ void ctx_set_scope_name(context_t ctx, char *name);
 char* ctx_get_function(context_t ctx, char *id);
 void ctx_set_curr_mod(context_t ctx, context_t mod);
 context_t ctx_get_curr_mod(context_t ctx);
+void ctx_set_func(context_t ctx);
+void ctx_set_mod(context_t ctx);
+int ctx_get_kind(context_t ctx);
 
 ADDER_HEADER(constant);
 ADDER_HEADER(variable);

@@ -162,7 +162,7 @@ int main(int argc, char* argv[]) {
     status = 0;
     waitpid(pid, &status, 0);
   } else {
-    char *args[] = {"gcc", "-g", "-o", opts.output_file, stdlib_path, "a.o", NULL};
+    char *args[] = {"gcc", "-fno-pie", "-no-pie", "-g", "-o", opts.output_file, stdlib_path, "a.o", NULL};
     execvp(args[0], args);
   }
 }

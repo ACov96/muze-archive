@@ -30,7 +30,9 @@
   buf = concat(buf, "\n")
 
 #define GEN_ERROR(S) fprintf(stderr, "Codegen Error: %s\n", S); \
-  exit(1);
+  exit(1)
+
+#define GEN_WARN(S) printf("Codegen Warning: %s\n", S)
 
 /* TYPES */
 typedef struct label_st        *label_t;
@@ -193,7 +195,7 @@ char* gen_mod(context_t ctx, mod_t mod) {
     ctx_set_scope_name(ctx, concat(ctx_get_scope_name(ctx), concat("_", mod->name)));
   }
   for (fun_decl_t f = mod->decl->funs; f; f = f->next) {
-    ctx_add_function(ctx, f->name);
+    ctx_add_function(ctx, f);
   }
   populate_decl_into_ctx(ctx, mod->decl);
 
@@ -256,7 +258,7 @@ char* gen_fun(context_t ctx, fun_decl_t fun) {
     ctx_add_argument(ctx, arg->name);
   }
   for (fun_decl_t f = fun->decl->funs; f; f = f->next) {
-    ctx_add_function(ctx, f->name);
+    ctx_add_function(ctx, f);
   }
 
   // TODO: Generate child modules
@@ -403,7 +405,6 @@ char* gen_call_expr(context_t ctx, call_t call, reg_t out) {
   int arg_idx = 0;
   expr_list_t curr_arg = call->args;
   CREATE_BUFFER;
-  // PUSH_CALLER_SAVES;
 
   // Put arguments in registers
   while (curr_arg) {
@@ -417,15 +418,19 @@ char* gen_call_expr(context_t ctx, call_t call, reg_t out) {
   // Pass static link
   ADD_INSTR("push", "%r15");
 
-  // TODO: Only change the static link function is inner function 
-  ADD_INSTR("leaq", "-8(%rbp), %r15");
+  // TODO: Only change the static link if function is inner function 
 
   // Make call to function
-  if (ctx_get_function(ctx, call->id) == NULL) {
+  func_link_t fl = ctx_get_function(ctx, call->id);
+  if (fl == NULL) {
     // TODO: This basically means if we can't find the function, just call the name
     ADD_INSTR("call", call->id);
   } else {
-    ADD_INSTR("call", ctx_get_function(ctx, call->id));
+    ADD_INSTR("leaq", "-8(%rbp), %r15");
+    for (int i = 0; i < fl->levels; i++) {
+      ADD_INSTR("movq", "(%r15), %r15");
+    }  
+    ADD_INSTR("call", fl->id);
   }
 
   // Restore argument registers
@@ -434,7 +439,6 @@ char* gen_call_expr(context_t ctx, call_t call, reg_t out) {
     ADD_INSTR("pop", arg_registers[i]);
   }
 
-  // POP_CALLER_SAVES;
   if (strcmp("%rax", out) != 0) {
     ADD_INSTR("movq", concat("%rax, ", out));
   }
@@ -507,12 +511,9 @@ char* gen_id_expr(context_t ctx, char *id, reg_t out) {
     // Dealing with a variable that's in a more global scope
     ADD_INSTR("push", "%rax");
     ADD_INSTR("movq", "-8(%rbp), %rax");
-    // TODO: Big redo on walking static link and stuff
     for (link = sl; link->next && !link->next->is_mod; link = link->next) {
       ADD_INSTR("movq", "(%rax), %rax");
     }
-
-    // TODO: This line needs to figure out if we're in a module or an activation record
     if (link->next && link->next->is_mod)
       sprintf(read_inst, "%d(%%rax), %s", WORD * (sl->offset + 1), out);
     else
@@ -802,7 +803,7 @@ char* codegen(root_t root) {
   ADD_INSTR("push", "%rsi");
   ADD_INSTR("call", "__module__Main_init");
   ADD_INSTR("movq", "%rax, %r15");
-  ADD_INSTR("call", entrypoint);
+  ADD_INSTR("call", "Main_main");
   ADD_INSTR("pop", "%rsi");
   ADD_INSTR("pop", "%rdi");
   ADD_INSTR("pop", "%r15");

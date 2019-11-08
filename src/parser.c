@@ -944,7 +944,8 @@ static fun_decl_t parse_fun_decl(PARSE_PARAMS) {
   MATCH_FUN(parse_stmt, fun->stmts);
   EXPECT_TOK(NUF);
   EXPECT_TOK(IDENTIFIER);
-  MATCH_FUN(parse_fun_decl, fun->next);
+  if (MATCH_TOK(FUN))
+    MATCH_FUN(parse_fun_decl, fun->next);
   PARSE_RETURN(fun);
 }
 

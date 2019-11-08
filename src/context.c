@@ -2,6 +2,7 @@
 #include <string.h>
 #include "context.h"
 #include "util.h"
+#include "ast.h"
 
 #define ADDER(T) void ctx_add_ ## T (context_t ctx, char *id) { \
     if (ctx->T ## s == NULL) {                                  \
@@ -26,8 +27,8 @@
 typedef struct func_map_st *func_map_t;
 
 struct func_map_st {
-  char *id;
   char *full_name;
+  fun_decl_t f;
 };
 
 struct context_st {
@@ -140,10 +141,10 @@ void ctx_set_scope_name(context_t ctx, char *name) {
   ctx->scope_name = name;
 }
 
-void ctx_add_function(context_t ctx, char *id) {
+void ctx_add_function(context_t ctx, fun_decl_t f) {
   func_map_t fm = malloc(sizeof(struct func_map_st));
-  fm->id = id;
-  fm->full_name = concat(ctx_get_scope_name(ctx), concat("_", id));
+  fm->f = f;
+  fm->full_name = concat(ctx_get_scope_name(ctx), concat("_", f->name));
   if (ctx->functions == NULL) {
     ctx->functions = ll_new();
     ctx->functions->val = fm;
@@ -152,13 +153,19 @@ void ctx_add_function(context_t ctx, char *id) {
   }
 }
 
-char* ctx_get_function(context_t ctx, char *id) {
-  if (ctx->functions == NULL) return NULL;
-  for (ll_t l = ctx->functions; l; l = l->next) {
-    func_map_t fm = (func_map_t) l->val;
-    if (strcmp(id, fm->id) == 0) {
-      return fm->full_name;
-    }
+func_link_t ctx_get_function(context_t ctx, char *id) {
+  int levels = 0;
+  for (context_t curr = ctx; curr; curr = curr->parent) {
+    for (ll_t l = curr->functions; l; l = l->next) {
+      func_map_t fm = (func_map_t) l->val;
+      if (strcmp(id, fm->f->name) == 0) {
+        func_link_t fl = malloc(sizeof(struct func_link_st));
+        fl->levels = levels;
+        fl->id = fm->full_name;
+        return fl;
+      }
+    }  
+    levels++;
   }
   return NULL;
 }

@@ -9,6 +9,7 @@
 struct type_node_st {
   char* name;
   int index;
+	int active; //inactive = 0, active = 1
   type_node_t next;
 };
 
@@ -51,6 +52,7 @@ type_node_t type_node(char* name, int index) {
   type_node_t node = malloc(sizeof(struct type_node_st));
   node->name = name;
   node->index = index;
+	node->active = 1;
   node->next = NULL;
   return node;
 }
@@ -91,6 +93,25 @@ type_node_t* add_morph(type_node_t* graph, char* base_type, char* morph_type) {
   return graph;
 }
 
+
+/* Activate a node in the graph when a type comes into scope */
+int activate_node(type_node_t* graph, char* type_name) {
+	int i = get_type_index(graph, type_name);
+	if (i == -1)
+		return -1;
+	graph[i]->active = 1;
+	return 0;
+}
+
+
+/* Deactivate a node in the graph when a type goes out of scope */
+int deactivate_node(type_node_t* graph, char* type_name) {
+	int i = get_type_index(graph, type_name);
+	if (i == -1)
+		return -1;
+	graph[i]->active = 0;
+	return 0;
+}
 
 /* Morph graph constructor. Returns morph graph with primitives types and morphs added */
 type_node_t* morph_graph() {

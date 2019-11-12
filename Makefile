@@ -9,7 +9,8 @@ CFLAGS = -g -Wall -Wfatal-errors -Werror \
 	 -Wno-error=unused-parameter \
 	 -Wno-error=unused-value \
 	 -Wno-error=unused-label \
-	 -I $(INCLUDEDIR)
+	 -I $(INCLUDEDIR) \
+	 -no-pie
 
 OBJLST = util.o lexer.o main.o parser.o print_tree.o codegen.o context.o morph_graph.o
 OBJS = $(foreach obj, $(OBJLST), $(BUILDDIR)/$(obj))

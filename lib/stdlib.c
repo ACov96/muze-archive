@@ -44,142 +44,142 @@ data_t alloc_bool(long x) {
   return d;
 }
 
-data_t alloc_real(double x) {
-  data_t d = __create_new_data(1);
-  d->members[0] = (member_t)x;
-  return d;
-}
+/* data_t alloc_real(double x) { */
+/*   data_t d = __create_new_data(1); */
+/*   d->members[0] = (member_t)((void*)x); */
+/*   return d; */
+/* } */
 
 data_t _add(data_t x, data_t y) {
   // TODO: Take type header into account
-  long z = (*(long*)x) + (*(long*)y);
+  long z = (long)(x->members[0]) + (long)(y->members[0]);
   return alloc_int(z);
 }
 
 data_t _sub(data_t x, data_t y) {
   // TODO: Take type header into account
-  long z = (*(long*)x) - (*(long*)y);
+  long z = (long)(x->members[0]) - (long)(y->members[0]);
   return alloc_int(z);
 }
 
 data_t _mul(data_t x, data_t y) {
   // TODO: Take type header into account
-  long z = (*(long*)x) * (*(long*)y);
+  long z = (long)(x->members[0]) * (long)(y->members[0]);
   return alloc_int(z);
 }
 
 data_t _div(data_t x, data_t y) {
   // TODO: Take type header into account
-  long z = (*(long*)x) / (*(long*)y);
+  long z = (long)(x->members[0]) - (long)(y->members[0]);
   return alloc_int(z);
 }
 
 data_t _and(data_t x, data_t y) {
   // TODO: Take type header into account
-  long z = (*(long*)x) && (*(long*)y);
+  long z = (long)(x->members[0]) && (long)(y->members[0]);
   return alloc_bool(z);
 }
 
 data_t _or(data_t x, data_t y) {
   // TODO: Take type header into account
-  long z = (*(long*)x) || (*(long*)y);
+  long z = (long)(x->members[0]) || (long)(y->members[0]);
   return alloc_bool(z);
 }
 
 data_t _xor(data_t x, data_t y) {
   // TODO: Take type header into account
-  if ((*(long*)x) && !(*(long*)y)) return alloc_bool(1);
-  else if (!(*(long*)x) && (*(long*)y)) return alloc_bool(1);
+  if ((long)(x->members[0]) && !((long)(y->members[0]))) return alloc_bool(1);
+  else if (!((long)(x->members[0])) && ((long)(y->members[0]))) return alloc_bool(1);
   else return alloc_bool(0);
 }
 
 data_t _b_and(data_t x, data_t y) {
-  long z = (*(long*)x) & (*(long*)y);
+  long z = ((long)x->members[0]) & ((long)y->members[0]);
   return alloc_int(z);
 }
 
 data_t _b_or(data_t x, data_t y) {
-  long z = (*(long*)x) | (*(long*)y);
+  long z = ((long)x->members[0]) | ((long)y->members[0]);
   return alloc_int(z);
 }
 
 data_t _b_xor(data_t x, data_t y) {
-  long z = (*(long*)x) ^ (*(long*)y);
+  long z = ((long)x->members[0]) ^ ((long)y->members[0]);
   return alloc_int(z);
 }
 
 data_t _b_r_shift(data_t x, data_t y) {
-  long z = (*(long*)x) >> (*(long*)y);
+  long z = ((long)x->members[0]) >> ((long)y->members[0]);
   return alloc_int(z);
 }
 
 data_t _b_l_shift(data_t x, data_t y) {
-  long z = (*(long*)x) << (*(long*)y);
+  long z = ((long)x->members[0]) << ((long)y->members[0]);
   return alloc_int(z);
 }
 
 data_t _eq_eq(data_t x, data_t y) {
-  long z = (*(long*)x) == (*(long*)y);
+  long z = ((long)x->members[0]) == ((long)y->members[0]);
   return alloc_bool(z);
 }
 
 data_t _lt(data_t x, data_t y) {
-  long z = (*(long*)x) < (*(long*)y);
+  long z = ((long)x->members[0]) < ((long)y->members[0]);
   return alloc_bool(z);
 }
 
 data_t _gt(data_t x, data_t y) {
-  long z = (*(long*)x) > (*(long*)y);
+  long z = ((long)x->members[0]) > ((long)y->members[0]);
   return alloc_bool(z);
 }
 
 data_t _neq(data_t x, data_t y) {
-  long z = (*(long*)x) != (*(long*)y);
+  long z = ((long)x->members[0]) != ((long)y->members[0]);
   return alloc_bool(z);
 }
 
 data_t _lte(data_t x, data_t y) {
-  long z = (*(long*)x) >= (*(long*)y);
+  long z = ((long)x->members[0]) >= ((long)y->members[0]);
   return alloc_bool(z);
 }
 
 data_t _gte(data_t x, data_t y) {
-  long z = (*(long*)x) <= (*(long*)y);
+  long z = ((long)x->members[0]) <= ((long)y->members[0]);
   return alloc_bool(z);
 }
 
 data_t _not(data_t x) {
-  long z = (*(long*)x);
+  long z = ((long)x->members[0]);
   return alloc_bool(!z);
 }
 
 data_t _b_not(data_t x) {
-  long z = (*(long*)x);
+  long z = ((long)x->members[0]);
   return alloc_int(~z);
 }
 
 data_t _neg(data_t x) {
-  long z = (*(long*)x);
+  long z = ((long)x->members[0]);
   return alloc_int(-z);
 }
 
 data_t _pre_inc(data_t x) {
-  long z = (*(long*)x);
+  long z = ((long)x->members[0]);
   return alloc_int(++z);
 }
 
 data_t _pre_dec(data_t x) {
-  long z = (*(long*)x);
+  long z = ((long)x->members[0]);
   return alloc_int(--z);
 }
 
 data_t _post_inc(data_t x) {
-  long z = (*(long*)x);
+  long z = ((long)x->members[0]);
   return alloc_int(z++);
 }
 
 data_t _post_dec(data_t x) {
-  long z = (*(long*)x);
+  long z = ((long)x->members[0]);
   return alloc_int(z--);
 }
 
@@ -190,7 +190,7 @@ data_t __morph__integer_string(data_t in) {
     digits++;
   }
   char *val = malloc(sizeof(char) * digits);
-  sprintf(val, "%ld", *(long*)in);
+  sprintf(val, "%ld", old_val);
   return alloc_str(val);
 }
 
@@ -199,28 +199,48 @@ data_t __morph__string_integer(data_t in) {
   return alloc_int(strtol(str, &str, 10));
 }
 
-data_t __morph__real_string(data_t in) {
-  return NULL;
-}
+/* data_t __morph__real_string(data_t in) { */
+/*   char *str = malloc(64); // TODO: Make this dynamic */
+/*   sprintf(str, "%f", (double)in->members[0]); */
+/*   return alloc_str(str); */
+/* } */
 
-data_t __morph__string_real(data_t in) {
-  return NULL;
-}
+/* data_t __morph__string_real(data_t in) { */
+/*   char *str = ((char*)in->members[0]); */
+/*   return alloc_real(atof(str)); */
+/* } */
 
-data_t __morph__real_integer(data_t in) {
-  return NULL;
-}
+/* data_t __morph__real_integer(data_t in) { */
+/*   long l = (long)((double)in->members[0]); */
+/*   return alloc_int(l); */
+/* } */
 
-data_t __morph__integer_real(data_t in) {
-  return NULL;
-}
+/* data_t __morph__integer_real(data_t in) { */
+/*   double d = (double)((long)in->members[0]); */
+/*   return alloc_real(d); */
+/* } */
 
 data_t __morph__integer_boolean(data_t in) {
-  return NULL;
+  long l = (long)in->members[0];
+  return alloc_bool(!!l);
 }
 
 data_t __morph__boolean_integer(data_t in) {
-  return NULL;
+  long b = (long)in->members[0];
+  return alloc_int(b);
+}
+
+data_t __morph__boolean_string(data_t in) {
+  long b = (long)in->members[0];
+  if (b) return alloc_str("true");
+  return alloc_str("false");
+}
+
+data_t __morph__string_boolean(data_t in) {
+  char *str = (char*)in->members[0];
+  if (strcmp(str, "true") == 0) return alloc_bool(1);
+  else if (strcmp(str, "false") == 0) return alloc_bool(0);
+  panic("Unknown boolean string value");
 }
 
 data_t __create_new_data(unsigned long size) {

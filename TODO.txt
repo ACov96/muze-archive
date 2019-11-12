@@ -3,6 +3,8 @@ Parser:
 - begin keyword for modules
 - Function call with no arguments
 - Confirm record access expression/array access expression
+- Try/Catch
+- Extern
 
 Morph Graph:
 - User defined types

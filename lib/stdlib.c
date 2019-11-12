@@ -6,16 +6,10 @@
 #include <stdio.h>
 #include <string.h>
 #include <math.h>
+#include "muze_stdlib.h"
 
-#define CREATE_TYPE_HEADER(T, V) const unsigned long T = (unsigned long)(V) << 48;
-
-struct string_st {
-  long length;
-  char *str;
-};
-
-typedef void* data_t;
-typedef struct string_st *string_t;
+#define WORD 8
+#define CREATE_TYPE_HEADER(T, V) const unsigned long T = (unsigned long)(V) << 48
 
 CREATE_TYPE_HEADER(TYPE_MASK, 0xFFFF);
 CREATE_TYPE_HEADER(STR_HEADER, 0);
@@ -28,28 +22,32 @@ void panic(char *msg) {
 }
 
 void print(data_t d) {
-  char* msg = ((string_t)d)->str;
+  char* msg = (char*)(d->members[0]);
   printf("%s\n", msg);
 }
 
 data_t alloc_int(long x) {
-  long *p = malloc(sizeof(long));
-  *p = x;
-  return (data_t) (INT_HEADER | (unsigned long)p);
+  data_t d = __create_new_data(1);
+  d->members[0] = (member_t)x;
+  return d;
 }
 
 data_t alloc_str(char *s) {
-  string_t heap_str = malloc(sizeof(struct string_st));
-  heap_str->length = strlen(s);
-  heap_str->str = malloc(heap_str->length + 1);
-  strcpy(heap_str->str, s);
-  return (data_t) (STR_HEADER | (unsigned long)heap_str);
+  data_t d = __create_new_data(1);
+  d->members[0] = (member_t)s;
+  return d;
 }
 
 data_t alloc_bool(long x) {
-  long *p = malloc(sizeof(long));
-  *p = x;
-  return (data_t)(BOOL_HEADER | (unsigned long)p);
+  data_t d = __create_new_data(1);
+  d->members[0] = (member_t)x;
+  return d;
+}
+
+data_t alloc_real(double x) {
+  data_t d = __create_new_data(1);
+  d->members[0] = (member_t)x;
+  return d;
 }
 
 data_t _add(data_t x, data_t y) {
@@ -186,7 +184,7 @@ data_t _post_dec(data_t x) {
 }
 
 data_t __morph__integer_string(data_t in) {
-  long old_val = *((long*)in);
+  long old_val = (long)(in->members[0]);
   int digits = 0;
   while (old_val % ((long)pow(10, digits)) < old_val) {
     digits++;
@@ -197,7 +195,7 @@ data_t __morph__integer_string(data_t in) {
 }
 
 data_t __morph__string_integer(data_t in) {
-  char *str = ((string_t)in)->str;
+  char *str = ((char*)in->members[0]);
   return alloc_int(strtol(str, &str, 10));
 }
 
@@ -223,6 +221,25 @@ data_t __morph__integer_boolean(data_t in) {
 
 data_t __morph__boolean_integer(data_t in) {
   return NULL;
+}
+
+data_t __create_new_data(unsigned long size) {
+  if (size < 1) panic("Cannot allocate data structure with size less than 1 member.");
+  data_t d = malloc(sizeof(struct data_st) + sizeof(member_t) * size);
+  d->length = size;
+  for (int i = 0; i < size; i++)
+    d->members[i] = NULL;
+  return d;
+}
+
+member_t __get_data_member(data_t d, int idx) {
+  if (d->length <= idx) panic("Data index out of bounds in get");
+  return d->members[idx];
+}
+
+void __set_data_member(data_t d, member_t c, int idx) {
+  if (d->length <= idx) panic("Data index out of bounds in set");
+  d->members[idx] = c;
 }
 
 /* METHODS TO BE REMOVED

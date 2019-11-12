@@ -1,16 +1,25 @@
-From Spring:
-- Parsing is not finished or up to date
-- I noticed that there were quite a few 'if/else if' blocks in the parser which
-      did not have an 'else' fail condition when there needed to be one.
-- A proper test script would be nice, that is why I added the 'test' folder
+Parser:
+- Generic reference
+- begin keyword for modules
+- Function call with no arguments
+- Confirm record access expression/array access expression
 
-CODEGEN
-- Better label naming based on module/function scope
-  This will probably mean we need a __main__ function
-- Unary expressions
-- Case statement
-- Records and arrays
-- Morphs?
-- Closures?
+Morph Graph:
+- User defined types
+- Enable/Disable
+- All nodes should start disabled
+- Shortest path
 
-10/29 - Need to start on gen_id_expr
+Codegen:
+- Identity morph
+- Implement reals
+- Dirty morph hack for ints to lists
+- Rework stdlib functions for basic literal allocations
+- Generic reference type
+  + Blocked by parser
+- Module init code
+  + Blocked by parser
+
+Documentation:
+- Update railroad diagrams
+- Alex: Update docs to include module/ABI specification

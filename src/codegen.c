@@ -6,6 +6,7 @@
 #include "ast.h"
 #include "util.h"
 #include "context.h"
+#include "morph_graph.h"
 
 /* MACROS */
 #define WORD 8
@@ -50,6 +51,7 @@ struct string_label_st {
 };
 
 /* GLOBALS */
+type_node_t *graph;
 ll_t labels = NULL;
 ll_t strings = NULL;
 unsigned int curr_label = 0;
@@ -103,11 +105,12 @@ unsigned int count_consts_and_vars(decl_t decl) {
 }
 
 void populate_decl_into_ctx(context_t ctx, decl_t decl) {
+  // TODO: This only considers name types, not records or morphs
   for (const_decl_t c = decl->constants; c; c = c->next)
-    ctx_add_constant(ctx, c->name);
+    ctx_add_constant(ctx, c->name, c->ty->u.name_ty);
   for (var_decl_t v = decl->vars; v; v = v->next)
     for (id_list_t id = v->names; id; id = id->next)
-      ctx_add_variable(ctx, id->name);
+      ctx_add_variable(ctx, id->name, v->type->u.name_ty);
 }
 
 int get_id_offset(char *id, decl_t decl) {
@@ -255,7 +258,8 @@ char* gen_fun(context_t ctx, fun_decl_t fun) {
   ctx_set_scope_name(ctx, concat(ctx_get_scope_name(ctx), concat("_", fun->name)));
   populate_decl_into_ctx(ctx, fun->decl);
   for (arg_t arg = fun->args; arg; arg = arg->next) {
-    ctx_add_argument(ctx, arg->name);
+    // TODO: Add record and morph types
+    ctx_add_argument(ctx, arg->name, arg->type->u.name_ty);
   }
   for (fun_decl_t f = fun->decl->funs; f; f = f->next) {
     ctx_add_function(ctx, f);
@@ -403,16 +407,32 @@ char* gen_expr(context_t ctx, expr_t expr, reg_t out) {
 
 char* gen_call_expr(context_t ctx, call_t call, reg_t out) {
   int arg_idx = 0;
-  expr_list_t curr_arg = call->args;
+  arg_t args = ctx_get_function_args(ctx, call->id);
   CREATE_BUFFER;
 
   // Put arguments in registers
-  while (curr_arg) {
+  for (expr_list_t curr_arg = call->args; curr_arg; curr_arg = curr_arg->next) {
     ADD_INSTR("push", arg_registers[arg_idx]);
     char *temp = gen_expr(ctx, curr_arg->expr, arg_registers[arg_idx]);
     ADD_BLOCK(temp);
-    curr_arg = curr_arg->next;
+    
+    // TODO: This logic will actually shrink once type checking is done because
+    // all we need to do is get the type off of the expression
+    if (args && curr_arg->expr->kind == ID_EX) {
+      char *arg_type = ctx_get_id_type(ctx, curr_arg->expr->u.id_ex);
+      char *target_type = args->type->u.name_ty;
+
+
+      ADD_INSTR("push", "%rdi");
+      ADD_INSTR("movq", concat(arg_registers[arg_idx], ", %rdi"));
+      ADD_INSTR("call", concat("__morph__", concat(arg_type, concat("_", target_type))));
+      ADD_INSTR("pop", "%rdi");
+      ADD_INSTR("movq", concat("%rax, ", arg_registers[arg_idx]));
+    }
+
     arg_idx++;
+    if (args != NULL)
+      args = args->next;
   }
 
   // Pass static link
@@ -502,7 +522,7 @@ char* gen_id_expr(context_t ctx, char *id, reg_t out) {
   CREATE_BUFFER;
   char *read_inst = malloc(64);
   static_link_t link = NULL;
-  static_link_t sl = ctx_get_id(ctx, id);
+  static_link_t sl = ctx_get_id_offset(ctx, id);
   if (sl->next == NULL) {
     // Dealing with local variable, just grab it from the current activation record
     sprintf(read_inst, "-%d(%%rbp), %s", WORD * (sl->offset + 2), out);
@@ -544,7 +564,7 @@ char* gen_lval_expr(context_t ctx, expr_t lval, reg_t out) {
   case ID_EX:
     ADD_INSTR("push", "%rax");
     ADD_INSTR("leaq", "-8(%rbp), %rax");
-    sl = ctx_get_id(ctx, lval->u.id_ex);
+    sl = ctx_get_id_offset(ctx, lval->u.id_ex);
     if (sl == NULL) {
       GEN_ERROR(concat("Cannot find l-value ", lval->u.id_ex));
     } else if (sl->levels > 0) {
@@ -636,7 +656,7 @@ char* gen_cond_stmt(context_t ctx, cond_stmt_t cond) {
 char* gen_loop_stmt(context_t ctx, loop_stmt_t loop) {
   char *loop_label = gen_label("L");
   char *break_label = gen_label("L");
-  ctx_add_break_label(ctx, break_label);
+  ctx_add_break_label(ctx, break_label, NULL);
   CREATE_BUFFER;
   ADD_LABEL(loop_label);
   for (stmt_t s = loop->body; s; s = s->next) {
@@ -786,7 +806,8 @@ char* gen_unary_expr(context_t ctx, unary_t unary, reg_t out) {
   RETURN_BUFFER;
 }
 
-char* codegen(root_t root) {
+char* codegen(root_t root, type_node_t *g) {
+  graph = g;
   CREATE_BUFFER;
   ADD_INSTR(".global", "main");
   for (mod_t mod = root->mods; mod; mod = mod->next) {

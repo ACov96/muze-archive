@@ -5,6 +5,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include <math.h>
 
 #define CREATE_TYPE_HEADER(T, V) const unsigned long T = (unsigned long)(V) << 48;
 
@@ -21,10 +22,8 @@ CREATE_TYPE_HEADER(STR_HEADER, 0);
 CREATE_TYPE_HEADER(INT_HEADER, 0);
 CREATE_TYPE_HEADER(BOOL_HEADER, 0);
 
-data_t *modules;
-
 void panic(char *msg) {
-  fprintf(stderr, "PANIC: %s\n", msg);
+  fprintf(stderr, "RUNTIME PANIC: %s\n", msg);
   exit(1);
 }
 
@@ -186,18 +185,45 @@ data_t _post_dec(data_t x) {
   return alloc_int(z--);
 }
 
-void _init_modules(int size) {
-  modules = malloc(sizeof(data_t) * size);
+data_t __morph__integer_string(data_t in) {
+  long old_val = *((long*)in);
+  int digits = 0;
+  while (old_val % ((long)pow(10, digits)) < old_val) {
+    digits++;
+  }
+  char *val = malloc(sizeof(char) * digits);
+  sprintf(val, "%ld", *(long*)in);
+  return alloc_str(val);
 }
 
-data_t _get_module(int idx) {
-  return modules[idx];
+data_t __morph__string_integer(data_t in) {
+  char *str = ((string_t)in)->str;
+  return alloc_int(strtol(str, &str, 10));
 }
 
-void _set_module(int idx, data_t module) {
-  modules[idx] = module;
+data_t __morph__real_string(data_t in) {
+  return NULL;
 }
 
+data_t __morph__string_real(data_t in) {
+  return NULL;
+}
+
+data_t __morph__real_integer(data_t in) {
+  return NULL;
+}
+
+data_t __morph__integer_real(data_t in) {
+  return NULL;
+}
+
+data_t __morph__integer_boolean(data_t in) {
+  return NULL;
+}
+
+data_t __morph__boolean_integer(data_t in) {
+  return NULL;
+}
 
 /* METHODS TO BE REMOVED
  *

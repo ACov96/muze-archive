@@ -4,25 +4,38 @@
 #include "util.h"
 #include "ast.h"
 
-#define ADDER(T) void ctx_add_ ## T (context_t ctx, char *id) { \
-    if (ctx->T ## s == NULL) {                                  \
-      ctx->T ## s = ll_new();                                   \
-      ctx->T ## s->val = id;                                    \
-    }                                                           \
-    else {                                                      \
-      ll_append(ctx->T ## s, id);                               \
-    }                                                           \
+#define ADDER(T) void ctx_add_ ## T (context_t ctx, char *id, char *type) { \
+    id_type_t it = malloc(sizeof(struct id_type_st));                   \
+    it->id = id;                                                        \
+    it->type = type;                                                    \
+    if (ctx->T ## s == NULL) {                                          \
+      ctx->T ## s = ll_new();                                           \
+      ctx->T ## s->val = it;                                            \
+    }                                                                   \
+    else {                                                              \
+      ll_append(ctx->T ## s, it);                                       \
+    }                                                                   \
   }
 
-#define GET(T) int ctx_get_ ## T (context_t ctx, char *id) {            \
+#define GET_OFFSET(T) int ctx_get_ ## T ## _offset (context_t ctx, char *id) { \
     int offset = 0;                                                     \
     for (ll_t l = ctx->T ## s; l; l = l->next)                          \
-      if (strcmp((char*)l->val, id) == 0)                               \
+      if (strcmp(((id_type_t)l->val)->id, id) == 0)                     \
         return offset;                                                  \
       else                                                              \
         offset++;                                                       \
     return -1;                                                          \
   }
+
+#define GET_TYPE(T) char* ctx_get_ ## T ## _type(context_t ctx, char *id) { \
+    for (ll_t l = ctx->T ## s; l; l = l->next)                          \
+      if (strcmp(((id_type_t)l->val)->id, id) == 0)                     \
+        return ((id_type_t)l->val)->type;                               \
+    return NULL;                                                        \
+}
+
+#define GET(T) GET_OFFSET(T); \
+  GET_TYPE(T)
 
 typedef struct func_map_st *func_map_t;
 
@@ -81,32 +94,43 @@ GET(constant);
 GET(argument);
 GET(variable);
 
-static_link_t ctx_get_id(context_t ctx, char *id) {
+static_link_t ctx_get_id_offset(context_t ctx, char *id) {
   int offset = 0;
   static_link_t sl = malloc(sizeof(struct static_link_st));
   sl->offset = 0;
   sl->is_mod = ctx_get_kind(ctx);
-  offset = ctx_get_argument(ctx, id);
+  offset = ctx_get_argument_offset(ctx, id);
   if (offset != -1) {
     sl->offset = offset;
     return sl;
   }
-  offset = ctx_get_constant(ctx, id);
+  offset = ctx_get_constant_offset(ctx, id);
   if (offset != -1) {
     sl->offset = offset + ll_length(ctx->arguments);
     return sl;
   }
-  offset = ctx_get_variable(ctx, id);
+  offset = ctx_get_variable_offset(ctx, id);
   if (offset != -1) {
     sl->offset = offset + ll_length(ctx->arguments) + ll_length(ctx->constants);
     return sl;
   }
   if (ctx->parent != NULL) {
     sl->offset = 0;
-    sl->next = ctx_get_id(ctx->parent, id);
+    sl->next = ctx_get_id_offset(ctx->parent, id);
     return sl;
   }
   return NULL; 
+}
+
+char* ctx_get_id_type(context_t ctx, char *id) {
+  char *type;
+  type = ctx_get_argument_type(ctx, id);
+  if (type != NULL) return type;
+  type = ctx_get_constant_type(ctx, id);
+  if (type != NULL) return type;
+  type = ctx_get_variable_type(ctx, id);
+  if (type != NULL) return type;
+  return NULL;
 }
 
 char* ctx_pop_break_label(context_t ctx) {
@@ -166,6 +190,18 @@ func_link_t ctx_get_function(context_t ctx, char *id) {
       }
     }  
     levels++;
+  }
+  return NULL;
+}
+
+arg_t ctx_get_function_args(context_t ctx, char *id) {
+  for (context_t curr = ctx; curr; curr = curr->parent) {
+    for (ll_t l = curr->functions; l; l = l->next) {
+      func_map_t fm = (func_map_t) l->val;
+      if (strcmp(id, fm->f->name) == 0) {
+        return fm->f->args;
+      }
+    }
   }
   return NULL;
 }

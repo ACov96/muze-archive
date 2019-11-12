@@ -17,10 +17,13 @@ struct prog_opts {
   int print_tokens;
   int print_tree;
   int print_asm;
+  int print_graph;
   int save_asm;
   char *output_file;
   char **input_files;
 };
+
+// type_node_t *morph_graph;
 
 struct prog_opts parse_args(int argc, char **argv) {
   struct prog_opts opts = {
@@ -28,17 +31,19 @@ struct prog_opts parse_args(int argc, char **argv) {
     .print_tokens = 0,
     .print_tree = 0,
     .print_asm = 0,
+    .print_graph = 0,
     .save_asm = 0,
     .output_file = "a.out",
   };
 
-  const char *opt_string = "hko:taS";
+  const char *opt_string = "hko:taSg";
   const struct option long_opts[] = {
     { "--help",   no_argument,       NULL, 'h' },
     { "--tokens", no_argument,       NULL, 'k' },
     { "--output", required_argument, NULL, 'o' },
     { "--tree",   no_argument,       NULL, 't' },
     { "--asm",    no_argument,       NULL, 'a' },
+    { "--graph",  no_argument,       NULL, 'm' },
   };
 
   for (int opt = getopt_long(argc, argv, opt_string, long_opts, NULL);
@@ -67,6 +72,10 @@ struct prog_opts parse_args(int argc, char **argv) {
         
     case 'S':
       opts.save_asm = 1;
+      break;
+
+    case 'm':
+      opts.print_graph = 1;
       break;
       
       // Error cases
@@ -128,14 +137,15 @@ int main(int argc, char* argv[]) {
     print_errors();
   }
 
-  char *assembly = remove_empty_lines(codegen(ast_root));
+  type_node_t *graph = build_graph(ast_root);
+  if (opts.print_graph) {
+    print_graph(graph);
+  }
+  char *assembly = remove_empty_lines(codegen(ast_root, graph));
   if (opts.print_asm) {
     printf("Assembly Output:\n\n%s\n", assembly);
   }
 
-  type_node_t* morph_graph = build_graph(ast_root);
-  // print_graph(morph_graph);
-	
   if (opts.save_asm) {
     FILE *out_file = fopen("a.s", "w");
     fputs(assembly, out_file);
@@ -166,7 +176,7 @@ int main(int argc, char* argv[]) {
     status = 0;
     waitpid(pid, &status, 0);
   } else {
-    char *args[] = {"gcc", "-fno-pie", "-no-pie", "-g", "-o", opts.output_file, stdlib_path, "a.o", NULL};
+    char *args[] = {"gcc", "-fno-pie", "-no-pie", "-g", "-o", opts.output_file, stdlib_path, "a.o", "-lm", NULL};
     execvp(args[0], args);
   }
 }

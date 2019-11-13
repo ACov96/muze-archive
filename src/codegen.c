@@ -489,7 +489,13 @@ char* gen_literal_expr(context_t ctx, literal_t literal, reg_t out) {
     ADD_INSTR("movq", concat("%rax, ", out));
     break;
   case REAL_LIT:
-    // TODO
+    real_literal = malloc(64);
+    sprintf(real_literal, "$%lu", f_to_int(literal->u.real_lit));
+    ADD_INSTR("push", "%rdi");
+    ADD_INSTR("movq", concat(real_literal, ", %rdi"));
+    ADD_INSTR("call", "alloc_real");
+    ADD_INSTR("pop", "%rdi");
+    ADD_INSTR("movq", concat("%rax, ", out));
     break;
   case BOOLEAN_LIT:
     bool_literal = concat("$", itoa(literal->u.bool_lit == TRUE_BOOL));
@@ -500,8 +506,7 @@ char* gen_literal_expr(context_t ctx, literal_t literal, reg_t out) {
     ADD_INSTR("movq", concat("%rax, ", out));
     break;
   default:
-    // TODO
-    break;
+    GEN_ERROR("Unknown literal");
   }
   RETURN_BUFFER;
 }

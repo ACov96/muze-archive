@@ -53,4 +53,6 @@ char* itoa(unsigned int x);
 
 char* remove_empty_lines(char* s);
 
+unsigned long f_to_int(char *d);
+
 #endif

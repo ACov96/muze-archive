@@ -137,3 +137,12 @@ char *remove_empty_lines(char *s) {
   }
   return new_s;
 }
+
+unsigned long f_to_int(char *d) {
+  union {
+    double x;
+    unsigned long l;
+  } u;
+  u.x = atof(d);
+  return u.l;
+}

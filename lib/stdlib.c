@@ -44,11 +44,16 @@ data_t alloc_bool(long x) {
   return d;
 }
 
-/* data_t alloc_real(double x) { */
-/*   data_t d = __create_new_data(1); */
-/*   d->members[0] = (member_t)((void*)x); */
-/*   return d; */
-/* } */
+/* We pass in the double as an unsigned long because the argument
+ * is going to be passed in through %rdi, which requires a non-floating
+ * point register to be used. This is ideal though because we would
+ * need to convert it anyways.
+ */
+data_t alloc_real(unsigned long x) {
+  data_t d = __create_new_data(1);
+  d->members[0] = (member_t)x;
+  return d;
+}
 
 data_t _add(data_t x, data_t y) {
   // TODO: Take type header into account
@@ -268,15 +273,24 @@ void __set_data_member(data_t d, member_t c, int idx) {
  */
 
 void print_int(data_t d) {
-  long *p = (long *)((~TYPE_MASK) & (unsigned long)d);
-  printf("%ld\n", *p);
+  long l = (long)d->members[0];
+  printf("%ld\n", l);
 }
 
 void print_bool(data_t d) {
-  long *p = (long *)((~TYPE_MASK) & (unsigned long)d);
-  if (*p) {
+  long b = (long)d->members[0];
+  if (b) {
     printf("true\n");
   } else {
     printf("false\n");
   }
+}
+
+void print_real(data_t d) {
+  union {
+    double r;
+    unsigned long l;
+  } u;
+  u.l = (unsigned long)d->members[0];
+  printf("%f\n", u.r);
 }

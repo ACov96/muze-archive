@@ -512,7 +512,6 @@ char* gen_literal_expr(context_t ctx, literal_t literal, reg_t out) {
 }
 
 char* gen_data_segment() {
-  // if (strings == NULL) return "";
   CREATE_BUFFER;
   ADD_BLOCK("\t.data\n");
   for (ll_t l = strings; l; l = l->next) {

@@ -60,6 +60,9 @@ struct mod_st {
   // Inner module declarations
   decl_t decl;
 
+  // Initialization block
+  stmt_t stmts;
+
   // Next module in the declaration sequence
   mod_t next; // NULLABLE
 };

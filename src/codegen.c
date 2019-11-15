@@ -214,28 +214,34 @@ char* gen_mod(context_t ctx, mod_t mod) {
     // TODO: This is incorrect and should loop over the id list
     mod_size += WORD;
   }
-  ADD_INSTR("push", "%r15");
+  ADD_INSTR("push", "%r10");
   ADD_INSTR("push", "%rdi");
   ADD_INSTR("movq", concat(INT_LITERAL(mod_size), ", %rdi"));
   ADD_INSTR("call", "malloc");
   ADD_INSTR("pop", "%rdi");
-  ADD_INSTR("movq", "%rax, %r15");
+  ADD_INSTR("movq", "%rax, %r10");
 
   int offset = 1;
   for (const_decl_t c = mod->decl->constants; c; c = c->next) {
     assign_t assign = c->assign;
     ADD_BLOCK(gen_expr(ctx, assign->expr, "%rax"));
-    ADD_INSTR("movq", concat("%rax, ", concat(itoa(offset * WORD), "(%r15)")));
+    ADD_INSTR("movq", concat("%rax, ", concat(itoa(offset * WORD), "(%r10)")));
     offset++;
   }
   for (var_decl_t v = mod->decl->vars; v; v = v->next) {
     assign_t assign = v->assign;
     ADD_BLOCK(gen_expr(ctx, assign->expr, "%rax"));
-    ADD_INSTR("movq", concat("%rax, ", concat(itoa(offset * WORD), "(%r15)")));
+    ADD_INSTR("movq", concat("%rax, ", concat(itoa(offset * WORD), "(%r10)")));
     offset++;
   }
-  ADD_INSTR("movq", "%r15, %rax");
-  ADD_INSTR("pop", "%r15");
+
+  // Generate the init block
+  if (mod->stmts != NULL)
+    for (stmt_t s = mod->stmts; s; s = s->next)
+      ADD_BLOCK(gen_stmt(ctx, s));
+
+  ADD_INSTR("movq", "%r10, %rax");
+  ADD_INSTR("pop", "%r10");
   ADD_INSTR("ret", NO_OPERANDS);
 
   // Define sub modules
@@ -290,7 +296,7 @@ char* gen_fun(context_t ctx, fun_decl_t fun) {
   ADD_INSTR("sub", concat(space_str, ", %rsp"));
 
   // Setup static link
-  ADD_INSTR("movq", "%r15, -8(%rbp)");
+  ADD_INSTR("movq", "%r10, -8(%rbp)");
   
   // Push arguments to stack
   unsigned int idx = 1;
@@ -436,7 +442,7 @@ char* gen_call_expr(context_t ctx, call_t call, reg_t out) {
   }
 
   // Pass static link
-  ADD_INSTR("push", "%r15");
+  ADD_INSTR("push", "%r10");
 
   // TODO: Only change the static link if function is inner function 
 
@@ -446,15 +452,15 @@ char* gen_call_expr(context_t ctx, call_t call, reg_t out) {
     // TODO: This basically means if we can't find the function, just call the name
     ADD_INSTR("call", call->id);
   } else {
-    ADD_INSTR("leaq", "-8(%rbp), %r15");
+    ADD_INSTR("leaq", "-8(%rbp), %r10");
     for (int i = 0; i < fl->levels; i++) {
-      ADD_INSTR("movq", "(%r15), %r15");
+      ADD_INSTR("movq", "(%r10), %r10");
     }  
     ADD_INSTR("call", fl->id);
   }
 
   // Restore argument registers
-  ADD_INSTR("pop", "%r15");
+  ADD_INSTR("pop", "%r10");
   for (int i = arg_idx - 1; i >= 0; i--) {
     ADD_INSTR("pop", arg_registers[i]);
   }
@@ -823,15 +829,10 @@ char* codegen(root_t root, type_node_t *g) {
   // Generate main method 
   set_entrypoint(root);
   ADD_LABEL("main");
-  ADD_INSTR("push", "%r15");
-  ADD_INSTR("push", "%rdi");
-  ADD_INSTR("push", "%rsi");
+  ADD_INSTR("push", "%r10");
   ADD_INSTR("call", "__module__Main_init");
-  ADD_INSTR("movq", "%rax, %r15");
-  ADD_INSTR("call", "Main_main");
-  ADD_INSTR("pop", "%rsi");
-  ADD_INSTR("pop", "%rdi");
-  ADD_INSTR("pop", "%r15");
+  ADD_INSTR("movq", "%rax, %r10");
+  ADD_INSTR("pop", "%r10");
 
   // Generate data segment
   ADD_BLOCK(gen_data_segment());

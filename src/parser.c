@@ -380,7 +380,6 @@ static expr_t parse_unit_expr(PARSE_PARAMS) {
     if (MATCH_TOK(LPAREN)) {
       // Function call
       MATCH_FUN(parse_fun_call, call);
-      EXPECT_TOK(RPAREN);
       call->id = id;
       unit->kind = CALL_EX;
       unit->u.call_ex = call;
@@ -801,8 +800,9 @@ static arg_t parse_arg_list(PARSE_PARAMS) {
   if (MATCH_TOK(COMMA)) {
     EXPECT_FUN(parse_arg_list, arg->next);
   }
-  EXPECT_TOK(COLON);
-  EXPECT_FUN(parse_type_expr, arg->type);
+  if (MATCH_TOK(COLON)) {
+    EXPECT_FUN(parse_type_expr, arg->type);
+  }
   if (MATCH_TOK(SEMICOLON)){
     MATCH_FUN(parse_arg_list, arg->next);
   }
@@ -1127,6 +1127,10 @@ static mod_t parse_module_decl(PARSE_PARAMS) {
 
   MATCH_FUN(parse_decl, mod->decl);
 
+  if (MATCH_TOK(BEGIN)) {
+    MATCH_FUN(parse_stmt, mod->stmts);
+  }
+
   EXPECT_TOK(DOM);
 
   PARSE_ASSERT(!strcmp(BEGET->val, mod->name),
@@ -1153,8 +1157,12 @@ static call_t parse_fun_call(PARSE_PARAMS) {
   call_t call = malloc(sizeof(struct call_st));
 
   // The identifier for this call was parsed before, so it'll be populated after this returns
-  MATCH_FUN(parse_expr_list, call->args);
-
+  if (MATCH_TOK(RPAREN))
+    call->args = NULL;
+  else {
+    MATCH_FUN(parse_expr_list, call->args);
+    EXPECT_TOK(RPAREN);
+  }
   PARSE_RETURN(call);
 }
 

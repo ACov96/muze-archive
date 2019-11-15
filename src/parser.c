@@ -1126,6 +1126,10 @@ static mod_t parse_module_decl(PARSE_PARAMS) {
 
   MATCH_FUN(parse_decl, mod->decl);
 
+  if (MATCH_TOK(BEGIN)) {
+    MATCH_FUN(parse_stmt, mod->stmts);
+  }
+
   EXPECT_TOK(DOM);
 
   PARSE_ASSERT(!strcmp(BEGET->val, mod->name),

@@ -800,8 +800,9 @@ static arg_t parse_arg_list(PARSE_PARAMS) {
   if (MATCH_TOK(COMMA)) {
     EXPECT_FUN(parse_arg_list, arg->next);
   }
-  EXPECT_TOK(COLON);
-  EXPECT_FUN(parse_type_expr, arg->type);
+  if (MATCH_TOK(COLON)) {
+    EXPECT_FUN(parse_type_expr, arg->type);
+  }
   if (MATCH_TOK(SEMICOLON)){
     MATCH_FUN(parse_arg_list, arg->next);
   }

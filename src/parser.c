@@ -380,7 +380,6 @@ static expr_t parse_unit_expr(PARSE_PARAMS) {
     if (MATCH_TOK(LPAREN)) {
       // Function call
       MATCH_FUN(parse_fun_call, call);
-      EXPECT_TOK(RPAREN);
       call->id = id;
       unit->kind = CALL_EX;
       unit->u.call_ex = call;
@@ -1156,8 +1155,12 @@ static call_t parse_fun_call(PARSE_PARAMS) {
   call_t call = malloc(sizeof(struct call_st));
 
   // The identifier for this call was parsed before, so it'll be populated after this returns
-  MATCH_FUN(parse_expr_list, call->args);
-
+  if (MATCH_TOK(RPAREN))
+    call->args = NULL;
+  else {
+    MATCH_FUN(parse_expr_list, call->args);
+    EXPECT_TOK(RPAREN);
+  }
   PARSE_RETURN(call);
 }
 

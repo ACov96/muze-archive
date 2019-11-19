@@ -144,7 +144,7 @@ int get_type_index(type_node_t* graph, char* type_name) {
 type_node_t* activate_node(type_node_t* graph, char* type_name) {
 	int i = get_type_index(graph, type_name);
 	graph[i]->active = 1;
-	return 0;
+	return graph;
 }
 
 
@@ -152,37 +152,53 @@ type_node_t* activate_node(type_node_t* graph, char* type_name) {
 type_node_t* deactivate_node(type_node_t* graph, char* type_name) {
 	int i = get_type_index(graph, type_name);
 	graph[i]->active = 0;
-	return 0;
+	return graph;
 }
 
 
-/* shortest path is printing in reverse order right now, but it's working */
+/* Finds shortest path from src to dest. Currently returning the path
+as an array of strings for testing, but will change to return as a
+linked list of type_node_t soon.
+shortest path is currently in reverse order. Will fix soon.*/
 char** shortest_path(type_node_t* graph, char* src, char* dest) {
-	
 	int* path;
-	int s = get_type_index(graph, src);
-	int d = get_type_index(graph, dest);
-	
+	int s = get_type_index(graph, src);		// index of src type
+	int d = get_type_index(graph, dest);	// index of dest type
+	int path_length = 0;
+	// Run breadth first search to get path of graph indices
 	path = bfs(graph, s, d);
 
+	// If path is NULL then no path exists
 	if (path == NULL)
 		return NULL;
 	
-	int path_length = sizeof(path)/sizeof(path[0]);
-
-	char** final_path = malloc(sizeof(char*) * path_length);
-
-	int i = 1;
-	final_path[0] = graph[d]->name;
+	// get length of path. Can figure out a way to return the length from bfs later
+	int l = d;
+	while (path[l] != -1) {
+		l = path[l];
+		path_length++;
+	}
+	
+	char** final_path = malloc((sizeof(char*) * path_length) + 2);
+ 
+	int i = path_length + 1;
+	final_path[i] = NULL;
+	i--;
+	final_path[i] = dest;
+	i--;
 	while (path[d] != -1) {
 		final_path[i] = graph[path[d]]->name;
 		d = path[d];
-		i++;
+		i--;
 	}
 	return final_path;
 }
 
 
+/*Runs breadth first search to find the shortest path 
+from src to dest and returns an array of ints
+that can be traced back to get the shortest path.
+Returns NULL if no path found*/
 int* bfs(type_node_t* graph, int src, int dest) {	
 	//int len = sizeof(graph)/sizeof(graph[0]);
 	int v = 0;
@@ -214,22 +230,24 @@ int* bfs(type_node_t* graph, int src, int dest) {
 		int c = q[curr];
 		curr++;
 		type_node_t n = graph[c];
-		for (; n; n = n->next) {
-			int index = n->index;
-			if (visited[index] == 0) {
-				visited[index] = 1;
-				dist[index] = dist[c] + 1;
-				pred[index] = c;
+		if (n->active == 1) {
+			for (; n; n = n->next) {
+				int index = n->index;
+				if (visited[index] == 0) {
+					visited[index] = 1;
+					dist[index] = dist[c] + 1;
+					pred[index] = c;
 
-				if (index == dest) {
-					return pred;
-				}
+					if (index == dest) {
+						return pred;
+					}
 				
-				q[p] = index;
-				p++;
-			}
-		}
-	}
+					q[p] = index;
+					p++;
+				}
+			 }
+		 }
+	 }
 	return NULL;
 }
 

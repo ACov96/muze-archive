@@ -28,7 +28,7 @@ int* bfs(type_node_t* graph, int src, int dest);
 
 /* Gloabl variables */ 
 int next_index = 0;											// next available index in the morph graph
-int num_types = NUM_PRIMITIVES;					// number of types in the graph
+int graph_size = NUM_PRIMITIVES;					// number of types in the graph
 char* primitive_types[] = {"integer", "real", "string", "boolean"};
 
 
@@ -38,9 +38,9 @@ type_node_t* build_graph(root_t root) {
   type_node_t* graph = morph_graph();
   type_decl_t type_decl = root->mods->decl->types;
   for (; type_decl; type_decl = type_decl->next) {
-    if (next_index >= num_types)
+    if (next_index >= graph_size)
       // If the graph runs out of room double the size
-      graph = (type_node_t*) realloc(graph, sizeof(struct type_node_st)*num_types*2);
+      graph = (type_node_t*) realloc(graph, sizeof(struct type_node_st)*graph_size*2);
     graph = add_type(graph, type_decl->name);
   }
   return graph;

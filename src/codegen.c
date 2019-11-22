@@ -18,10 +18,10 @@
 
 #define INT_LITERAL(I) (concat("$", itoa(I)))
 
-#define ADD_BLOCK(B) \
-  do { \
-    buf = concat(buf, B);      \
-    buf = concat(buf, "\n");   \
+#define ADD_BLOCK(B)            \
+  do {                          \
+    buf = concat(buf, B);       \
+    buf = concat(buf, "\n");    \
   } while(1)
 
 #define ADD_LABEL(L) buf = concat(buf, L);      \

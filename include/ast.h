@@ -15,6 +15,7 @@ typedef struct var_decl_st      *var_decl_t;
 typedef struct fun_decl_st      *fun_decl_t;
 typedef struct const_st         *const_t;
 typedef struct type_st          *type_t;
+typedef struct morph_st         *morph_t;
 // typedef struct var_st           *var_t;
 // typedef struct fun_st           *fun_t;
 
@@ -60,7 +61,7 @@ struct mod_st {
   // Inner module declarations
   decl_t decl;
 
-  // Module constructor
+  // Initialization block
   stmt_t stmts;
 
   // Next module in the declaration sequence
@@ -335,6 +336,9 @@ struct morph_expr_st {
 };
 
 struct morph_st {
+  char *target;
+  stmt_t defn;
+  morph_t next;
 };
 
 struct arg_st {
@@ -345,7 +349,7 @@ struct arg_st {
 
 // statements
 struct stmt_st {
-  enum{
+  enum {
     COND_STMT, FOR_STMT, LOOP_STMT,
     CASE_STMT, ASSIGN_STMT, EXPR_STMT,
     BREAK_STMT

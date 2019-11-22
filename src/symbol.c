@@ -13,10 +13,12 @@ scope_t scope_new(scope_t parent) {
 }
 
 void add_symbol(scope_t scope, symbol_t symbol) {
-  symbol_t curr = scope->symbols;
-  for (; curr->next; curr = curr->next);
+  symbol_t *curr = &(scope->symbols);
 
-  curr->next = symbol;
+  for (; *curr; curr = &((*curr)->next));
+
+  *curr = symbol;
+  symbol->scope = scope;
 }
 
 symbol_t symbol_new(char *name) {

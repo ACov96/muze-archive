@@ -16,10 +16,10 @@
 #define ADD_SYMBOL(symbol) \
   add_symbol(SCOPE, (symbol))
 
-#define ADD_SCOPE(scope, stmts) \
+#define ADD_SCOPE(stmts) \
   do { \
     scope_t _old_scope = SCOPE; \
-    SCOPE = (scope); \
+    SCOPE = scope_new(_old_scope); \
     stmts; \
     SCOPE = _old_scope; \
   } while (0)
@@ -394,7 +394,6 @@ static expr_t parse_unit_expr(PARSE_PARAMS) {
     if (MATCH_TOK(LPAREN)) {
       // Function call
       MATCH_FUN(parse_fun_call, call);
-      EXPECT_TOK(RPAREN);
       call->id = id;
       unit->kind = CALL_EX;
       unit->u.call_ex = call;
@@ -820,8 +819,9 @@ static arg_t parse_arg_list(PARSE_PARAMS) {
     EXPECT_FUN(parse_arg_list, arg->next);
   }
 
-  EXPECT_TOK(COLON);
-  EXPECT_FUN(parse_type_expr, arg->type);
+  if (MATCH_TOK(COLON)) {
+    EXPECT_FUN(parse_type_expr, arg->type);
+  }
 
   if (MATCH_TOK(SEMICOLON)){
     MATCH_FUN(parse_arg_list, arg->next);
@@ -950,7 +950,7 @@ static fun_decl_t parse_fun_decl(PARSE_PARAMS) {
 
   fun->symbol = symbol_new(fun->name);
 
-  ADD_SCOPE(fun->symbol->scope,
+  ADD_SCOPE(
       EXPECT_TOK(LPAREN);
       MATCH_FUN(parse_arg_list, fun->args);
       EXPECT_TOK(RPAREN);
@@ -1070,6 +1070,31 @@ static id_list_t parse_id_list(PARSE_PARAMS) {
   PARSE_RETURN(id_list);
 }
 
+static morph_t parse_morph_decl(PARSE_PARAMS) {
+  morph_t morph = malloc(sizeof(struct morph_st));
+
+  EXPECT_TOK(MU);
+
+  morph->target = BEGET->val;
+  EXPECT_TOK(IDENTIFIER);
+
+  EXPECT_FUN(parse_stmt, morph->defn);
+
+  EXPECT_TOK(UM);
+
+  char *closing_id = BEGET->val;
+  EXPECT_TOK(IDENTIFIER);
+
+  PARSE_ASSERT(!strcmp(closing_id, morph->target),
+      "Morph block terminated by the wrong identifier",
+      "Expected %s after 'um', got %s", morph->target, closing_id);
+
+  morph->next = NULL;
+  MATCH_FUN(parse_morph_decl, morph->next);
+
+  PARSE_RETURN(morph);
+}
+
 // parse type declarations
 static type_decl_t parse_type_decl(PARSE_PARAMS) {
   type_decl_t ty = malloc(sizeof(struct type_decl_st));
@@ -1081,12 +1106,7 @@ static type_decl_t parse_type_decl(PARSE_PARAMS) {
   EXPECT_FUN(parse_type_expr, ty->type);
   EXPECT_TOK(SEMICOLON);
 
-  // MATCH_FUN(parse_morph_decl, ty->morphs);
-
-  if (MATCH_TOK(MU)){
-    //some morph stuff
-    EXPECT_TOK(UM);
-  } 
+  MATCH_FUN(parse_morph_decl, ty->morphs);
 
   // NOTE: do we possibly want types to have their own local scope?
   ADD_SYMBOL(symbol_new(ty->name));
@@ -1168,13 +1188,14 @@ static mod_t parse_module_decl(PARSE_PARAMS) {
 
   mod->symbol = symbol_new(mod->name);
 
-  ADD_SCOPE(mod->symbol->scope,
+  ADD_SCOPE(
       MATCH_FUN(parse_decl, mod->decl);
 
-      EXPECT_TOK(BEGIN);
-
       mod->stmts = NULL;
-      MATCH_FUN(parse_stmt, mod->stmts);
+
+      if (MATCH_TOK(BEGIN)) {
+        MATCH_FUN(parse_stmt, mod->stmts);
+      }
 
       EXPECT_TOK(DOM);
 
@@ -1187,10 +1208,10 @@ static mod_t parse_module_decl(PARSE_PARAMS) {
           mod->name, id);
     );
 
+  ADD_SYMBOL(mod->symbol);
+
   // Modules do not inherit their parent scope
   mod->symbol->scope->parent = NULL;
-
-  ADD_SYMBOL(mod->symbol);
 
   MATCH_FUN(parse_module_decl, mod->next);
 
@@ -1210,8 +1231,12 @@ static call_t parse_fun_call(PARSE_PARAMS) {
   call_t call = malloc(sizeof(struct call_st));
 
   // The identifier for this call was parsed before, so it'll be populated after this returns
-  MATCH_FUN(parse_expr_list, call->args);
-
+  if (MATCH_TOK(RPAREN))
+    call->args = NULL;
+  else {
+    MATCH_FUN(parse_expr_list, call->args);
+    EXPECT_TOK(RPAREN);
+  }
   PARSE_RETURN(call);
 }
 

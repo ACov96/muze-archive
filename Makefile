@@ -12,7 +12,7 @@ CFLAGS = -g -Wall -Wfatal-errors -Werror \
 	 -I $(INCLUDEDIR) \
 	 -no-pie
 
-OBJLST = util.o lexer.o main.o parser.o print_tree.o codegen.o context.o morph_graph.o
+OBJLST = util.o lexer.o main.o parser.o print_tree.o codegen.o context.o morph_graph.o symbol.o
 OBJS = $(foreach obj, $(OBJLST), $(BUILDDIR)/$(obj))
 
 TARGET = muzec

@@ -1,7 +1,7 @@
-#ifndef _AST_H
-#define _AST_H
+#pragma once
 
 #include "util.h"
+#include "symbol.h"
 
 typedef struct root_st          *root_t;
 typedef struct mod_st           *mod_t;
@@ -15,6 +15,7 @@ typedef struct var_decl_st      *var_decl_t;
 typedef struct fun_decl_st      *fun_decl_t;
 typedef struct const_st         *const_t;
 typedef struct type_st          *type_t;
+typedef struct morph_st         *morph_t;
 // typedef struct var_st           *var_t;
 // typedef struct fun_st           *fun_t;
 
@@ -65,6 +66,8 @@ struct mod_st {
 
   // Next module in the declaration sequence
   mod_t next; // NULLABLE
+
+  symbol_t symbol;
 };
 
 
@@ -119,7 +122,7 @@ struct fun_decl_st {
   arg_t args;
 
   // return type of the function
-  type_t ret_type;
+  type_t ret_type; // NULLABLE
 
   // Inner function declarations
   decl_t decl;
@@ -129,6 +132,9 @@ struct fun_decl_st {
 
   // next function in the declaration
   fun_decl_t next; // NULLABLE
+
+  // symbol
+  symbol_t symbol;
 };
 
 
@@ -330,6 +336,9 @@ struct morph_expr_st {
 };
 
 struct morph_st {
+  char *target;
+  stmt_t defn;
+  morph_t next;
 };
 
 struct arg_st {
@@ -340,7 +349,7 @@ struct arg_st {
 
 // statements
 struct stmt_st {
-  enum{
+  enum {
     COND_STMT, FOR_STMT, LOOP_STMT,
     CASE_STMT, ASSIGN_STMT, EXPR_STMT,
     BREAK_STMT
@@ -407,4 +416,3 @@ struct expr_list_st {
 // prototypes
 root_t parse(ll_t ll_tokens);
 
-#endif

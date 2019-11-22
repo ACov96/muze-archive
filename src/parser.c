@@ -831,6 +831,10 @@ static literal_t parse_literal(PARSE_PARAMS) {
     lit->u.real_lit = BEGET->val;
     EXPECT_TOK(REAL_VAL);
     break;
+  case NULL_VAL:
+    lit->kind = NULL_LIT;
+    EXPECT_TOK(NULL_VAL);
+    break;
   case TRUE:
     lit->kind = BOOLEAN_LIT;
     lit->u.bool_lit = TRUE_BOOL;

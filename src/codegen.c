@@ -511,6 +511,8 @@ char* gen_literal_expr(context_t ctx, literal_t literal, reg_t out) {
     ADD_INSTR("pop", "%rdi");
     ADD_INSTR("movq", concat("%rax, ", out));
     break;
+  case NULL_LIT:
+    ADD_INSTR("movq", concat("$0, ", out));
   default:
     GEN_ERROR("Unknown literal");
   }
@@ -536,6 +538,10 @@ char* gen_id_expr(context_t ctx, char *id, reg_t out) {
   if (sl->next == NULL) {
     // Dealing with local variable, just grab it from the current activation record
     sprintf(read_inst, "-%d(%%rbp), %s", WORD * (sl->offset + 2), out);
+    ADD_INSTR("movq", read_inst);
+  } else if (sl->is_mod) {
+    // We are directly in a module's scope, which means we are probably an init block
+    sprintf(read_inst, "%d(%%r10), %s", WORD * (sl->offset + 1), out);
     ADD_INSTR("movq", read_inst);
   } else {
     // Dealing with a variable that's in a more global scope

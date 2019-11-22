@@ -49,7 +49,7 @@
     A(ARROW, "'->'"), \
     A(ST, "'st'"), A(IN, "'in'"), A(DO, "'do'"), \
     A(IDENTIFIER, "identifier"), \
-    A(LEXEOF, "EOF")
+    A(LEXEOF, "EOF"), A(NULL_VAL, "null")
 
 enum token {
     FOREACH_TOKEN(GEN_ENUM)

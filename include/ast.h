@@ -306,7 +306,7 @@ struct literal_st {
   // Tagged union of literal possibilities
   enum {
     STRING_LIT, INTEGER_LIT, REAL_LIT,
-    BOOLEAN_LIT
+    BOOLEAN_LIT, NULL_LIT
   } kind;
 
   union {

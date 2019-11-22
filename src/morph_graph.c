@@ -42,6 +42,14 @@ type_node_t* build_graph(root_t root) {
       // If the graph runs out of room double the size
       graph = (type_node_t*) realloc(graph, sizeof(struct type_node_st)*graph_size*2);
     graph = add_type(graph, type_decl->name);
+
+		// if type has any user defined morphs
+		if (type_decl->morphs){
+			morph_t morph = type_decl->morphs;
+			for (; morph; morph = morph->next){
+				graph = add_morph(graph, type_decl->name, morph->target);
+			}
+		}	
   }
   return graph;
 }

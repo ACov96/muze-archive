@@ -36,7 +36,7 @@ struct prog_opts parse_args(int argc, char **argv) {
     .output_file = "a.out",
   };
 
-  const char *opt_string = "hko:taSg";
+  const char *opt_string = "hko:taSm";
   const struct option long_opts[] = {
     { "--help",   no_argument,       NULL, 'h' },
     { "--tokens", no_argument,       NULL, 'k' },

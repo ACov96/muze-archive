@@ -1,0 +1,13 @@
+mod Conditional
+   fun main() : integer
+   begin
+     if false then
+       print("a is true");
+     elif true then
+       print("a is true in the elif block");
+     else
+       print("a is none of the above");
+     fi
+   nuf main
+dom Conditional
+            

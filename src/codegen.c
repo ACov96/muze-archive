@@ -22,7 +22,7 @@
   do { \
     buf = concat(buf, B);      \
     buf = concat(buf, "\n");   \
-  } while(1)
+  } while(0)
 
 #define ADD_LABEL(L) buf = concat(buf, L);      \
   buf = concat(buf, ":\n")

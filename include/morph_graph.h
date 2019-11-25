@@ -7,5 +7,8 @@ typedef struct type_node_st		*type_node_t;
 
 type_node_t* build_graph(root_t root);
 void print_graph(type_node_t* graph);
+char** shortest_path(type_node_t* graph, char* src, char* dest);
+type_node_t* activate_node(type_node_t* graph, char* type_name);
+type_node_t* deactivate_node(type_node_t* graph, char* type_name);
 
 #endif

@@ -1,0 +1,8 @@
+mod Foo
+  var
+    a : integer = 1;
+  fun main() : integer
+  begin
+    print_int(a);
+  nuf main
+dom Foo

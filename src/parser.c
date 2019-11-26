@@ -3,16 +3,29 @@
 #include <string.h>
 
 #include "ast.h"
+#include "symbol.h"
 #include "lexer.h"
 #include "util.h"
 #include "limits.h"
 
-#define LL_NAME tokens
-#define LL_OUT tok_out
-#define LEVEL_SPECIFIER parse_level
+#define LL_NAME _tokens
+#define LL_OUT _tok_out
+#define LEVEL_SPECIFIER _parse_level
+#define SCOPE _scope
+
+#define ADD_SYMBOL(symbol) \
+  add_symbol(SCOPE, (symbol))
+
+#define ADD_SCOPE(stmts) \
+  do { \
+    scope_t _old_scope = SCOPE; \
+    SCOPE = scope_new(_old_scope); \
+    stmts; \
+    SCOPE = _old_scope; \
+  } while (0)
 
 #define MATCH_FUN(fn, res) \
-  (res = fn(LL_NAME, &LL_NAME, LEVEL_SPECIFIER + 1))
+  (res = fn(LL_NAME, &LL_NAME, SCOPE, LEVEL_SPECIFIER + 1))
 
 #define MATCH_TOK(t) \
   ((BEGET->tok == t) && (NEXT))
@@ -65,7 +78,8 @@
 #define NEXT \
   LL_NAME = LL_NAME->next
 
-#define PARSE_PARAMS ll_t LL_NAME, ll_t *LL_OUT, int LEVEL_SPECIFIER
+#define PARSE_PARAMS ll_t LL_NAME, ll_t *LL_OUT, scope_t SCOPE, \
+                     int LEVEL_SPECIFIER
 
 #define parse_log(str, ...) \
   write_log("[%6d] "str, LEVEL_SPECIFIER, ##__VA_ARGS__)
@@ -797,17 +811,24 @@ static arg_t parse_arg_list(PARSE_PARAMS) {
 
   arg->name = BEGET->val;
   EXPECT_TOK(IDENTIFIER);
+
+  // TODO make this (and all symbol additions) have their own kind
+  ADD_SYMBOL(symbol_new(arg->name));
+
   if (MATCH_TOK(COMMA)) {
     EXPECT_FUN(parse_arg_list, arg->next);
   }
+
   if (MATCH_TOK(COLON)) {
     EXPECT_FUN(parse_type_expr, arg->type);
   }
+
   if (MATCH_TOK(SEMICOLON)){
     MATCH_FUN(parse_arg_list, arg->next);
   }
-  else
+  else {
     arg->next = NULL;
+  }
 
   PARSE_RETURN(arg);
 }
@@ -930,26 +951,41 @@ static fun_decl_t parse_fun_decl(PARSE_PARAMS) {
 
   fun->name = BEGET->val;
   EXPECT_TOK(IDENTIFIER);
-  EXPECT_TOK(LPAREN);
-  MATCH_FUN(parse_arg_list, fun->args);
-  EXPECT_TOK(RPAREN);
 
-  if (MATCH_TOK(COLON)){
-    EXPECT_FUN(parse_type_expr, fun->ret_type);
-  }else
-    fun->ret_type = NULL;
+  fun->symbol = symbol_new(fun->name);
 
-  MATCH_FUN(parse_decl, fun->decl);
+  ADD_SCOPE(
+      EXPECT_TOK(LPAREN);
+      MATCH_FUN(parse_arg_list, fun->args);
+      EXPECT_TOK(RPAREN);
 
-  EXPECT_TOK(BEGIN);
+      if (MATCH_TOK(COLON)) {
+        EXPECT_FUN(parse_type_expr, fun->ret_type);
+      } else {
+        fun->ret_type = NULL;
+      }
 
-  // parse statements
-  fun->stmts = NULL;
-  MATCH_FUN(parse_stmt, fun->stmts);
-  EXPECT_TOK(NUF);
-  EXPECT_TOK(IDENTIFIER);
-  if (MATCH_TOK(FUN))
-    MATCH_FUN(parse_fun_decl, fun->next);
+      MATCH_FUN(parse_decl, fun->decl);
+
+      EXPECT_TOK(BEGIN);
+
+      // parse statements
+      fun->stmts = NULL;
+      MATCH_FUN(parse_stmt, fun->stmts);
+      EXPECT_TOK(NUF);
+
+      char *id = BEGET->val;
+      EXPECT_TOK(IDENTIFIER);
+      PARSE_ASSERT(!strcmp(id, fun->name),
+          "Module block terminated by the wrong identifier.",
+          "Expected '%s' after 'dom', got '%s'.",
+          fun->name, id);
+    );
+
+  ADD_SYMBOL(fun->symbol);
+
+  MATCH_FUN(parse_fun_decl, fun->next);
+
   PARSE_RETURN(fun);
 }
 
@@ -1026,6 +1062,8 @@ static id_list_t parse_id_list(PARSE_PARAMS) {
   id_list->name = BEGET->val;
   EXPECT_TOK(IDENTIFIER);
 
+  ADD_SYMBOL(symbol_new(id_list->name));
+
   if (MATCH_TOK(COMMA)) {
     EXPECT_FUN(parse_id_list, id_list->next);
   }
@@ -1034,6 +1072,31 @@ static id_list_t parse_id_list(PARSE_PARAMS) {
   }
 
   PARSE_RETURN(id_list);
+}
+
+static morph_t parse_morph_decl(PARSE_PARAMS) {
+  morph_t morph = malloc(sizeof(struct morph_st));
+
+  EXPECT_TOK(MU);
+
+  morph->target = BEGET->val;
+  EXPECT_TOK(IDENTIFIER);
+
+  EXPECT_FUN(parse_stmt, morph->defn);
+
+  EXPECT_TOK(UM);
+
+  char *closing_id = BEGET->val;
+  EXPECT_TOK(IDENTIFIER);
+
+  PARSE_ASSERT(!strcmp(closing_id, morph->target),
+      "Morph block terminated by the wrong identifier",
+      "Expected %s after 'um', got %s", morph->target, closing_id);
+
+  morph->next = NULL;
+  MATCH_FUN(parse_morph_decl, morph->next);
+
+  PARSE_RETURN(morph);
 }
 
 // parse type declarations
@@ -1047,12 +1110,10 @@ static type_decl_t parse_type_decl(PARSE_PARAMS) {
   EXPECT_FUN(parse_type_expr, ty->type);
   EXPECT_TOK(SEMICOLON);
 
-  // MATCH_FUN(parse_morph_decl, ty->morphs);
+  MATCH_FUN(parse_morph_decl, ty->morphs);
 
-  if (MATCH_TOK(MU)){
-    //some morph stuff
-    EXPECT_TOK(UM);
-  } 
+  // NOTE: do we possibly want types to have their own local scope?
+  ADD_SYMBOL(symbol_new(ty->name));
 
   MATCH_FUN(parse_type_decl,ty->next);
 
@@ -1129,19 +1190,32 @@ static mod_t parse_module_decl(PARSE_PARAMS) {
   mod->name = BEGET->val;
   EXPECT_TOK(IDENTIFIER);
 
-  MATCH_FUN(parse_decl, mod->decl);
+  mod->symbol = symbol_new(mod->name);
 
-  if (MATCH_TOK(BEGIN)) {
-    MATCH_FUN(parse_stmt, mod->stmts);
-  }
+  ADD_SCOPE(
+      MATCH_FUN(parse_decl, mod->decl);
 
-  EXPECT_TOK(DOM);
+      mod->stmts = NULL;
 
-  PARSE_ASSERT(!strcmp(BEGET->val, mod->name),
-      "Module block terminated by the wrong identifier.",
-      "Expected '%s' after 'dom', got '%s'.",
-      mod->name, BEGET->val);
-  EXPECT_TOK(IDENTIFIER);
+      if (MATCH_TOK(BEGIN)) {
+        MATCH_FUN(parse_stmt, mod->stmts);
+      }
+
+      EXPECT_TOK(DOM);
+
+      char *id = BEGET->val;
+      EXPECT_TOK(IDENTIFIER);
+
+      PARSE_ASSERT(!strcmp(id, mod->name),
+          "Module block terminated by the wrong identifier.",
+          "Expected '%s' after 'dom', got '%s'.",
+          mod->name, id);
+    );
+
+  ADD_SYMBOL(mod->symbol);
+
+  // Modules do not inherit their parent scope
+  mod->symbol->scope->parent = NULL;
 
   MATCH_FUN(parse_module_decl, mod->next);
 
@@ -1196,6 +1270,7 @@ static break_stmt_t parse_break_stmt(PARSE_PARAMS) {
 root_t parse(ll_t LL_NAME) {
   root_t root = malloc(sizeof(struct root_st));
   int LEVEL_SPECIFIER;
+  scope_t SCOPE = scope_new(NULL);
 
   init_fail();
 

@@ -1,5 +1,4 @@
-#ifndef _UTIL_H
-#define _UTIL_H
+#pragma once
 
 // LINKED LIST 
 struct ll_st {
@@ -54,5 +53,3 @@ char* itoa(unsigned int x);
 char* remove_empty_lines(char* s);
 
 unsigned long f_to_int(char *d);
-
-#endif

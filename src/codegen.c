@@ -79,6 +79,7 @@ void set_entrypoint(root_t root);
 // Generator functions
 char* gen_label(char *label);
 char* gen_data_segment();
+char* gen_type_graph_segment();
 char* gen_mod(context_t ctx, mod_t mod);
 char* gen_fun(context_t ctx, fun_decl_t fun);
 char* gen_stmt(context_t ctx, stmt_t stmt);
@@ -524,7 +525,7 @@ char* gen_literal_expr(context_t ctx, literal_t literal, reg_t out) {
 
 char* gen_data_segment() {
   CREATE_BUFFER;
-  ADD_BLOCK("\t.data\n");
+  ADD_INSTR(".section", ".data");
   for (ll_t l = strings; l; l = l->next) {
     string_label_t str_label = l->val;
     ADD_LABEL(str_label->label);
@@ -825,24 +826,49 @@ char* gen_unary_expr(context_t ctx, unary_t unary, reg_t out) {
   RETURN_BUFFER;
 }
 
-char* codegen(root_t root, type_node_t *g) {
-  graph = g;
+char* gen_type_graph_segment() {
   CREATE_BUFFER;
-  ADD_INSTR(".global", "main");
+  char **type_names = get_type_names(graph);
+  unsigned long count = 0;
+  ADD_INSTR(".section", ".type_graph");
+  for (; type_names[0]; type_names++) {
+    ADD_LABEL(concat("__type__", type_names[0]));
+    ADD_INSTR(".quad", itoa(count));
+    count++;
+  }
+  RETURN_BUFFER;
+}
+
+char* gen_text_segment(root_t root) {
+  CREATE_BUFFER;
+  ADD_INSTR(".section", ".text");
   for (mod_t mod = root->mods; mod; mod = mod->next) {
     context_t ctx = ctx_new();
     ctx_set_mod(ctx);
     ADD_BLOCK(gen_mod(ctx, mod));
   }
+  RETURN_BUFFER;
+}
+
+char* codegen(root_t root, type_node_t *g) {
+  graph = g;
+  CREATE_BUFFER;
+  ADD_INSTR(".global", "main");
 
   // Generate main method 
-  set_entrypoint(root);
   ADD_LABEL("main");
+  ADD_INSTR("call", "print_graph");
   ADD_INSTR("push", "%r10");
   ADD_INSTR("call", "__module__Main_init");
   ADD_INSTR("movq", "%rax, %r10");
   ADD_INSTR("pop", "%r10");
 
+  // Generate text segment
+  ADD_BLOCK(gen_text_segment(root));
+
+  // Generate type graph segment
+  ADD_BLOCK(gen_type_graph_segment());
+  
   // Generate data segment
   ADD_BLOCK(gen_data_segment());
   RETURN_BUFFER;

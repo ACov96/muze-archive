@@ -11,6 +11,14 @@
 #define WORD 8
 #define CREATE_TYPE_HEADER(T, V) const unsigned long T = (unsigned long)(V) << 48
 
+typedef struct type_st *type_t;
+
+struct type_st {
+  unsigned long id;
+};
+
+extern struct type_st __type_graph[4];
+
 CREATE_TYPE_HEADER(TYPE_MASK, 0xFFFF);
 CREATE_TYPE_HEADER(STR_HEADER, 0);
 CREATE_TYPE_HEADER(INT_HEADER, 0);
@@ -293,4 +301,10 @@ void print_real(data_t d) {
   } u;
   u.l = (unsigned long)d->members[0];
   printf("%f\n", u.r);
+}
+
+void print_graph() {
+  for (int i = 0; i < 4; i++) {
+    printf("%ld\n", __type_graph[0].id);
+  }
 }

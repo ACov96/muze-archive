@@ -17,7 +17,7 @@ struct type_st {
   unsigned long id;
 };
 
-extern struct type_st __type_graph[4];
+// extern struct type_st __type_graph[4];
 
 CREATE_TYPE_HEADER(TYPE_MASK, 0xFFFF);
 CREATE_TYPE_HEADER(STR_HEADER, 0);
@@ -303,8 +303,8 @@ void print_real(data_t d) {
   printf("%f\n", u.r);
 }
 
-void print_graph() {
-  for (int i = 0; i < 4; i++) {
-    printf("%ld\n", __type_graph[0].id);
-  }
-}
+
+/*   for (int i = 0; i < 4; i++) { */
+/*     printf("%ld\n", __type_graph[0].id); */
+/*   } */
+/* } */

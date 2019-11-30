@@ -224,6 +224,7 @@ char* gen_mod(context_t ctx, mod_t mod) {
   ADD_INSTR("call", "malloc");
   ADD_INSTR("pop", "%rdi");
   ADD_INSTR("movq", "%rax, %r10");
+  ADD_INSTR("push", "%r10");
 
   int offset = 1;
   for (const_decl_t c = mod->decl->constants; c; c = c->next) {
@@ -244,6 +245,7 @@ char* gen_mod(context_t ctx, mod_t mod) {
     for (stmt_t s = mod->stmts; s; s = s->next)
       ADD_BLOCK(gen_stmt(ctx, s));
 
+  ADD_INSTR("pop", "%r10");
   ADD_INSTR("movq", "%r10, %rax");
   ADD_INSTR("pop", "%r10");
   ADD_INSTR("ret", NO_OPERANDS);
@@ -481,45 +483,38 @@ char* gen_literal_expr(context_t ctx, literal_t literal, reg_t out) {
   char *real_literal = NULL;
   char *bool_literal = NULL;
   CREATE_BUFFER;
+  ADD_INSTR("push", "%rdi");
+  ADD_INSTR("push", "%r10");
   switch(literal->kind) {
   case STRING_LIT:
     str_label = concat("$", register_or_get_string_label(literal->u.string_lit));
-    ADD_INSTR("push", "%rdi");
     ADD_INSTR("movq", concat(str_label, ", %rdi"));
     ADD_INSTR("call", "alloc_str");
-    ADD_INSTR("pop", "%rdi");
-    ADD_INSTR("movq", concat("%rax, ", out));
     break;
   case INTEGER_LIT:
     int_literal = concat("$", literal->u.integer_lit);
-    ADD_INSTR("push", "%rdi");
     ADD_INSTR("movq", concat(int_literal, ", %rdi"));
     ADD_INSTR("call", "alloc_int");
-    ADD_INSTR("pop", "%rdi");
-    ADD_INSTR("movq", concat("%rax, ", out));
     break;
   case REAL_LIT:
     real_literal = malloc(64);
     sprintf(real_literal, "$%lu", f_to_int(literal->u.real_lit));
-    ADD_INSTR("push", "%rdi");
     ADD_INSTR("movq", concat(real_literal, ", %rdi"));
     ADD_INSTR("call", "alloc_real");
-    ADD_INSTR("pop", "%rdi");
-    ADD_INSTR("movq", concat("%rax, ", out));
     break;
   case BOOLEAN_LIT:
     bool_literal = concat("$", itoa(literal->u.bool_lit == TRUE_BOOL));
-    ADD_INSTR("push", "%rdi");
     ADD_INSTR("movq", concat(bool_literal, ", %rdi"));
     ADD_INSTR("call", "alloc_bool");
-    ADD_INSTR("pop", "%rdi");
-    ADD_INSTR("movq", concat("%rax, ", out));
     break;
   case NULL_LIT:
     ADD_INSTR("movq", concat("$0, ", out));
   default:
     GEN_ERROR("Unknown literal");
   }
+  ADD_INSTR("pop", "%r10");
+  ADD_INSTR("pop", "%rdi");
+  ADD_INSTR("movq", concat("%rax, ", out));
   RETURN_BUFFER;
 }
 
@@ -539,7 +534,7 @@ char* gen_id_expr(context_t ctx, char *id, reg_t out) {
   char *read_inst = malloc(64);
   static_link_t link = NULL;
   static_link_t sl = ctx_get_id_offset(ctx, id);
-  if (sl->next == NULL) {
+  if (sl->is_mod != 1 && sl->next == NULL) {
     // Dealing with local variable, just grab it from the current activation record
     sprintf(read_inst, "-%d(%%rbp), %s", WORD * (sl->offset + 2), out);
     ADD_INSTR("movq", read_inst);
@@ -857,11 +852,12 @@ char* codegen(root_t root, type_node_t *g) {
 
   // Generate main method 
   ADD_LABEL("main");
-  ADD_INSTR("call", "print_graph");
+  // ADD_INSTR("call", "print_graph");
   ADD_INSTR("push", "%r10");
   ADD_INSTR("call", "__module__Main_init");
   ADD_INSTR("movq", "%rax, %r10");
   ADD_INSTR("pop", "%r10");
+  ADD_INSTR("ret", NO_OPERANDS);
 
   // Generate text segment
   ADD_BLOCK(gen_text_segment(root));

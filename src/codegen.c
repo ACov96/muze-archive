@@ -837,6 +837,17 @@ char* gen_type_graph_segment() {
 char* gen_text_segment(root_t root) {
   CREATE_BUFFER;
   ADD_INSTR(".section", ".text");
+  ADD_INSTR(".global", "main");
+
+  // Generate main method 
+  ADD_LABEL("main");
+  // ADD_INSTR("call", "print_graph");
+  ADD_INSTR("push", "%r10");
+  ADD_INSTR("call", "__module__Main_init");
+  ADD_INSTR("movq", "%rax, %r10");
+  ADD_INSTR("pop", "%r10");
+  ADD_INSTR("ret", NO_OPERANDS);
+
   for (mod_t mod = root->mods; mod; mod = mod->next) {
     context_t ctx = ctx_new();
     ctx_set_mod(ctx);
@@ -848,16 +859,6 @@ char* gen_text_segment(root_t root) {
 char* codegen(root_t root, type_node_t *g) {
   graph = g;
   CREATE_BUFFER;
-  ADD_INSTR(".global", "main");
-
-  // Generate main method 
-  ADD_LABEL("main");
-  // ADD_INSTR("call", "print_graph");
-  ADD_INSTR("push", "%r10");
-  ADD_INSTR("call", "__module__Main_init");
-  ADD_INSTR("movq", "%rax, %r10");
-  ADD_INSTR("pop", "%r10");
-  ADD_INSTR("ret", NO_OPERANDS);
 
   // Generate text segment
   ADD_BLOCK(gen_text_segment(root));

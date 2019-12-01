@@ -97,8 +97,14 @@ struct prog_opts parse_args(int argc, char **argv) {
 
 int main(int argc, char* argv[]) {
   char *stdlib_path = getenv("MUZE_STDLIB_PATH");
+  char *linker_script_path = getenv("MUZE_LD_SCRIPT_PATH");
   if (stdlib_path == NULL) {
     fputs("Error: No MUZE_STDLIB_PATH environment variable set\n", stderr);
+    exit(EXIT_FAILURE);
+  }
+
+  if (linker_script_path == NULL) {
+    fputs("Error: No MUZE_LD_SCRIPT_PATH environment variable set\n", stderr);
     exit(EXIT_FAILURE);
   }
 
@@ -176,7 +182,18 @@ int main(int argc, char* argv[]) {
     status = 0;
     waitpid(pid, &status, 0);
   } else {
-    char *args[] = {"gcc", "-fno-pie", "-no-pie", "-g", "-o", opts.output_file, stdlib_path, "a.o", "-lm", NULL};
+    char *args[] = {"gcc",
+                    "-fno-pie",
+                    "-no-pie",
+                    "-g",
+                    "-o",
+                    opts.output_file,
+                    stdlib_path,
+                    "a.o",
+                    "-lm",
+                    "-T",
+                    linker_script_path,
+                    NULL};
     execvp(args[0], args);
   }
 }

@@ -15,9 +15,10 @@ typedef struct type_st *type_t;
 
 struct type_st {
   unsigned long id;
+  char *name;
 };
 
-// extern struct type_st __type_graph[4];
+extern struct type_st __type_graph[4];
 
 CREATE_TYPE_HEADER(TYPE_MASK, 0xFFFF);
 CREATE_TYPE_HEADER(STR_HEADER, 0);
@@ -303,8 +304,8 @@ void print_real(data_t d) {
   printf("%f\n", u.r);
 }
 
-
-/*   for (int i = 0; i < 4; i++) { */
-/*     printf("%ld\n", __type_graph[0].id); */
-/*   } */
-/* } */
+void print_graph() {
+  for (int i = 0; i < 4; i++) {
+    printf("%s: %ld\n", __type_graph[i].name, __type_graph[i].id);
+  }
+}

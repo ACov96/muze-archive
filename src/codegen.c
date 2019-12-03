@@ -826,11 +826,16 @@ char* gen_type_graph_segment() {
   CREATE_BUFFER;
   char **type_names = get_type_names(graph);
   unsigned long count = 0;
+  ADD_LABEL("__type_graph_size");
+  for (char **tn = type_names; tn[0]; tn++)
+    count++;
   ADD_LABEL("__type_graph");
-  for (; type_names[0]; type_names++) {
-    ADD_LABEL(concat("__type__", type_names[0]));
+  ADD_INSTR(".quad", itoa(count));
+  count = 0;
+  for (char **tn = type_names; tn[0]; tn++) {
+    ADD_LABEL(concat("__type__", tn[0]));
     ADD_INSTR(".quad", itoa(count));
-    char *type_name_label = register_or_get_string_label(type_names[0]);
+    char *type_name_label = register_or_get_string_label(tn[0]);
     ADD_INSTR(".quad", type_name_label);
     count++;
   }
@@ -842,6 +847,7 @@ char* gen_text_segment(root_t root) {
   ADD_INSTR(".section", ".text");
   ADD_INSTR(".global", "main");
   ADD_INSTR(".global", "__type_graph");
+  ADD_INSTR(".global", "__type_graph_size");
 
   // Generate main method 
   ADD_LABEL("main");

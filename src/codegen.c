@@ -428,19 +428,19 @@ char* gen_call_expr(context_t ctx, call_t call, reg_t out) {
     char *temp = gen_expr(ctx, curr_arg->expr, arg_registers[arg_idx]);
     ADD_BLOCK(temp);
     
-    // TODO: This logic will actually shrink once type checking is done because
-    // all we need to do is get the type off of the expression
-    if (args && curr_arg->expr->kind == ID_EX) {
-      char *arg_type = ctx_get_id_type(ctx, curr_arg->expr->u.id_ex);
-      char *target_type = args->type->u.name_ty;
+    /* // TODO: This logic will actually shrink once type checking is done because */
+    /* // all we need to do is get the type off of the expression */
+    /* if (args && curr_arg->expr->kind == ID_EX) { */
+    /*   char *arg_type = ctx_get_id_type(ctx, curr_arg->expr->u.id_ex); */
+    /*   char *target_type = args->type->u.name_ty; */
 
 
-      ADD_INSTR("push", "%rdi");
-      ADD_INSTR("movq", concat(arg_registers[arg_idx], ", %rdi"));
-      ADD_INSTR("call", concat("__morph__", concat(arg_type, concat("_", target_type))));
-      ADD_INSTR("pop", "%rdi");
-      ADD_INSTR("movq", concat("%rax, ", arg_registers[arg_idx]));
-    }
+    /*   ADD_INSTR("push", "%rdi"); */
+    /*   ADD_INSTR("movq", concat(arg_registers[arg_idx], ", %rdi")); */
+    /*   ADD_INSTR("call", concat("__morph__", concat(arg_type, concat("_", target_type)))); */
+    /*   ADD_INSTR("pop", "%rdi"); */
+    /*   ADD_INSTR("movq", concat("%rax, ", arg_registers[arg_idx])); */
+    /* } */
 
     arg_idx++;
     if (args != NULL)

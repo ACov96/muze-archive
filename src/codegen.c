@@ -851,7 +851,7 @@ char* gen_text_segment(root_t root) {
 
   // Generate main method 
   ADD_LABEL("main");
-  ADD_INSTR("call", "print_graph");
+  // ADD_INSTR("call", "print_graph");
   ADD_INSTR("push", "%r10");
   ADD_INSTR("call", "__module__Main_init");
   ADD_INSTR("movq", "%rax, %r10");

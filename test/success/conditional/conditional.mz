@@ -1,4 +1,4 @@
-mod Conditional
+mod Main
    fun main() : integer
    begin
      if false then
@@ -9,5 +9,7 @@ mod Conditional
        print("a is none of the above");
      fi
    nuf main
-dom Conditional
+begin
+    main();
+dom Main
             

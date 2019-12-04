@@ -14,7 +14,6 @@ run_test_in_directory() {
     do
         TRIMMED=$(echo $d | sed 's:/*$::')
         cd $d
-        pwd
         $MUZEC -o $TRIMMED $TRIMMED.mz
         if [ $? -eq 0 ]
         then

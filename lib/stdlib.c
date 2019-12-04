@@ -246,6 +246,7 @@ data_t __morph__string_boolean(data_t in) {
   if (strcmp(str, "true") == 0) return alloc_bool(1);
   else if (strcmp(str, "false") == 0) return alloc_bool(0);
   panic("Unknown boolean string value");
+  return NULL; // unreachable
 }
 
 data_t __create_new_data(unsigned long size) {

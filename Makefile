@@ -15,7 +15,8 @@ CFLAGS = -g -Wall -Wfatal-errors -Werror \
 OBJLST = util.o lexer.o main.o parser.o print_tree.o codegen.o context.o morph_graph.o symbol.o
 OBJS = $(foreach obj, $(OBJLST), $(BUILDDIR)/$(obj))
 
-TARGET = muzec
+COMPILER = muzec
+STDLIB = stdlib.o
 
 vpath %.c $(SRCDIR)
 vpath %.h $(INCLUDEDIR)
@@ -28,19 +29,24 @@ $(BUILDDIR) :
 $(BUILDDIR)/%.o : %.c | $(BUILDDIR)
 	$(CC) $(CFLAGS) -c -o $@ $<
 
-$(TARGET) : $(OBJS)
+$(COMPILER) : $(OBJS)
 	$(CC) $(CFLAGS) -o $@ $^
 
-.DEFAULT_GOAL = $(TARGET)
+$(STDLIB) : lib/stdlib.c lib/muze_stdlib.h
+	$(CC) $(CFLAGS) -c -o $@ $<
 
-.PHONY : clean test
+all : $(COMPILER) $(STDLIB)
+
+.DEFAULT_GOAL = all
+
+.PHONY : clean test all
 
 TESTSCRIPT = test.sh
 
-test: $(TARGET)
+test: $(COMPILER)
 	./$(TESTSCRIPT)
 
 clean:
-	rm -f $(OBJS) $(TARGET)
+	rm -f $(OBJS) $(COMPILER)
 	rm -f a.s
 	rm -d $(BUILDDIR)

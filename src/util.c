@@ -107,11 +107,13 @@ int had_errors() {
  */
 char *concat(char* s1, char* s2) {
   // Allocate the total number of characters of each string, plus 1 extra byte for null terminator
-  char *res = calloc(strlen(s1) + strlen(s2) + 1, sizeof(char));
-  for (int i = 0; i < strlen(s1); i++)
+  int s1_length = strlen(s1);
+  int s2_length = strlen(s2);
+  char *res = calloc(s1_length + s2_length + 1, sizeof(char));
+  for (int i = 0; i < s1_length; i++)
     res[i] = s1[i];
-  for (int i = strlen(s1); i < (strlen(s1) + strlen(s2)); i++)
-    res[i] = s2[i - strlen(s1)];
+  for (int i = strlen(s1); i < (s1_length + s2_length); i++)
+    res[i] = s2[i - s1_length];
   return res;
 }
 

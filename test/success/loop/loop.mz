@@ -1,0 +1,21 @@
+mod Main
+  fun main() : integer
+  var
+    a : boolean = false;
+  begin
+    loop
+      print("Hello world");
+      if a then
+        break;
+      else
+        a = true;
+        loop
+          print("Inner loop");
+          break;
+        pool
+      fi
+    pool
+  nuf main
+begin
+  main();
+dom Main

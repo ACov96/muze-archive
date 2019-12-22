@@ -1,3 +1,6 @@
+variables:
+  GIT_SUBMODULE_STRATEGY: recursive
+  
 before_script:
   - make
   - export MUZE_STDLIB_PATH=$(pwd)/lib/libs.o

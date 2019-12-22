@@ -631,12 +631,17 @@ char* gen_cond_stmt(context_t ctx, cond_stmt_t cond) {
   ll_t cl = condition_labels;
   for (cond_stmt_t c = cond; c; c = c->else_stmt ? c->else_stmt->u.cond_stmt : NULL) {
     if (c->test != NULL) {
-      ADD_BLOCK(gen_expr(ctx, c->test, "%rax"));
 
       // TODO: This should be a morph
       ADD_INSTR("push", "%r10");
-      ADD_INSTR("movq", "(%rax), %r10"); 
-      ADD_INSTR("cmp", "$1, %r10");
+      ADD_INSTR("push", "%rdi");
+      ADD_INSTR("push", "%rsi");
+      ADD_BLOCK(gen_expr(ctx, c->test, "%rdi"));
+      ADD_INSTR("movq", concat(INT_LITERAL(0), ", %rsi"));
+      ADD_INSTR("call", "__get_data_member");
+      ADD_INSTR("cmp", "$1, %rax");
+      ADD_INSTR("pop", "%rsi");
+      ADD_INSTR("pop", "%rdi");
       ADD_INSTR("pop", "%r10");
       ADD_INSTR("je", cl->val);
     } else {

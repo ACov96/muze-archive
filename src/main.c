@@ -12,12 +12,15 @@
 #include "morph_graph.h"
 //#include "print_tree.h"
 
+int log_enable;
+
 struct prog_opts {
   int print_help;
   int print_tokens;
   int print_tree;
   int print_asm;
   int print_graph;
+  int parse_log_enable;
   int save_asm;
   char *output_file;
   char **input_files;
@@ -32,6 +35,7 @@ struct prog_opts parse_args(int argc, char **argv) {
     .print_tree = 0,
     .print_asm = 0,
     .print_graph = 0,
+    .parse_log_enable = 0,
     .save_asm = 0,
     .output_file = "a.out",
   };
@@ -76,6 +80,10 @@ struct prog_opts parse_args(int argc, char **argv) {
 
     case 'm':
       opts.print_graph = 1;
+      break;
+
+    case 'p':
+      opts.parse_log_enable = 1;
       break;
       
       // Error cases
@@ -128,6 +136,7 @@ int main(int argc, char* argv[]) {
     print_tokens(tokens);
   }
 
+  log_enable = opts.parse_log_enable;
   root_t ast_root = parse(tokens);
 
   if (!ast_root) {

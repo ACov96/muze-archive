@@ -154,7 +154,7 @@ char* ctx_curr_break_label(context_t ctx) {
   ll_t l = NULL;
   if (ctx->break_labels == NULL) return NULL;
   for (l = ctx->break_labels; l->next; l = l->next);
-  return l->val;
+  return ((id_type_t)(l->val))->id;
 }
 
 char* ctx_get_scope_name(context_t ctx) {

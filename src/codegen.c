@@ -38,6 +38,9 @@
 
 #define GEN_WARN(S) printf("Codegen Warning: %s\n", S)
 
+#define GEN_ENABLE_TYPE(T) activate_node(graph, T);
+#define GEN_DISABLE_TYPE(T) deactivate_node(graph, T);
+
 /* TYPES */
 typedef struct label_st        *label_t;
 typedef struct string_label_st *string_label_t;

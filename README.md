@@ -30,7 +30,6 @@ export MUZE_STDLIB_PATH=/path/to/repo/lib/libs.o
 You'll also need to set the `MUZE_LD_SCRIPT_PATH` environment variable so that `muzec` can properly setup the type graph for the runtime environment
 
 ```bash
-make lib/libs.o # If you already ran 'make' then you can skip this line
 export MUZE_LD_SCRIPT_PATH=/path/to/repo/config/conf.ld
 ```
 

@@ -40,7 +40,7 @@ struct prog_opts parse_args(int argc, char **argv) {
     .output_file = "a.out",
   };
 
-  const char *opt_string = "hko:taSm";
+  const char *opt_string = "hko:taSmp";
   const struct option long_opts[] = {
     { "--help",   no_argument,       NULL, 'h' },
     { "--tokens", no_argument,       NULL, 'k' },
@@ -48,6 +48,7 @@ struct prog_opts parse_args(int argc, char **argv) {
     { "--tree",   no_argument,       NULL, 't' },
     { "--asm",    no_argument,       NULL, 'a' },
     { "--graph",  no_argument,       NULL, 'm' },
+    { "--parse-log", no_argument,    NULL, 'p' },
   };
 
   for (int opt = getopt_long(argc, argv, opt_string, long_opts, NULL);

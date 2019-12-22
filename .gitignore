@@ -1,12 +1,43 @@
+# everything
+**
+
+# Except these things
+!docs
+!docs/*
+
+!include
+!include/*
+
+!src
+!src/*
+
+!test
+!test/*
+!test/*/*
+!test/*/*/*
+
+!lib
+!lib/*
+
+!examples
+!examples/*
+
+!Makefile
+!SOURCEDEPS
+!README.md
+!TODO.txt
+!.gitignore
+
+# Things that may appear in the above directories that we DEFINITELY want to ignore
+
 # binaries
 *.o
-build
-muzec
 
 # editor files
 *.swp
 
 # tex output
+**/latex.out
 *.pdf
 *.dvi
 *.aux
@@ -17,5 +48,4 @@ muzec
 
 # who even knows
 *.nfs*
-a.s
 

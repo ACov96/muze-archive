@@ -1,5 +1,4 @@
 before_script:
-  - apt-get update -y
   - make
   - export MUZE_STDLIB_PATH=$(pwd)/lib/libs.o
   - export MUZE_LD_SCRIPT_PATH=$(pwd)/config/conf.ld

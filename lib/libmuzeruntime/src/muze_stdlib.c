@@ -9,7 +9,8 @@
 #include "muze_stdlib.h"
 
 #define WORD 8
-#define CREATE_TYPE_HEADER(T, V) const unsigned long T = (unsigned long)(V) << 48
+#define CREATE_TYPE_HEADER(T, V)                        \
+  const unsigned long T = (unsigned long)(V) << 48
 
 typedef struct type_st *type_t;
 
@@ -18,7 +19,7 @@ struct type_st {
   char *name;
 };
 
-extern struct type_st __type_graph[4];
+extern struct type_st __type_graph;
 
 CREATE_TYPE_HEADER(TYPE_MASK, 0xFFFF);
 CREATE_TYPE_HEADER(STR_HEADER, 0);
@@ -306,7 +307,12 @@ void print_real(data_t d) {
 }
 
 void print_graph() {
+  /* for (int i = 0; i < 4; i++) { */
+  /*   printf("%s: %ld\n", __type_graph[i].name, __type_graph[i].id); */
+  /* } */
+  type_t tg = &__type_graph;
   for (int i = 0; i < 4; i++) {
-    printf("%s: %ld\n", __type_graph[i].name, __type_graph[i].id);
+    printf("%ld\n", tg[i].id);
+    printf("%s\n", tg[i].name);
   }
 }

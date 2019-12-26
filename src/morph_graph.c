@@ -154,7 +154,7 @@ char** get_type_names(type_node_t* graph) {
 	while (graph[len])
 		len++;
 	
-	char** type_names = malloc((sizeof(char*)*len) + 1);
+	char** type_names = malloc(sizeof(char*) * (len + 1));
 
 	for (int i = 0; i < len; i++)
 		type_names[i] = graph[i]->name;

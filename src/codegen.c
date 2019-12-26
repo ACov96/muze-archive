@@ -85,6 +85,7 @@ char* gen_data_segment();
 char* gen_type_graph_segment();
 char* gen_mod(context_t ctx, mod_t mod);
 char* gen_fun(context_t ctx, fun_decl_t fun);
+char* gen_type(context_t ctx, type_decl_t type);
 char* gen_stmt(context_t ctx, stmt_t stmt);
 char* gen_expr_stmt(context_t ctx, expr_stmt_t expr);
 char* gen_expr(context_t ctx, expr_t expr, reg_t out);
@@ -836,6 +837,15 @@ char* gen_type_graph_segment() {
   ADD_INSTR(".section", ".type_graph");
   ADD_LABEL("__type_graph");
   for (char **tn = type_names; tn[0]; tn++) {
+    // Don't bother generating entries for the intrinsic types
+    if ((strcmp(tn[0], "integer") == 0)
+        || (strcmp(tn[0], "real") == 0)
+        || (strcmp(tn[0], "string") == 0)
+        || (strcmp(tn[0], "boolean") == 0)
+        || (strcmp(tn[0], "array") == 0)
+        || (strcmp(tn[0], "list") == 0)
+        || (strcmp(tn[0], "map") == 0))
+      continue;
     ADD_LABEL(concat("__type__", tn[0]));
     char *type_name_label = register_or_get_string_label(tn[0]);
     ADD_INSTR(".quad", type_name_label);
@@ -850,7 +860,6 @@ char* gen_text_segment(root_t root) {
 
   // Generate main method 
   ADD_LABEL("main");
-  ADD_INSTR("call", "init_type_graph");
   ADD_INSTR("push", "%r10");
   ADD_INSTR("call", "__module__Main_init");
   ADD_INSTR("movq", "%rax, %r10");
@@ -862,6 +871,12 @@ char* gen_text_segment(root_t root) {
     ctx_set_mod(ctx);
     ADD_BLOCK(gen_mod(ctx, mod));
   }
+  RETURN_BUFFER;
+}
+
+char* gen_type(context_t ctx, type_decl_t type) {
+  CREATE_BUFFER;
+
   RETURN_BUFFER;
 }
 

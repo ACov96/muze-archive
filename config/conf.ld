@@ -150,8 +150,9 @@ SECTIONS
   {
     *(.data .data.* .gnu.linkonce.d.*)
     SORT(CONSTRUCTORS)
-    PROVIDE(__type_graph = .);
+    PROVIDE(__TYPE_GRAPH = .);
     *(.type_graph)
+    PROVIDE(__TYPE_GRAPH_END = .);
   }
   .data1          : { *(.data1) }
   _edata = .; PROVIDE (edata = .);

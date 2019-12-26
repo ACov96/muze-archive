@@ -9,7 +9,7 @@
 struct type_node_st {
   char* name;
   int index;
-	int active; //inactive = 0, active = 1
+  int active; //inactive = 0, active = 1
   type_node_t next;
 };
 

@@ -7,19 +7,16 @@
 #include <string.h>
 #include <math.h>
 #include "muze_stdlib.h"
+#include "morph_graph.h"
 
 #define WORD 8
 #define CREATE_TYPE_HEADER(T, V)                        \
   const unsigned long T = (unsigned long)(V) << 48
 
-typedef struct type_st *type_t;
+extern void *__TYPE_GRAPH;
+extern void *__TYPE_GRAPH_END;
 
-struct type_st {
-  unsigned long id;
-  char *name;
-};
-
-extern struct type_st __type_graph;
+type_node_t *graph = NULL;
 
 CREATE_TYPE_HEADER(TYPE_MASK, 0xFFFF);
 CREATE_TYPE_HEADER(STR_HEADER, 0);
@@ -306,13 +303,7 @@ void print_real(data_t d) {
   printf("%f\n", u.r);
 }
 
-void print_graph() {
-  /* for (int i = 0; i < 4; i++) { */
-  /*   printf("%s: %ld\n", __type_graph[i].name, __type_graph[i].id); */
-  /* } */
-  type_t tg = &__type_graph;
-  for (int i = 0; i < 4; i++) {
-    printf("%ld\n", tg[i].id);
-    printf("%s\n", tg[i].name);
-  }
+void init_type_graph() {
+  graph = morph_graph();
+  print_graph(graph);
 }

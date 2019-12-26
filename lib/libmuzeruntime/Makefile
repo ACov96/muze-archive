@@ -10,6 +10,7 @@ CFLAGS = -g -Wall -Wfatal-errors -Werror \
 	 -Wno-error=unused-value \
 	 -Wno-error=unused-label \
 	 -I $(INCLUDEDIR) \
+	 -I ../../include \
 	 -lm \
 	 -no-pie
 

@@ -833,20 +833,12 @@ char* gen_unary_expr(context_t ctx, unary_t unary, reg_t out) {
 char* gen_type_graph_segment() {
   CREATE_BUFFER;
   char **type_names = get_type_names(graph);
-  unsigned long count = 0;
   ADD_INSTR(".section", ".type_graph");
-  /* ADD_LABEL("__type_graph_size"); */
-  /* for (char **tn = type_names; tn[0]; tn++) */
-  /*   count++; */
   ADD_LABEL("__type_graph");
-  /* ADD_INSTR(".quad", itoa(count)); */
-  count = 0;
   for (char **tn = type_names; tn[0]; tn++) {
     ADD_LABEL(concat("__type__", tn[0]));
-    ADD_INSTR(".quad", itoa(count));
     char *type_name_label = register_or_get_string_label(tn[0]);
     ADD_INSTR(".quad", type_name_label);
-    count++;
   }
   RETURN_BUFFER;
 }
@@ -855,12 +847,10 @@ char* gen_text_segment(root_t root) {
   CREATE_BUFFER;
   ADD_INSTR(".section", ".text");
   ADD_INSTR(".global", "main");
-  // ADD_INSTR(".global", "__type_graph");
-  // ADD_INSTR(".global", "__type_graph_size");
 
   // Generate main method 
   ADD_LABEL("main");
-  ADD_INSTR("call", "print_graph");
+  ADD_INSTR("call", "init_type_graph");
   ADD_INSTR("push", "%r10");
   ADD_INSTR("call", "__module__Main_init");
   ADD_INSTR("movq", "%rax, %r10");

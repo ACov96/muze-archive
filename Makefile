@@ -49,5 +49,5 @@ test: $(COMPILER)
 clean:
 	rm -f $(OBJS) $(COMPILER)
 	rm -f a.s
-	rm -d $(BUILDDIR)
+	rm -rf $(BUILDDIR)
 	cd lib && make clean

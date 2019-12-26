@@ -6,6 +6,8 @@
 #include "util.h"
 #include "limits.h"
 
+FILE *LOG_FILE = NULL;
+
 ll_t ll_new() {
   ll_t ll = malloc(sizeof(struct ll_st));
   return ll;
@@ -39,9 +41,9 @@ void write_log(char *msg, ...) {
   va_list args;
 
   va_start(args, msg);
-  vfprintf(stdout, msg, args);
+  vfprintf(LOG_FILE, msg, args);
   va_end(args);
-  fprintf(stdout, "\n");
+  fprintf(LOG_FILE, "\n");
 }
 
 typedef struct err_queue_st *err_queue_t;

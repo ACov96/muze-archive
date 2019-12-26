@@ -21,6 +21,7 @@ struct prog_opts {
   int print_asm;
   int print_graph;
   int parse_log_enable;
+  char *log_file;
   int save_asm;
   char *output_file;
   char **input_files;
@@ -36,11 +37,12 @@ struct prog_opts parse_args(int argc, char **argv) {
     .print_asm = 0,
     .print_graph = 0,
     .parse_log_enable = 0,
+    .log_file = "/dev/null",
     .save_asm = 0,
     .output_file = "a.out",
   };
 
-  const char *opt_string = "hko:taSmp";
+  const char *opt_string = "hko:taSmpl";
   const struct option long_opts[] = {
     { "--help",   no_argument,       NULL, 'h' },
     { "--tokens", no_argument,       NULL, 'k' },
@@ -49,6 +51,7 @@ struct prog_opts parse_args(int argc, char **argv) {
     { "--asm",    no_argument,       NULL, 'a' },
     { "--graph",  no_argument,       NULL, 'm' },
     { "--parse-log", no_argument,    NULL, 'p' },
+    { "--log",    required_argument, NULL, 'l' }
   };
 
   for (int opt = getopt_long(argc, argv, opt_string, long_opts, NULL);
@@ -82,9 +85,11 @@ struct prog_opts parse_args(int argc, char **argv) {
     case 'm':
       opts.print_graph = 1;
       break;
-
     case 'p':
       opts.parse_log_enable = 1;
+
+    case 'l':
+      opts.log_file = optarg;
       break;
       
       // Error cases
@@ -125,6 +130,8 @@ int main(int argc, char* argv[]) {
     fputs("Error: No input files given\n", stderr);
     exit(EXIT_FAILURE);
   }
+
+  LOG_FILE = fopen(opts.log_file, "w");
 
   ll_t tokens = lex(*opts.input_files);
 

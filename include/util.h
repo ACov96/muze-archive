@@ -1,5 +1,9 @@
 #pragma once
 
+#include <stdio.h>
+
+extern FILE *LOG_FILE;
+
 // LINKED LIST 
 struct ll_st {
   void *val;

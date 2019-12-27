@@ -16,6 +16,8 @@
 typedef struct mini_type_st *mini_type_t;
 struct mini_type_st {
   char *name;
+  unsigned long morph_length;
+  char *morphs[];
 };
 
 extern struct mini_type_st __TYPE_GRAPH;
@@ -311,10 +313,20 @@ void print_real(data_t d) {
 
 void init_type_graph() {
   graph = morph_graph();
-  for (mini_type_t t = &__TYPE_GRAPH;
+  for (mini_type_t *t = (mini_type_t*)&__TYPE_GRAPH;
        (unsigned long)t < (unsigned long)(&__TYPE_GRAPH_END);
        t++) {
-    graph = add_type(graph, t->name);
+    char *type_name = (*t)->name;
+    graph = add_type(graph, type_name);
+  }
+  for (mini_type_t *t = (mini_type_t*)&__TYPE_GRAPH;
+       (unsigned long)t < (unsigned long)(&__TYPE_GRAPH_END);
+       t++) {
+    char *type_name = (*t)->name;
+    unsigned long num_morphs = (*t)->morph_length;
+    for (unsigned long i = 0; i < num_morphs; i++) {
+      graph = add_morph(graph, type_name, (*t)->morphs[i]);
+    }
   }
   print_graph(graph);
 }

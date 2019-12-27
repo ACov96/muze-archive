@@ -528,7 +528,7 @@ char* gen_literal_expr(context_t ctx, literal_t literal, reg_t out) {
 
 char* gen_data_segment() {
   CREATE_BUFFER;
-  ADD_BLOCK(gen_type_graph_segment());
+  // ADD_BLOCK(gen_type_graph_segment());
   ADD_INSTR(".section", ".data");
   for (ll_t l = strings; l; l = l->next) {
     string_label_t str_label = l->val;
@@ -882,8 +882,23 @@ char* gen_text_segment(root_t root) {
 }
 
 char* gen_type(context_t ctx, type_decl_t type) {
+  char *type_label = concat("__type__", type->name);
+  char *type_name_label = register_or_get_string_label(type->name);
+  int morph_count = 0;
+  for (morph_t morph = type->morphs; morph; morph = morph->next)
+    morph_count++;
   CREATE_BUFFER;
-  // register_or_get_string_label(type->name);
+  ADD_INSTR(".section", ".data");
+  ADD_LABEL(type_label);
+  ADD_INSTR(".quad", type_name_label);
+  ADD_INSTR(".quad", itoa(morph_count));
+  for (morph_t morph = type->morphs; morph; morph = morph->next) {
+    char *target_label = register_or_get_string_label(morph->target);
+    ADD_INSTR(".quad", target_label);
+  }
+  ADD_INSTR(".section", ".type_graph");
+  ADD_INSTR(".quad", type_label);
+  ADD_INSTR(".section", ".text");
   RETURN_BUFFER;
 }
 

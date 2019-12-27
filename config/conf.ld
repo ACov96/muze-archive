@@ -51,8 +51,8 @@ SECTIONS
     KEEP (*(SORT_NONE(.init)))
   }
   .plt            : { *(.plt) *(.iplt) }
-.plt.got        : { *(.plt.got) }
-.plt.sec        : { *(.plt.sec) }
+  .plt.got        : { *(.plt.got) }
+  .plt.sec        : { *(.plt.sec) }
   .text           :
   {
     *(.text.unlikely .text.*_unlikely .text.unlikely.*)
@@ -150,12 +150,13 @@ SECTIONS
   {
     *(.data .data.* .gnu.linkonce.d.*)
     SORT(CONSTRUCTORS)
-    PROVIDE(__TYPE_GRAPH = .);
+    __TYPE_GRAPH = .;
     *(.type_graph)
-    PROVIDE(__TYPE_GRAPH_END = .);
+    __TYPE_GRAPH_END = .;
   }
   .data1          : { *(.data1) }
   _edata = .; PROVIDE (edata = .);
+  .type_graph : { *(.type_graph) }
   . = .;
   __bss_start = .;
   .bss            :

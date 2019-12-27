@@ -27,4 +27,4 @@ $(TARGET): $(OBJS)
 clean:
 	rm -rf $(DESTDIR) $(TARGET)
 	cd libmuzeruntime && make clean
-	cd libunwind && make clean && rm -rf usr
+	# cd libunwind && make clean && rm -rf usr

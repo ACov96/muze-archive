@@ -12,6 +12,7 @@
 #define WORD 8
 #define MODULE_MIN_SIZE 16
 #define NO_OPERANDS ""
+#define EMPTY_BUFFER ""
 #define CREATE_BUFFER char *buf = ""
 #define RETURN_BUFFER return buf
 #define PRINT_BUFFER printf("%s\n", buf)
@@ -282,6 +283,9 @@ char* gen_fun(context_t ctx, fun_decl_t fun) {
   }
 
   // TODO: Generate child modules
+
+  for (type_decl_t t = fun->decl->types; t; t = t->next)
+    ADD_BLOCK(gen_type(ctx, t));
   
   // Generate child functions
   for (fun_decl_t f = fun->decl->funs; f; f = f->next) {
@@ -833,9 +837,9 @@ char* gen_unary_expr(context_t ctx, unary_t unary, reg_t out) {
 
 char* gen_type_graph_segment() {
   CREATE_BUFFER;
+  int added_types = 0;
   char **type_names = get_type_names(graph);
   ADD_INSTR(".section", ".type_graph");
-  ADD_LABEL("__type_graph");
   for (char **tn = type_names; tn[0]; tn++) {
     // Don't bother generating entries for the intrinsic types
     if ((strcmp(tn[0], "integer") == 0)
@@ -846,10 +850,12 @@ char* gen_type_graph_segment() {
         || (strcmp(tn[0], "list") == 0)
         || (strcmp(tn[0], "map") == 0))
       continue;
+    added_types = 1;
     ADD_LABEL(concat("__type__", tn[0]));
     char *type_name_label = register_or_get_string_label(tn[0]);
     ADD_INSTR(".quad", type_name_label);
   }
+  if (added_types == 0) return EMPTY_BUFFER;
   RETURN_BUFFER;
 }
 
@@ -860,6 +866,7 @@ char* gen_text_segment(root_t root) {
 
   // Generate main method 
   ADD_LABEL("main");
+  ADD_INSTR("call", "init_type_graph");
   ADD_INSTR("push", "%r10");
   ADD_INSTR("call", "__module__Main_init");
   ADD_INSTR("movq", "%rax, %r10");
@@ -876,7 +883,7 @@ char* gen_text_segment(root_t root) {
 
 char* gen_type(context_t ctx, type_decl_t type) {
   CREATE_BUFFER;
-
+  // register_or_get_string_label(type->name);
   RETURN_BUFFER;
 }
 

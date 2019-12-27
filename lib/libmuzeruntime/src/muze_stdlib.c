@@ -13,10 +13,16 @@
 #define CREATE_TYPE_HEADER(T, V)                        \
   const unsigned long T = (unsigned long)(V) << 48
 
-extern void *__TYPE_GRAPH;
-extern void *__TYPE_GRAPH_END;
+typedef struct mini_type_st *mini_type_t;
+struct mini_type_st {
+  char *name;
+};
+
+extern struct mini_type_st __TYPE_GRAPH;
+extern unsigned __TYPE_GRAPH_END;
 
 type_node_t *graph = NULL;
+
 
 CREATE_TYPE_HEADER(TYPE_MASK, 0xFFFF);
 CREATE_TYPE_HEADER(STR_HEADER, 0);
@@ -305,5 +311,10 @@ void print_real(data_t d) {
 
 void init_type_graph() {
   graph = morph_graph();
+  for (mini_type_t t = &__TYPE_GRAPH;
+       (unsigned long)t < (unsigned long)(&__TYPE_GRAPH_END);
+       t++) {
+    graph = add_type(graph, t->name);
+  }
   print_graph(graph);
 }

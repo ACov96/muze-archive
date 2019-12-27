@@ -43,4 +43,4 @@ test: $(TARGET)
 clean:
 	rm -f $(OBJS) $(TARGET)
 	rm -f a.s
-	rm -d $(BUILDDIR)
+	rm -rf $(BUILDDIR)

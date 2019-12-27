@@ -211,6 +211,9 @@ char* gen_mod(context_t ctx, mod_t mod) {
   }
   populate_decl_into_ctx(ctx, mod->decl);
 
+  for (type_decl_t t = mod->decl->types; t; t = t->next)
+    ADD_BLOCK(gen_type(ctx, t));
+
   // Allocate module block
   ADD_LABEL(concat("__module__", concat(ctx_get_scope_name(ctx), "_init")));
 
@@ -528,7 +531,6 @@ char* gen_literal_expr(context_t ctx, literal_t literal, reg_t out) {
 
 char* gen_data_segment() {
   CREATE_BUFFER;
-  // ADD_BLOCK(gen_type_graph_segment());
   ADD_INSTR(".section", ".data");
   for (ll_t l = strings; l; l = l->next) {
     string_label_t str_label = l->val;
@@ -832,30 +834,6 @@ char* gen_unary_expr(context_t ctx, unary_t unary, reg_t out) {
   }
   ADD_INSTR("pop", "%rdi");
   ADD_INSTR("movq", concat("%rax, ", out));
-  RETURN_BUFFER;
-}
-
-char* gen_type_graph_segment() {
-  CREATE_BUFFER;
-  int added_types = 0;
-  char **type_names = get_type_names(graph);
-  ADD_INSTR(".section", ".type_graph");
-  for (char **tn = type_names; tn[0]; tn++) {
-    // Don't bother generating entries for the intrinsic types
-    if ((strcmp(tn[0], "integer") == 0)
-        || (strcmp(tn[0], "real") == 0)
-        || (strcmp(tn[0], "string") == 0)
-        || (strcmp(tn[0], "boolean") == 0)
-        || (strcmp(tn[0], "array") == 0)
-        || (strcmp(tn[0], "list") == 0)
-        || (strcmp(tn[0], "map") == 0))
-      continue;
-    added_types = 1;
-    ADD_LABEL(concat("__type__", tn[0]));
-    char *type_name_label = register_or_get_string_label(tn[0]);
-    ADD_INSTR(".quad", type_name_label);
-  }
-  if (added_types == 0) return EMPTY_BUFFER;
   RETURN_BUFFER;
 }
 

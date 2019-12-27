@@ -101,6 +101,7 @@ char* gen_break_stmt(context_t ctx, break_stmt_t brk);
 char* gen_binary_expr(context_t ctx, binary_t binary, reg_t out);
 char* gen_ternary_expr(context_t ctx, ternary_t ternary, reg_t out);
 char* gen_unary_expr(context_t ctx, unary_t unary, reg_t out);
+char* gen_manage_types(type_decl_t t, int enable);
 
 /* HELPERS */
 unsigned int count_consts_and_vars(decl_t decl) {
@@ -248,10 +249,16 @@ char* gen_mod(context_t ctx, mod_t mod) {
     offset++;
   }
 
+  // Enable all types defined in this scope
+  ADD_BLOCK(gen_manage_types(mod->decl->types, 1));
+
   // Generate the init block
   if (mod->stmts != NULL)
     for (stmt_t s = mod->stmts; s; s = s->next)
       ADD_BLOCK(gen_stmt(ctx, s));
+
+  // Disable all types defined in this scope
+  ADD_BLOCK(gen_manage_types(mod->decl->types, 0));
 
   ADD_INSTR("pop", "%r10");
   ADD_INSTR("movq", "%r10, %rax");
@@ -259,8 +266,6 @@ char* gen_mod(context_t ctx, mod_t mod) {
   ADD_INSTR("ret", NO_OPERANDS);
 
   // Define sub modules
-
-  // Define type morph functions
 
   // Define functions
   for (fun_decl_t f = mod->decl->funs; f; f = f->next) {
@@ -347,10 +352,16 @@ char* gen_fun(context_t ctx, fun_decl_t fun) {
     }
   }
 
+  // Enable all types defined in this scope
+  ADD_BLOCK(gen_manage_types(fun->decl->types, 1));
+
   // Start executing statements
   for (stmt_t s = fun->stmts; s; s = s->next) {
     ADD_BLOCK(gen_stmt(ctx, s));
   }
+
+  // Disable all types defined in this scope
+  ADD_BLOCK(gen_manage_types(fun->decl->types, 0));
 
   // Cleanup activation record
   ADD_INSTR("movq", "$0, %rax");
@@ -877,6 +888,19 @@ char* gen_type(context_t ctx, type_decl_t type) {
   ADD_INSTR(".section", ".type_graph");
   ADD_INSTR(".quad", type_label);
   ADD_INSTR(".section", ".text");
+  RETURN_BUFFER;
+}
+
+char* gen_manage_types(type_decl_t types, int enable) {
+  CREATE_BUFFER;
+  ADD_INSTR("push", "%r10");
+  ADD_INSTR("push", "%rdi");
+  for (type_decl_t t = types; t; t = t->next) {
+    ADD_INSTR("movq", concat(concat("$", register_or_get_string_label(t->name)), ", %rdi"));
+    ADD_INSTR("call", enable ? "__activate_type" : "__deactivate_type");
+  }
+  ADD_INSTR("pop", "%rdi");
+  ADD_INSTR("pop", "%r10");
   RETURN_BUFFER;
 }
 

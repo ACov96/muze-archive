@@ -25,7 +25,6 @@ extern unsigned __TYPE_GRAPH_END;
 
 type_node_t *graph = NULL;
 
-
 CREATE_TYPE_HEADER(TYPE_MASK, 0xFFFF);
 CREATE_TYPE_HEADER(STR_HEADER, 0);
 CREATE_TYPE_HEADER(INT_HEADER, 0);
@@ -283,6 +282,34 @@ void __set_data_member(data_t d, member_t c, int idx) {
   d->members[idx] = c;
 }
 
+void init_type_graph() {
+  graph = morph_graph();
+  for (mini_type_t *t = (mini_type_t*)&__TYPE_GRAPH;
+       (unsigned long)t < (unsigned long)(&__TYPE_GRAPH_END);
+       t++) {
+    char *type_name = (*t)->name;
+    graph = add_type(graph, type_name);
+  }
+  for (mini_type_t *t = (mini_type_t*)&__TYPE_GRAPH;
+       (unsigned long)t < (unsigned long)(&__TYPE_GRAPH_END);
+       t++) {
+    char *type_name = (*t)->name;
+    unsigned long num_morphs = (*t)->morph_length;
+    for (unsigned long i = 0; i < num_morphs; i++) {
+      graph = add_morph(graph, type_name, (*t)->morphs[i]);
+    }
+  }
+  print_graph(graph);
+}
+
+void __activate_type(char *type) {
+  graph = activate_node(graph, type);
+}
+
+void __deactivate_type(char *type) {
+  graph = deactivate_node(graph, type);
+}
+
 /* METHODS TO BE REMOVED
  *
  * Methods below this point are solely here for debugging purposes. They should eventually be removed.
@@ -311,22 +338,3 @@ void print_real(data_t d) {
   printf("%f\n", u.r);
 }
 
-void init_type_graph() {
-  graph = morph_graph();
-  for (mini_type_t *t = (mini_type_t*)&__TYPE_GRAPH;
-       (unsigned long)t < (unsigned long)(&__TYPE_GRAPH_END);
-       t++) {
-    char *type_name = (*t)->name;
-    graph = add_type(graph, type_name);
-  }
-  for (mini_type_t *t = (mini_type_t*)&__TYPE_GRAPH;
-       (unsigned long)t < (unsigned long)(&__TYPE_GRAPH_END);
-       t++) {
-    char *type_name = (*t)->name;
-    unsigned long num_morphs = (*t)->morph_length;
-    for (unsigned long i = 0; i < num_morphs; i++) {
-      graph = add_morph(graph, type_name, (*t)->morphs[i]);
-    }
-  }
-  print_graph(graph);
-}

@@ -3,6 +3,7 @@
 #include <string.h>
 #include "morph_graph.h"
 #include "ast.h"
+#include "muze_stdlib.h"
 
 #define NUM_PRIMITIVES 4
 
@@ -10,6 +11,7 @@ struct type_node_st {
   char* name;
   int index;
   int active; //inactive = 0, active = 1
+  morph_f morph;
   type_node_t next;
 };
 
@@ -22,7 +24,7 @@ type_node_t* morph_graph();
 void print_graph(type_node_t* graph);
 type_node_t type_node(char* name, int index); 
 type_node_t* add_type(type_node_t* graph, char* type_name);
-type_node_t* add_morph(type_node_t* graph, char* base_type, char* morph_type);
+type_node_t* add_morph(type_node_t* graph, char* base_type, char* morph_type, morph_f morph);
 int get_type_index(type_node_t* graph, char* name);
 type_node_t* activate_node(type_node_t* graph, char* type_name);
 type_node_t* deactivate_node(type_node_t* graph, char* type_name);
@@ -82,7 +84,7 @@ type_node_t* mg_register_types(type_node_t *graph, type_decl_t types) {
     if (type_decl->morphs){
       morph_t morph = type_decl->morphs;
       for (; morph; morph = morph->next){
-        graph = add_morph(graph, type_decl->name, morph->target);
+        graph = add_morph(graph, type_decl->name, morph->target, NULL);
       }
     }	
   }
@@ -99,16 +101,16 @@ type_node_t* morph_graph() {
   }
 
   //add primitive morphs
-  graph = add_morph(graph, "integer", "real");
-  graph = add_morph(graph, "integer", "string");
-  graph = add_morph(graph, "integer", "boolean");
-  graph = add_morph(graph, "real", "integer");
-  graph = add_morph(graph, "real", "string");
-  graph = add_morph(graph, "string", "integer");
-  graph = add_morph(graph, "string", "real");
-  graph = add_morph(graph, "string", "boolean");
-  graph = add_morph(graph, "boolean", "string");
-  graph = add_morph(graph, "boolean", "integer");
+  graph = add_morph(graph, "integer", "real", NULL);
+  graph = add_morph(graph, "integer", "string", NULL);
+  graph = add_morph(graph, "integer", "boolean", NULL);
+  graph = add_morph(graph, "real", "integer", NULL);
+  graph = add_morph(graph, "real", "string", NULL);
+  graph = add_morph(graph, "string", "integer", NULL);
+  graph = add_morph(graph, "string", "real", NULL);
+  graph = add_morph(graph, "string", "boolean", NULL);
+  graph = add_morph(graph, "boolean", "string", NULL);
+  graph = add_morph(graph, "boolean", "integer", NULL);
 
   return graph;
 }
@@ -156,7 +158,7 @@ type_node_t* add_type(type_node_t* graph, char* type_name) {
 
 
 /* Add a morph to the given type/graph */
-type_node_t* add_morph(type_node_t* graph, char* base_type, char* morph_type) {
+type_node_t* add_morph(type_node_t* graph, char* base_type, char* morph_type, morph_f morph_fun) {
   int type_index = get_type_index(graph, base_type);
   type_node_t curr = graph[type_index];
   type_node_t morph = type_node(morph_type, get_type_index(graph, morph_type));

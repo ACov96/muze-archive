@@ -3,12 +3,8 @@
 
 typedef unsigned long type_descriptor_t;
 typedef struct data_st *data_t;
-
-/* Sorry, this is bad but I don't really have other options. void* is the 
- * closest thing I can get to polymorphism in C for the struct data_st
- * defintion.
- */
 typedef void *member_t;
+typedef data_t (*morph_f)(data_t d);
 
 /* Here's the skinny on the self-descriptive data structure:
  * - self is just a pointer to itself. This may seem redundant, 
@@ -48,7 +44,7 @@ data_t __create_new_data(unsigned long size);
 /* Set the type header of a data structure.
  * Still WIP.
  */
-void __set_data_type_header(data_t d, type_descriptor_t td);
+void __set_data_type_header(data_t *d, type_descriptor_t td);
 
 /* Get the child at index idx of data structure d.
  * Still WIP.

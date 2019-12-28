@@ -10,8 +10,7 @@
 #include "morph_graph.h"
 
 #define WORD 8
-#define CREATE_TYPE_HEADER(T, V)                        \
-  const unsigned long T = (unsigned long)(V) << 48
+#define TYPE_MASK (~(0xFFFFULL << 48))
 
 typedef struct mini_type_st *mini_type_t;
 struct mini_type_st {
@@ -25,36 +24,34 @@ extern unsigned __TYPE_GRAPH_END;
 
 type_node_t *graph = NULL;
 
-CREATE_TYPE_HEADER(TYPE_MASK, 0xFFFF);
-CREATE_TYPE_HEADER(STR_HEADER, 0);
-CREATE_TYPE_HEADER(INT_HEADER, 0);
-CREATE_TYPE_HEADER(BOOL_HEADER, 0);
-
 void panic(char *msg) {
   fprintf(stderr, "RUNTIME PANIC: %s\n", msg);
   exit(1);
 }
 
 void print(data_t d) {
-  char* msg = (char*)(d->members[0]);
+  char* msg = __get_data_member(d, 0);
   printf("%s\n", msg);
 }
 
 data_t alloc_int(long x) {
   data_t d = __create_new_data(1);
-  d->members[0] = (member_t)x;
+  __set_data_type_header(&d, get_type_index(graph, "integer"));
+  __set_data_member(d, (member_t)x, 0);
   return d;
 }
 
 data_t alloc_str(char *s) {
   data_t d = __create_new_data(1);
-  d->members[0] = (member_t)s;
+  __set_data_type_header(&d, get_type_index(graph, "string"));
+  __set_data_member(d, (member_t)s, 0);
   return d;
 }
 
 data_t alloc_bool(long x) {
   data_t d = __create_new_data(1);
-  d->members[0] = (member_t)x;
+  __set_data_type_header(&d, get_type_index(graph, "boolean"));
+  __set_data_member(d, (member_t)x, 0);
   return d;
 }
 
@@ -66,6 +63,8 @@ data_t alloc_bool(long x) {
 data_t alloc_real(unsigned long x) {
   data_t d = __create_new_data(1);
   d->members[0] = (member_t)x;
+  __set_data_type_header(&d, get_type_index(graph, "real"));
+  __set_data_member(d, (member_t)x, 0);
   return d;
 }
 
@@ -273,13 +272,29 @@ data_t __create_new_data(unsigned long size) {
 }
 
 member_t __get_data_member(data_t d, int idx) {
-  if (d->length <= idx) panic("Data index out of bounds in get");
-  return d->members[idx];
+  data_t d_masked = (data_t)((unsigned long)(d) & TYPE_MASK);
+  if (d_masked->length <= idx) panic("Data index out of bounds in get");
+  return d_masked->members[idx];
 }
 
 void __set_data_member(data_t d, member_t c, int idx) {
-  if (d->length <= idx) panic("Data index out of bounds in set");
-  d->members[idx] = c;
+  data_t d_masked = (data_t)((unsigned long)(d) & TYPE_MASK);
+  if (d_masked->length <= idx) panic("Data index out of bounds in set");
+  d_masked->members[idx] = c;
+}
+
+void __set_data_type_header(data_t *d, type_descriptor_t td) {
+  data_t d_masked = (data_t)((unsigned long)(*d) & TYPE_MASK);
+  if (td < 0xFFF) {
+    d_masked->type_overflow = 0;
+    *d = (data_t)((unsigned long)d_masked | (td << 48));
+  } else {
+    
+  }
+}
+
+type_descriptor_t __get_data_type_header(data_t *d) {
+  return 0;
 }
 
 void init_type_graph() {
@@ -296,7 +311,7 @@ void init_type_graph() {
     char *type_name = (*t)->name;
     unsigned long num_morphs = (*t)->morph_length;
     for (unsigned long i = 0; i < num_morphs; i++) {
-      graph = add_morph(graph, type_name, (*t)->morphs[i]);
+      graph = add_morph(graph, type_name, (*t)->morphs[i], NULL);
     }
   }
   print_graph(graph);

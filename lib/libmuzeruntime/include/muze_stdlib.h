@@ -56,4 +56,6 @@ member_t __get_data_member(data_t d, int idx);
  */
 void __set_data_member(data_t d, member_t c, int idx);
 
+void panic(char *msg);
+
 #endif

@@ -87,6 +87,7 @@ char* gen_type_graph_segment();
 char* gen_mod(context_t ctx, mod_t mod);
 char* gen_fun(context_t ctx, fun_decl_t fun);
 char* gen_type(context_t ctx, type_decl_t type);
+char* gen_morph(context_t ctx, char *type_name, morph_t morph);
 char* gen_stmt(context_t ctx, stmt_t stmt);
 char* gen_expr_stmt(context_t ctx, expr_stmt_t expr);
 char* gen_expr(context_t ctx, expr_t expr, reg_t out);
@@ -884,10 +885,14 @@ char* gen_type(context_t ctx, type_decl_t type) {
   for (morph_t morph = type->morphs; morph; morph = morph->next) {
     char *target_label = register_or_get_string_label(morph->target);
     ADD_INSTR(".quad", target_label);
+    ADD_INSTR(".quad", concat("__morph__", concat(type->name, concat("__", morph->target))));
   }
   ADD_INSTR(".section", ".type_graph");
   ADD_INSTR(".quad", type_label);
   ADD_INSTR(".section", ".text");
+  for (morph_t morph = type->morphs; morph; morph = morph->next) {
+    ADD_BLOCK(gen_morph(ctx, type->name, morph));
+  }
   RETURN_BUFFER;
 }
 
@@ -901,6 +906,21 @@ char* gen_manage_types(type_decl_t types, int enable) {
   }
   ADD_INSTR("pop", "%rdi");
   ADD_INSTR("pop", "%r10");
+  RETURN_BUFFER;
+}
+
+char* gen_morph(context_t ctx, char *type_name, morph_t morph) {
+  CREATE_BUFFER;
+  ADD_LABEL(concat("__morph__", concat(type_name, concat("__", morph->target))));
+
+  /* TODO: Allocate space for "this" and "that" or whatever variables 
+   * we decided on. This will probably require creating a new context.
+   */
+
+  for (stmt_t s = morph->defn; s; s = s->next) {
+    ADD_BLOCK(gen_stmt(ctx, s));
+  }
+  ADD_INSTR("ret", NO_OPERANDS);
   RETURN_BUFFER;
 }
 

@@ -13,11 +13,18 @@
 #define TYPE_MASK (~(0xFFFFULL << 48))
 
 typedef struct mini_type_st *mini_type_t;
+
+struct mini_morph_st {
+  char *dest;
+  morph_f morph_fun;
+};
+
 struct mini_type_st {
   char *name;
   unsigned long morph_length;
-  char *morphs[];
+  struct mini_morph_st morphs[];
 };
+
 
 extern struct mini_type_st __TYPE_GRAPH;
 extern unsigned __TYPE_GRAPH_END;
@@ -311,7 +318,7 @@ void init_type_graph() {
     char *type_name = (*t)->name;
     unsigned long num_morphs = (*t)->morph_length;
     for (unsigned long i = 0; i < num_morphs; i++) {
-      graph = add_morph(graph, type_name, (*t)->morphs[i], NULL);
+      graph = add_morph(graph, type_name, (*t)->morphs[i].dest, (*t)->morphs[i].morph_fun);
     }
   }
   print_graph(graph);

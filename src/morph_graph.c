@@ -162,12 +162,26 @@ type_node_t* add_morph(type_node_t* graph, char* base_type, char* morph_type, mo
   int type_index = get_type_index(graph, base_type);
   type_node_t curr = graph[type_index];
   type_node_t morph = type_node(morph_type, get_type_index(graph, morph_type));
-        
+  morph->morph = morph_fun;
   for (; curr->next != NULL; curr = curr->next);
   curr->next = morph;
   return graph;
 }
 
+morph_f get_morph(type_node_t *graph, char *base_type, char *morph_type) {
+  int type_index = get_type_index(graph, base_type);
+  type_node_t curr = graph[type_index];
+  for (; curr; curr = curr->next) {
+    if (strcmp(curr->name, morph_type) == 0) {
+      return curr->morph;
+    }
+  }
+  /* Theoretically, this should be an unreachable statement because type
+   * checking guarantees that there is a morph path for any morph in a 
+   * program, but if there are trouble with morphs, you might check here.
+   */
+  return NULL;
+}
 
 /* returns the index of the given type name from the given graph */
 int get_type_index(type_node_t* graph, char* type_name) {

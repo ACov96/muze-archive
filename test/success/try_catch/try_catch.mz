@@ -1,0 +1,15 @@
+mod Main
+	fun main() : integer
+	var
+		a : string = "exception 'a' caught";
+		e : string;
+	begin
+		try
+			throw a;
+		catch e
+			print(e);
+		yrt
+	nuf main
+begin
+	main();
+dom Main

@@ -190,7 +190,7 @@ int main(int argc, char* argv[]) {
     dup2(fd[0], STDIN_FILENO);
     close(fd[0]);
     close(fd[1]);
-    char *args[] = {"as", "-g", "-o", "a.o", "--", NULL};
+    char *args[] = {"as", "-W", "-g", "-o", "a.o", "--", NULL};
     execvp(args[0], args);
   }
 

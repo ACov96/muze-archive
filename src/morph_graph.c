@@ -25,7 +25,9 @@ void print_graph(type_node_t* graph);
 type_node_t type_node(char* name, int index); 
 type_node_t* add_type(type_node_t* graph, char* type_name);
 type_node_t* add_morph(type_node_t* graph, char* base_type, char* morph_type, morph_f morph);
+morph_f get_morph(type_node_t* graph, char* base_type, char* morph_type);
 int get_type_index(type_node_t* graph, char* name);
+char* get_type_name(type_node_t* graph, int index);
 type_node_t* activate_node(type_node_t* graph, char* type_name);
 type_node_t* deactivate_node(type_node_t* graph, char* type_name);
 char** shortest_path(type_node_t* graph, char* src, char* dest);
@@ -183,6 +185,16 @@ morph_f get_morph(type_node_t *graph, char *base_type, char *morph_type) {
   return NULL;
 }
 
+void set_morph(type_node_t *graph, char *base_type, char *morph_type, morph_f morph_fun) {
+  int type_index = get_type_index(graph, base_type);
+  type_node_t curr = graph[type_index];
+  for (; curr; curr = curr->next) {
+    if (strcmp(curr->name, morph_type) == 0) {
+      curr->morph = morph_fun;
+    }
+  }
+}
+
 /* returns the index of the given type name from the given graph */
 int get_type_index(type_node_t* graph, char* type_name) {
   int i = 0;
@@ -197,6 +209,12 @@ int get_type_index(type_node_t* graph, char* type_name) {
   return type_index;
 }
 
+char* get_type_name(type_node_t* graph, int index) {
+  for (int i = 0; graph[i]; i++)
+    if (i == index)
+      return graph[i]->name;
+  return NULL;
+}
 
 char** get_type_names(type_node_t* graph) {
   // get length of graph. Should probably write a helper function or somthing for this

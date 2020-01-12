@@ -46,6 +46,8 @@ data_t __create_new_data(unsigned long size);
  */
 void __set_data_type_header(data_t *d, type_descriptor_t td);
 
+type_descriptor_t __get_data_type_header(data_t d);
+
 /* Get the child at index idx of data structure d.
  * Still WIP.
  */

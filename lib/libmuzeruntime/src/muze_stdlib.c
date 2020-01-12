@@ -209,7 +209,7 @@ data_t _post_dec(data_t x) {
 }
 
 data_t __morph__integer_string(data_t in) {
-  long old_val = (long)(in->members[0]);
+  long old_val = (long)__get_data_member(in, 0);
   int digits = 0;
   while (old_val % ((long)pow(10, digits)) < old_val) {
     digits++;
@@ -220,7 +220,7 @@ data_t __morph__integer_string(data_t in) {
 }
 
 data_t __morph__string_integer(data_t in) {
-  char *str = ((char*)in->members[0]);
+  char *str = __get_data_member(in, 0);
   return alloc_int(strtol(str, &str, 10));
 }
 
@@ -246,23 +246,23 @@ data_t __morph__string_integer(data_t in) {
 /* } */
 
 data_t __morph__integer_boolean(data_t in) {
-  long l = (long)in->members[0];
+  long l = (long)__get_data_member(in, 0);
   return alloc_bool(!!l);
 }
 
 data_t __morph__boolean_integer(data_t in) {
-  long b = (long)in->members[0];
+  long b = (long)__get_data_member(in, 0);
   return alloc_int(b);
 }
 
 data_t __morph__boolean_string(data_t in) {
-  long b = (long)in->members[0];
+  long b = (long)__get_data_member(in, 0);
   if (b) return alloc_str("true");
   return alloc_str("false");
 }
 
 data_t __morph__string_boolean(data_t in) {
-  char *str = (char*)in->members[0];
+  char *str = (char*)__get_data_member(in, 0);
   if (strcmp(str, "true") == 0) return alloc_bool(1);
   else if (strcmp(str, "false") == 0) return alloc_bool(0);
   panic("Unknown boolean string value");
@@ -296,12 +296,13 @@ void __set_data_type_header(data_t *d, type_descriptor_t td) {
     d_masked->type_overflow = 0;
     *d = (data_t)((unsigned long)d_masked | (td << 48));
   } else {
-    
+    d_masked->type_overflow = td;
+    *d = (data_t)((unsigned long)d_masked | (0xFFFUL << 48));
   }
 }
 
-type_descriptor_t __get_data_type_header(data_t *d) {
-  return 0;
+type_descriptor_t __get_data_type_header(data_t d) {
+  return (type_descriptor_t)(((unsigned long)d & (0xFFFUL << 48)) >> 48);
 }
 
 void init_type_graph() {
@@ -321,7 +322,14 @@ void init_type_graph() {
       graph = add_morph(graph, type_name, (*t)->morphs[i].dest, (*t)->morphs[i].morph_fun);
     }
   }
-  print_graph(graph);
+
+  // Add standard morphs and activate them
+  set_morph(graph, "integer", "string", &__morph__integer_string);
+  set_morph(graph, "integer", "boolean", &__morph__integer_boolean);
+  set_morph(graph, "string", "integer", &__morph__string_integer);
+  set_morph(graph, "string", "boolean", &__morph__string_boolean);
+  set_morph(graph, "boolean", "string", &__morph__boolean_string);
+  set_morph(graph, "boolean", "integer", &__morph__boolean_integer);
 }
 
 void __activate_type(char *type) {
@@ -332,31 +340,19 @@ void __deactivate_type(char *type) {
   graph = deactivate_node(graph, type);
 }
 
-/* METHODS TO BE REMOVED
- *
- * Methods below this point are solely here for debugging purposes. They should eventually be removed.
- */
-
-void print_int(data_t d) {
-  long l = (long)d->members[0];
-  printf("%ld\n", l);
-}
-
-void print_bool(data_t d) {
-  long b = (long)d->members[0];
-  if (b) {
-    printf("true\n");
-  } else {
-    printf("false\n");
+data_t __morph(data_t d, char *target) {
+  char *curr_type_name = get_type_name(graph, __get_data_type_header(d));
+  if (strcmp(curr_type_name, target) == 0)
+    return d;
+  char **path = shortest_path(graph, curr_type_name, target);
+  if (path == NULL)
+    panic("Unable to perform morph");
+  data_t ret = d;
+  for (int i = 0; path[i+1]; i++) {
+    morph_f morph_fun = get_morph(graph, path[i], path[i+1]);
+    if (morph_fun == NULL)
+      panic("Unable to load morph function");
+    ret = morph_fun(ret);
   }
+  return ret;
 }
-
-void print_real(data_t d) {
-  union {
-    double r;
-    unsigned long l;
-  } u;
-  u.l = (unsigned long)d->members[0];
-  printf("%f\n", u.r);
-}
-

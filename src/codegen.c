@@ -633,6 +633,7 @@ char* gen_cond_stmt(context_t ctx, cond_stmt_t cond) {
   ll_t condition_labels = NULL;
   char *curr_label = NULL;
   char *end_label = NULL;
+  char *bool_label = register_or_get_string_label("boolean");
   CREATE_BUFFER;
 
   // Generate all of the condition labels
@@ -659,6 +660,9 @@ char* gen_cond_stmt(context_t ctx, cond_stmt_t cond) {
       ADD_INSTR("push", "%rdi");
       ADD_INSTR("push", "%rsi");
       ADD_BLOCK(gen_expr(ctx, c->test, "%rdi"));
+      ADD_INSTR("movq", concat(concat("$", bool_label), ", %rsi"));
+      ADD_INSTR("call", "__morph");
+      ADD_INSTR("movq", "%rax, %rdi");
       ADD_INSTR("movq", concat(INT_LITERAL(0), ", %rsi"));
       ADD_INSTR("call", "__get_data_member");
       ADD_INSTR("cmp", "$1, %rax");

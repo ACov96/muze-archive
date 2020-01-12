@@ -1,0 +1,10 @@
+mod Main
+  var
+    a : integer = 1;
+begin
+  if a then
+    print("a is truth-y");
+  else
+    print("a is false-y");
+  fi
+dom Main

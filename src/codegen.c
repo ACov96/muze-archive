@@ -239,13 +239,31 @@ char* gen_mod(context_t ctx, mod_t mod) {
   int offset = 1;
   for (const_decl_t c = mod->decl->constants; c; c = c->next) {
     assign_t assign = c->assign;
-    ADD_BLOCK(gen_expr(ctx, assign->expr, "%rax"));
+    ADD_INSTR("push", "%r10");
+    ADD_INSTR("push", "%rdi");
+    ADD_INSTR("push", "%rsi");
+    ADD_BLOCK(gen_expr(ctx, assign->expr, "%rdi"));
+    char *type_label = register_or_get_string_label(c->ty->u.name_ty);
+    ADD_INSTR("movq", concat(concat("$", type_label), ", %rsi"));
+    ADD_INSTR("call", "__morph");
+    ADD_INSTR("pop", "%rsi");
+    ADD_INSTR("pop", "%rdi");
+    ADD_INSTR("pop", "%r10");
     ADD_INSTR("movq", concat("%rax, ", concat(itoa(offset * WORD), "(%r10)")));
     offset++;
   }
   for (var_decl_t v = mod->decl->vars; v; v = v->next) {
     assign_t assign = v->assign;
-    ADD_BLOCK(gen_expr(ctx, assign->expr, "%rax"));
+    ADD_INSTR("push", "%r10");
+    ADD_INSTR("push", "%rdi");
+    ADD_INSTR("push", "%rsi");
+    ADD_BLOCK(gen_expr(ctx, assign->expr, "%rdi"));
+    char *type_label = register_or_get_string_label(v->type->u.name_ty);
+    ADD_INSTR("movq", concat(concat("$", type_label), ", %rsi"));
+    ADD_INSTR("call", "__morph");
+    ADD_INSTR("pop", "%rsi");
+    ADD_INSTR("pop", "%rdi");
+    ADD_INSTR("pop", "%r10");
     ADD_INSTR("movq", concat("%rax, ", concat(itoa(offset * WORD), "(%r10)")));
     offset++;
   }
@@ -334,7 +352,16 @@ char* gen_fun(context_t ctx, fun_decl_t fun) {
   // Push constants and variables to stack
   for (const_decl_t c = fun->decl->constants; c; c = c-> next) {
     // TODO: Handle the different kinds of assignment
-    ADD_BLOCK(gen_expr(ctx, c->assign->expr, "%rax"));
+    ADD_INSTR("push", "%r10");
+    ADD_INSTR("push", "%rdi");
+    ADD_INSTR("push", "%rsi");
+    ADD_BLOCK(gen_expr(ctx, c->assign->expr, "%rdi"));
+    char *type_label = register_or_get_string_label(c->ty->u.name_ty);
+    ADD_INSTR("movq", concat(concat("$", type_label), ", %rsi"));
+    ADD_INSTR("call", "__morph");
+    ADD_INSTR("pop", "%rsi");
+    ADD_INSTR("pop", "%rdi");
+    ADD_INSTR("pop", "%r10");
     char *save_inst = malloc(64);
     sprintf(save_inst, "%%rax, -%d(%%rbp)", (idx + 1) * WORD);
     ADD_INSTR("movq", save_inst);
@@ -345,8 +372,16 @@ char* gen_fun(context_t ctx, fun_decl_t fun) {
     // TODO: Handle the different kinds of assignment
     expr_t expr = v->assign->expr;
     for (id_list_t id = v->names; id; id = id->next) {
-      char *x = gen_expr(ctx, expr, "%rax");
-      ADD_BLOCK(x);
+      ADD_INSTR("push", "%r10");
+      ADD_INSTR("push", "%rdi");
+      ADD_INSTR("push", "%rsi");
+      ADD_BLOCK(gen_expr(ctx, expr, "%rax"));
+      char *type_label = register_or_get_string_label(v->type->u.name_ty);
+      ADD_INSTR("movq", concat(concat("$", type_label), ", %rsi"));
+      ADD_INSTR("call", "__morph");
+      ADD_INSTR("pop", "%rsi");
+      ADD_INSTR("pop", "%rdi");
+      ADD_INSTR("pop", "%r10");
       char *save_inst = concat("%rax, -", concat(itoa((idx+1)*WORD), "(%rbp)"));
       ADD_INSTR("movq", save_inst);
       idx++;
@@ -447,24 +482,23 @@ char* gen_call_expr(context_t ctx, call_t call, reg_t out) {
 
   // Put arguments in registers
   for (expr_list_t curr_arg = call->args; curr_arg; curr_arg = curr_arg->next) {
-    ADD_INSTR("push", arg_registers[arg_idx]);
-    char *temp = gen_expr(ctx, curr_arg->expr, arg_registers[arg_idx]);
-    ADD_BLOCK(temp);
+    reg_t curr_reg = arg_registers[arg_idx];
+    ADD_INSTR("push", curr_reg);
+    ADD_BLOCK(gen_expr(ctx, curr_arg->expr, "%rax"));
+    if (args) {
+      char *arg_type_label = register_or_get_string_label(args->type->u.name_ty);
+      ADD_INSTR("push", "%r10");
+      ADD_INSTR("push", "%rdi");
+      ADD_INSTR("push", "%rsi");
+      ADD_INSTR("movq", "%rax, %rdi");
+      ADD_INSTR("movq", concat(concat("$", arg_type_label), ", %rsi"));
+      ADD_INSTR("call", "__morph");
+      ADD_INSTR("pop", "%rsi");
+      ADD_INSTR("pop", "%rdi");
+      ADD_INSTR("pop", "%r10");
+    }
+    ADD_INSTR("movq", concat("%rax, ", curr_reg));
     
-    /* // TODO: This logic will actually shrink once type checking is done because */
-    /* // all we need to do is get the type off of the expression */
-    /* if (args && curr_arg->expr->kind == ID_EX) { */
-    /*   char *arg_type = ctx_get_id_type(ctx, curr_arg->expr->u.id_ex); */
-    /*   char *target_type = args->type->u.name_ty; */
-
-
-    /*   ADD_INSTR("push", "%rdi"); */
-    /*   ADD_INSTR("movq", concat(arg_registers[arg_idx], ", %rdi")); */
-    /*   ADD_INSTR("call", concat("__morph__", concat(arg_type, concat("_", target_type)))); */
-    /*   ADD_INSTR("pop", "%rdi"); */
-    /*   ADD_INSTR("movq", concat("%rax, ", arg_registers[arg_idx])); */
-    /* } */
-
     arg_idx++;
     if (args != NULL)
       args = args->next;
@@ -584,13 +618,13 @@ char* gen_id_expr(context_t ctx, char *id, reg_t out) {
 
 char* gen_assign_stmt(context_t ctx, assign_stmt_t assign) {
   CREATE_BUFFER;
-  ADD_INSTR("push", "%r10");
-  ADD_INSTR("push", "%r11");
-  ADD_BLOCK(gen_expr(ctx, assign->assign->expr, "%r10"));
-  ADD_BLOCK(gen_lval_expr(ctx, assign->lval, "%r11"));
-  ADD_INSTR("movq", "%r10, (%r11)");
-  ADD_INSTR("pop", "%r11");
-  ADD_INSTR("pop", "%r10");
+  ADD_INSTR("push", "%rdi");
+  ADD_INSTR("push", "%rsi");
+  ADD_BLOCK(gen_expr(ctx, assign->assign->expr, "%rdi"));
+  ADD_BLOCK(gen_lval_expr(ctx, assign->lval, "%rsi"));
+  ADD_INSTR("movq", "%rdi, (%rsi)");
+  ADD_INSTR("pop", "%rsi");
+  ADD_INSTR("pop", "%rdi");
   RETURN_BUFFER;
 }
 

@@ -375,7 +375,7 @@ char* gen_fun(context_t ctx, fun_decl_t fun) {
       ADD_INSTR("push", "%r10");
       ADD_INSTR("push", "%rdi");
       ADD_INSTR("push", "%rsi");
-      ADD_BLOCK(gen_expr(ctx, expr, "%rax"));
+      ADD_BLOCK(gen_expr(ctx, expr, "%rdi"));
       char *type_label = register_or_get_string_label(v->type->u.name_ty);
       ADD_INSTR("movq", concat(concat("$", type_label), ", %rsi"));
       ADD_INSTR("call", "__morph");
@@ -618,36 +618,61 @@ char* gen_id_expr(context_t ctx, char *id, reg_t out) {
 
 char* gen_assign_stmt(context_t ctx, assign_stmt_t assign) {
   CREATE_BUFFER;
+  ADD_INSTR("push", "%r10");
   ADD_INSTR("push", "%rdi");
   ADD_INSTR("push", "%rsi");
   ADD_BLOCK(gen_expr(ctx, assign->assign->expr, "%rdi"));
   ADD_BLOCK(gen_lval_expr(ctx, assign->lval, "%rsi"));
-  ADD_INSTR("movq", "%rdi, (%rsi)");
+  /* ADD_INSTR("movq", "%rdi, (%rsi)"); */
+  ADD_INSTR("call", "__assign_simple");
   ADD_INSTR("pop", "%rsi");
   ADD_INSTR("pop", "%rdi");
+  ADD_INSTR("pop", "%r10");
   RETURN_BUFFER;
 }
 
 char* gen_lval_expr(context_t ctx, expr_t lval, reg_t out) {
   static_link_t sl = NULL;
-  char *read_inst = NULL;
+  static_link_t link = NULL;
+  char read_inst[64];
   CREATE_BUFFER;
   switch(lval->kind) {
   case ID_EX:
-    ADD_INSTR("push", "%rax");
-    ADD_INSTR("leaq", "-8(%rbp), %rax");
     sl = ctx_get_id_offset(ctx, lval->u.id_ex);
     if (sl == NULL) {
-      GEN_ERROR(concat("Cannot find l-value ", lval->u.id_ex));
-    } else if (sl->levels > 0) {
-      for (int i = 0; i < sl->levels; i++) {
+      GEN_ERROR(concat("Cannot find l-value ", lval->u.id_ex)); 
+    }
+
+    if (sl->is_mod != 1 && sl->next == NULL) {
+      // Dealing with local variable, just grab it from the current activation record
+      sprintf(read_inst, "-%d(%%rbp), %s", WORD * (sl->offset + 2), out);
+      ADD_INSTR("movq", read_inst);
+    } else if (sl->is_mod) {
+      // We are directly in a module's scope, which means we are probably an init block
+      sprintf(read_inst, "%d(%%r10), %s", WORD * (sl->offset + 1), out);
+      ADD_INSTR("movq", read_inst);
+    } else {
+      // Dealing with a variable that's in a more global scope
+      ADD_INSTR("movq", "-8(%rbp), %rax");
+      for (link = sl; link->next && !link->next->is_mod; link = link->next) {
         ADD_INSTR("movq", "(%rax), %rax");
       }
+      if (link->next && link->next->is_mod)
+        sprintf(read_inst, "%d(%%rax), %s", WORD * (sl->offset + 1), out);
+      else
+        sprintf(read_inst, "-%d(%%rax), %s", WORD * (sl->offset + 1), out);
+      ADD_INSTR("movq", read_inst);
     }
-    read_inst = malloc(64);
-    sprintf(read_inst, "-%d(%%rax), ", WORD * (sl->offset + 1));
-    ADD_INSTR("leaq", concat(read_inst, out));
-    ADD_INSTR("pop", "%rax");
+
+    /* /\* if (sl == NULL) { *\/ */
+    /* /\*   GEN_ERROR(concat("Cannot find l-value ", lval->u.id_ex)); *\/ */
+    /* /\* } else if (sl->levels > 0) { *\/ */
+    /* /\*   for (int i = 0; i < sl->levels; i++) { *\/ */
+    /* /\*     ADD_INSTR("movq", "(%rax), %rax"); *\/ */
+    /* /\*   } *\/ */
+    /* /\* } *\/ */
+    /* sprintf(read_inst, "-%d(%%rax), ", WORD * (sl->offset + 1)); */
+    /* ADD_INSTR("leaq", concat(read_inst, out)); */
     break;
   case LITERAL_EX:
   case UNARY_EX:
@@ -761,6 +786,7 @@ char* gen_break_stmt(context_t ctx, break_stmt_t brk) {
 
 char* gen_binary_expr(context_t ctx, binary_t binary, reg_t out) {
   CREATE_BUFFER;
+  ADD_INSTR("push", "%r10");
   ADD_INSTR("push", "%rdi");
   ADD_INSTR("push", "%rsi");
   ADD_BLOCK(gen_expr(ctx, binary->left, "%rdi"));
@@ -828,6 +854,7 @@ char* gen_binary_expr(context_t ctx, binary_t binary, reg_t out) {
   }
   ADD_INSTR("pop", "%rsi");
   ADD_INSTR("pop", "%rdi");
+  ADD_INSTR("pop", "%r10");
   ADD_INSTR("movq", concat("%rax, ", out));
   RETURN_BUFFER;
 }

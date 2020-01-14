@@ -59,5 +59,7 @@ member_t __get_data_member(data_t d, int idx);
 void __set_data_member(data_t d, member_t c, int idx);
 
 void panic(char *msg);
+data_t __morph(data_t d, char *target);
+void __assign_simple(data_t src, data_t dest);
 
 #endif

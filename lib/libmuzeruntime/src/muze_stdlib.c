@@ -77,134 +77,134 @@ data_t alloc_real(unsigned long x) {
 
 data_t _add(data_t x, data_t y) {
   // TODO: Take type header into account
-  long z = (long)(x->members[0]) + (long)(y->members[0]);
+  long z = (long)(__get_data_member(x, 0)) + (long)(__get_data_member(y, 0));
   return alloc_int(z);
 }
 
 data_t _sub(data_t x, data_t y) {
   // TODO: Take type header into account
-  long z = (long)(x->members[0]) - (long)(y->members[0]);
+  long z = (long)(__get_data_member(x, 0)) - (long)(__get_data_member(y, 0));
   return alloc_int(z);
 }
 
 data_t _mul(data_t x, data_t y) {
   // TODO: Take type header into account
-  long z = (long)(x->members[0]) * (long)(y->members[0]);
+  long z = (long)(__get_data_member(x, 0)) * (long)(__get_data_member(y, 0));
   return alloc_int(z);
 }
 
 data_t _div(data_t x, data_t y) {
   // TODO: Take type header into account
-  long z = (long)(x->members[0]) - (long)(y->members[0]);
+  long z = (long)(__get_data_member(x, 0)) - (long)(__get_data_member(y, 0));
   return alloc_int(z);
 }
 
 data_t _and(data_t x, data_t y) {
   // TODO: Take type header into account
-  long z = (long)(x->members[0]) && (long)(y->members[0]);
+  long z = (long)(__get_data_member(x, 0)) && (long)(__get_data_member(y, 0));
   return alloc_bool(z);
 }
 
 data_t _or(data_t x, data_t y) {
   // TODO: Take type header into account
-  long z = (long)(x->members[0]) || (long)(y->members[0]);
+  long z = (long)(__get_data_member(x, 0)) || (long)(__get_data_member(y, 0));
   return alloc_bool(z);
 }
 
 data_t _xor(data_t x, data_t y) {
   // TODO: Take type header into account
-  if ((long)(x->members[0]) && !((long)(y->members[0]))) return alloc_bool(1);
-  else if (!((long)(x->members[0])) && ((long)(y->members[0]))) return alloc_bool(1);
+  if ((long)(__get_data_member(x, 0)) && !((long)(__get_data_member(y, 0)))) return alloc_bool(1);
+  else if (!((long)(__get_data_member(x, 0))) && ((long)(__get_data_member(y, 0)))) return alloc_bool(1);
   else return alloc_bool(0);
 }
 
 data_t _b_and(data_t x, data_t y) {
-  long z = ((long)x->members[0]) & ((long)y->members[0]);
+  long z = ((long)__get_data_member(x, 0)) & ((long)__get_data_member(y, 0));
   return alloc_int(z);
 }
 
 data_t _b_or(data_t x, data_t y) {
-  long z = ((long)x->members[0]) | ((long)y->members[0]);
+  long z = ((long)__get_data_member(x, 0)) | ((long)__get_data_member(y, 0));
   return alloc_int(z);
 }
 
 data_t _b_xor(data_t x, data_t y) {
-  long z = ((long)x->members[0]) ^ ((long)y->members[0]);
+  long z = ((long)__get_data_member(x, 0)) ^ ((long)__get_data_member(y, 0));
   return alloc_int(z);
 }
 
 data_t _b_r_shift(data_t x, data_t y) {
-  long z = ((long)x->members[0]) >> ((long)y->members[0]);
+  long z = ((long)__get_data_member(x, 0)) >> ((long)__get_data_member(y, 0));
   return alloc_int(z);
 }
 
 data_t _b_l_shift(data_t x, data_t y) {
-  long z = ((long)x->members[0]) << ((long)y->members[0]);
+  long z = ((long)__get_data_member(x, 0)) << ((long)__get_data_member(y, 0));
   return alloc_int(z);
 }
 
 data_t _eq_eq(data_t x, data_t y) {
-  long z = ((long)x->members[0]) == ((long)y->members[0]);
+  long z = ((long)__get_data_member(x, 0)) == ((long)__get_data_member(y, 0));
   return alloc_bool(z);
 }
 
 data_t _lt(data_t x, data_t y) {
-  long z = ((long)x->members[0]) < ((long)y->members[0]);
+  long z = ((long)__get_data_member(x, 0)) < ((long)__get_data_member(y, 0));
   return alloc_bool(z);
 }
 
 data_t _gt(data_t x, data_t y) {
-  long z = ((long)x->members[0]) > ((long)y->members[0]);
+  long z = ((long)__get_data_member(x, 0)) > ((long)__get_data_member(y, 0));
   return alloc_bool(z);
 }
 
 data_t _neq(data_t x, data_t y) {
-  long z = ((long)x->members[0]) != ((long)y->members[0]);
+  long z = ((long)__get_data_member(x, 0)) != ((long)__get_data_member(y, 0));
   return alloc_bool(z);
 }
 
 data_t _lte(data_t x, data_t y) {
-  long z = ((long)x->members[0]) >= ((long)y->members[0]);
+  long z = ((long)__get_data_member(x, 0)) >= ((long)__get_data_member(y, 0));
   return alloc_bool(z);
 }
 
 data_t _gte(data_t x, data_t y) {
-  long z = ((long)x->members[0]) <= ((long)y->members[0]);
+  long z = ((long)__get_data_member(x, 0)) <= ((long)__get_data_member(y, 0));
   return alloc_bool(z);
 }
 
 data_t _not(data_t x) {
-  long z = ((long)x->members[0]);
+  long z = ((long)__get_data_member(x, 0));
   return alloc_bool(!z);
 }
 
 data_t _b_not(data_t x) {
-  long z = ((long)x->members[0]);
+  long z = ((long)__get_data_member(x, 0));
   return alloc_int(~z);
 }
 
 data_t _neg(data_t x) {
-  long z = ((long)x->members[0]);
+  long z = ((long)__get_data_member(x, 0));
   return alloc_int(-z);
 }
 
 data_t _pre_inc(data_t x) {
-  long z = ((long)x->members[0]);
+  long z = ((long)__get_data_member(x, 0));
   return alloc_int(++z);
 }
 
 data_t _pre_dec(data_t x) {
-  long z = ((long)x->members[0]);
+  long z = ((long)__get_data_member(x, 0));
   return alloc_int(--z);
 }
 
 data_t _post_inc(data_t x) {
-  long z = ((long)x->members[0]);
+  long z = ((long)__get_data_member(x, 0));
   return alloc_int(z++);
 }
 
 data_t _post_dec(data_t x) {
-  long z = ((long)x->members[0]);
+  long z = ((long)__get_data_member(x, 0));
   return alloc_int(z--);
 }
 
@@ -355,4 +355,21 @@ data_t __morph(data_t d, char *target) {
     ret = morph_fun(ret);
   }
   return ret;
+}
+
+void __assign_simple(data_t src, data_t dest) {
+  int dest_type_header = __get_data_type_header(dest);
+  data_t src_matching_type
+    = __morph(src, get_type_name(graph, dest_type_header));
+
+  /* TODO:
+   * This only works for primitive types, so extend this to work for 
+   * congolmerate types.
+   */
+  if (dest_type_header != get_type_index(graph, "integer")
+      && dest_type_header != get_type_index(graph, "real")
+      && dest_type_header != get_type_index(graph, "string")
+      && dest_type_header != get_type_index(graph, "boolean"))
+    panic("Assigning non-primitive type");
+  __set_data_member(dest, __get_data_member(src_matching_type, 0), 0);
 }

@@ -328,5 +328,5 @@ void init_type_graph() {
       graph = add_morph(graph, type_name, (*t)->morphs[i]);
     }
   }
-  print_graph(graph);
+  //print_graph(graph);
 }

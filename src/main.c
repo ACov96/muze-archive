@@ -12,12 +12,15 @@
 #include "morph_graph.h"
 //#include "print_tree.h"
 
+int log_enable;
+
 struct prog_opts {
   int print_help;
   int print_tokens;
   int print_tree;
   int print_asm;
   int print_graph;
+  int parse_log_enable;
   char *log_file;
   int save_asm;
   char *output_file;
@@ -33,12 +36,14 @@ struct prog_opts parse_args(int argc, char **argv) {
     .print_tree = 0,
     .print_asm = 0,
     .print_graph = 0,
+    .parse_log_enable = 0,
     .log_file = "/dev/null",
     .save_asm = 0,
     .output_file = "a.out",
   };
 
-  const char *opt_string = "hko:taSml:";
+  const char *opt_string = "hko:taSmpl";
+
   const struct option long_opts[] = {
     { "--help",   no_argument,       NULL, 'h' },
     { "--tokens", no_argument,       NULL, 'k' },
@@ -46,6 +51,7 @@ struct prog_opts parse_args(int argc, char **argv) {
     { "--tree",   no_argument,       NULL, 't' },
     { "--asm",    no_argument,       NULL, 'a' },
     { "--graph",  no_argument,       NULL, 'm' },
+    { "--parse-log", no_argument,    NULL, 'p' },
     { "--log",    required_argument, NULL, 'l' }
   };
 
@@ -80,6 +86,8 @@ struct prog_opts parse_args(int argc, char **argv) {
     case 'm':
       opts.print_graph = 1;
       break;
+    case 'p':
+      opts.parse_log_enable = 1;
 
     case 'l':
       opts.log_file = optarg;
@@ -104,8 +112,14 @@ struct prog_opts parse_args(int argc, char **argv) {
 
 int main(int argc, char* argv[]) {
   char *stdlib_path = getenv("MUZE_STDLIB_PATH");
+  char *linker_script_path = getenv("MUZE_LD_SCRIPT_PATH");
   if (stdlib_path == NULL) {
     fputs("Error: No MUZE_STDLIB_PATH environment variable set\n", stderr);
+    exit(EXIT_FAILURE);
+  }
+
+  if (linker_script_path == NULL) {
+    fputs("Error: No MUZE_LD_SCRIPT_PATH environment variable set\n", stderr);
     exit(EXIT_FAILURE);
   }
 
@@ -131,6 +145,7 @@ int main(int argc, char* argv[]) {
     print_tokens(tokens);
   }
 
+  log_enable = opts.parse_log_enable;
   root_t ast_root = parse(tokens);
 
   if (!ast_root) {
@@ -176,7 +191,7 @@ int main(int argc, char* argv[]) {
     dup2(fd[0], STDIN_FILENO);
     close(fd[0]);
     close(fd[1]);
-    char *args[] = {"as", "-g", "-o", "a.o", "--", NULL};
+    char *args[] = {"as", "-W", "-g", "-o", "a.o", "--", NULL};
     execvp(args[0], args);
   }
 
@@ -185,7 +200,18 @@ int main(int argc, char* argv[]) {
     status = 0;
     waitpid(pid, &status, 0);
   } else {
-    char *args[] = {"gcc", "-fno-pie", "-no-pie", "-g", "-o", opts.output_file, stdlib_path, "a.o", "-lm", NULL};
+    char *args[] = {"gcc",
+                    "-fno-pie",
+                    "-no-pie",
+                    "-g",
+                    "-o",
+                    opts.output_file,
+                    stdlib_path,
+                    "a.o",
+                    "-lm",
+                    "-T",
+                    linker_script_path,
+                    NULL};
     execvp(args[0], args);
   }
 }

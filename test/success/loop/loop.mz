@@ -1,19 +1,16 @@
-mod Loop
-  fun main() : integer
-  var
-    a : boolean = false;
-  begin
-    loop
-      print("Hello world");
-      if a then
+mod Main
+var
+  a : integer = 0;
+begin
+  loop
+    if a < 10 then
+      a = a + 1;
+    else
+      loop
+        print("Inner loop");
         break;
-      else
-        a = true;
-        loop
-          print("Inner loop");
-          break;
-        pool
-      fi
-    pool
-  nuf main
-dom Loop
+      pool
+      break;
+    fi
+  pool
+dom Main

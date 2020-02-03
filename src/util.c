@@ -124,7 +124,7 @@ char *itoa(unsigned int x) {
 }
 
 char *remove_empty_lines(char *s) {
-  char *new_s = malloc(strlen(s) + 1);
+  char *new_s = calloc(strlen(s) + 1, sizeof(char));
   int new_s_idx = 0;
   for (int i = 0; i < strlen(s); i++) {
     if (i > 0) {
@@ -139,7 +139,7 @@ char *remove_empty_lines(char *s) {
       new_s_idx++;
     }
   }
-  return new_s;
+  return concat(new_s, "\n");
 }
 
 unsigned long f_to_int(char *d) {

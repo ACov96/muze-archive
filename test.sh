@@ -1,5 +1,7 @@
 #!/bin/bash
 
+bold=$(tput bold)
+normal=$(tput sgr0)
 MUZEC=$(readlink -f ./muzec)
 
 run_test_in_directory() {
@@ -12,16 +14,18 @@ run_test_in_directory() {
     do
         TRIMMED=$(echo $d | sed 's:/*$::')
         cd $d
-        $MUZEC $TRIMMED.mz
+        $MUZEC -o $TRIMMED $TRIMMED.mz
         if [ $? -eq 0 ]
         then
             ./$TRIMMED > result.txt
-            # diff result.txt expected.txt
-            # if [ $? -eq 0 ]
-            # then
-            #     SUCCESSES=$((SUCCESSES+1))
-            # fi
-            rm $TRIMMED result.txt
+            diff result.txt expected.txt
+            if [ $? -eq 0 ]
+            then
+                SUCCESSES=$((SUCCESSES+1))
+            else
+                echo "Failed test ${bold}$(basename $(pwd))${normal} in $RUN_DIR tests"
+            fi
+            rm $TRIMMED result.txt a.o
         fi
         cd ..
     done
@@ -32,4 +36,4 @@ run_test_in_directory() {
 cd test
 
 run_test_in_directory success
-run_test_in_directory failure
+# run_test_in_directory failure

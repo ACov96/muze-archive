@@ -12,6 +12,7 @@
 #define WORD 8
 #define MODULE_MIN_SIZE 16
 #define NO_OPERANDS ""
+#define EMPTY_BUFFER ""
 #define CREATE_BUFFER char *buf = ""
 #define RETURN_BUFFER return buf
 #define PRINT_BUFFER printf("%s\n", buf)
@@ -37,6 +38,9 @@
   exit(1)
 
 #define GEN_WARN(S) printf("Codegen Warning: %s\n", S)
+
+#define GEN_ENABLE_TYPE(T) activate_node(graph, T);
+#define GEN_DISABLE_TYPE(T) deactivate_node(graph, T);
 
 /* TYPES */
 typedef struct label_st        *label_t;
@@ -79,8 +83,11 @@ void set_entrypoint(root_t root);
 // Generator functions
 char* gen_label(char *label);
 char* gen_data_segment();
+char* gen_type_graph_segment();
 char* gen_mod(context_t ctx, mod_t mod);
 char* gen_fun(context_t ctx, fun_decl_t fun);
+char* gen_type(context_t ctx, type_decl_t type);
+char* gen_morph(context_t ctx, char *type_name, morph_t morph);
 char* gen_stmt(context_t ctx, stmt_t stmt);
 char* gen_expr_stmt(context_t ctx, expr_stmt_t expr);
 char* gen_expr(context_t ctx, expr_t expr, reg_t out);
@@ -95,6 +102,7 @@ char* gen_break_stmt(context_t ctx, break_stmt_t brk);
 char* gen_binary_expr(context_t ctx, binary_t binary, reg_t out);
 char* gen_ternary_expr(context_t ctx, ternary_t ternary, reg_t out);
 char* gen_unary_expr(context_t ctx, unary_t unary, reg_t out);
+char* gen_manage_types(type_decl_t t, int enable);
 
 /* HELPERS */
 unsigned int count_consts_and_vars(decl_t decl) {
@@ -205,6 +213,9 @@ char* gen_mod(context_t ctx, mod_t mod) {
   }
   populate_decl_into_ctx(ctx, mod->decl);
 
+  for (type_decl_t t = mod->decl->types; t; t = t->next)
+    ADD_BLOCK(gen_type(ctx, t));
+
   // Allocate module block
   ADD_LABEL(concat("__module__", concat(ctx_get_scope_name(ctx), "_init")));
 
@@ -223,33 +234,57 @@ char* gen_mod(context_t ctx, mod_t mod) {
   ADD_INSTR("call", "malloc");
   ADD_INSTR("pop", "%rdi");
   ADD_INSTR("movq", "%rax, %r10");
+  ADD_INSTR("push", "%r10");
 
   int offset = 1;
   for (const_decl_t c = mod->decl->constants; c; c = c->next) {
     assign_t assign = c->assign;
-    ADD_BLOCK(gen_expr(ctx, assign->expr, "%rax"));
+    ADD_INSTR("push", "%r10");
+    ADD_INSTR("push", "%rdi");
+    ADD_INSTR("push", "%rsi");
+    ADD_BLOCK(gen_expr(ctx, assign->expr, "%rdi"));
+    char *type_label = register_or_get_string_label(c->ty->u.name_ty);
+    ADD_INSTR("movq", concat(concat("$", type_label), ", %rsi"));
+    ADD_INSTR("call", "__morph");
+    ADD_INSTR("pop", "%rsi");
+    ADD_INSTR("pop", "%rdi");
+    ADD_INSTR("pop", "%r10");
     ADD_INSTR("movq", concat("%rax, ", concat(itoa(offset * WORD), "(%r10)")));
     offset++;
   }
   for (var_decl_t v = mod->decl->vars; v; v = v->next) {
     assign_t assign = v->assign;
-    ADD_BLOCK(gen_expr(ctx, assign->expr, "%rax"));
+    ADD_INSTR("push", "%r10");
+    ADD_INSTR("push", "%rdi");
+    ADD_INSTR("push", "%rsi");
+    ADD_BLOCK(gen_expr(ctx, assign->expr, "%rdi"));
+    char *type_label = register_or_get_string_label(v->type->u.name_ty);
+    ADD_INSTR("movq", concat(concat("$", type_label), ", %rsi"));
+    ADD_INSTR("call", "__morph");
+    ADD_INSTR("pop", "%rsi");
+    ADD_INSTR("pop", "%rdi");
+    ADD_INSTR("pop", "%r10");
     ADD_INSTR("movq", concat("%rax, ", concat(itoa(offset * WORD), "(%r10)")));
     offset++;
   }
+
+  // Enable all types defined in this scope
+  ADD_BLOCK(gen_manage_types(mod->decl->types, 1));
 
   // Generate the init block
   if (mod->stmts != NULL)
     for (stmt_t s = mod->stmts; s; s = s->next)
       ADD_BLOCK(gen_stmt(ctx, s));
 
+  // Disable all types defined in this scope
+  ADD_BLOCK(gen_manage_types(mod->decl->types, 0));
+
+  ADD_INSTR("pop", "%r10");
   ADD_INSTR("movq", "%r10, %rax");
   ADD_INSTR("pop", "%r10");
   ADD_INSTR("ret", NO_OPERANDS);
 
   // Define sub modules
-
-  // Define type morph functions
 
   // Define functions
   for (fun_decl_t f = mod->decl->funs; f; f = f->next) {
@@ -275,6 +310,9 @@ char* gen_fun(context_t ctx, fun_decl_t fun) {
   }
 
   // TODO: Generate child modules
+
+  for (type_decl_t t = fun->decl->types; t; t = t->next)
+    ADD_BLOCK(gen_type(ctx, t));
   
   // Generate child functions
   for (fun_decl_t f = fun->decl->funs; f; f = f->next) {
@@ -314,7 +352,16 @@ char* gen_fun(context_t ctx, fun_decl_t fun) {
   // Push constants and variables to stack
   for (const_decl_t c = fun->decl->constants; c; c = c-> next) {
     // TODO: Handle the different kinds of assignment
-    ADD_BLOCK(gen_expr(ctx, c->assign->expr, "%rax"));
+    ADD_INSTR("push", "%r10");
+    ADD_INSTR("push", "%rdi");
+    ADD_INSTR("push", "%rsi");
+    ADD_BLOCK(gen_expr(ctx, c->assign->expr, "%rdi"));
+    char *type_label = register_or_get_string_label(c->ty->u.name_ty);
+    ADD_INSTR("movq", concat(concat("$", type_label), ", %rsi"));
+    ADD_INSTR("call", "__morph");
+    ADD_INSTR("pop", "%rsi");
+    ADD_INSTR("pop", "%rdi");
+    ADD_INSTR("pop", "%r10");
     char *save_inst = malloc(64);
     sprintf(save_inst, "%%rax, -%d(%%rbp)", (idx + 1) * WORD);
     ADD_INSTR("movq", save_inst);
@@ -325,18 +372,32 @@ char* gen_fun(context_t ctx, fun_decl_t fun) {
     // TODO: Handle the different kinds of assignment
     expr_t expr = v->assign->expr;
     for (id_list_t id = v->names; id; id = id->next) {
-      char *x = gen_expr(ctx, expr, "%rax");
-      ADD_BLOCK(x);
+      ADD_INSTR("push", "%r10");
+      ADD_INSTR("push", "%rdi");
+      ADD_INSTR("push", "%rsi");
+      ADD_BLOCK(gen_expr(ctx, expr, "%rdi"));
+      char *type_label = register_or_get_string_label(v->type->u.name_ty);
+      ADD_INSTR("movq", concat(concat("$", type_label), ", %rsi"));
+      ADD_INSTR("call", "__morph");
+      ADD_INSTR("pop", "%rsi");
+      ADD_INSTR("pop", "%rdi");
+      ADD_INSTR("pop", "%r10");
       char *save_inst = concat("%rax, -", concat(itoa((idx+1)*WORD), "(%rbp)"));
       ADD_INSTR("movq", save_inst);
       idx++;
     }
   }
 
+  // Enable all types defined in this scope
+  ADD_BLOCK(gen_manage_types(fun->decl->types, 1));
+
   // Start executing statements
   for (stmt_t s = fun->stmts; s; s = s->next) {
     ADD_BLOCK(gen_stmt(ctx, s));
   }
+
+  // Disable all types defined in this scope
+  ADD_BLOCK(gen_manage_types(fun->decl->types, 0));
 
   // Cleanup activation record
   ADD_INSTR("movq", "$0, %rax");
@@ -421,24 +482,23 @@ char* gen_call_expr(context_t ctx, call_t call, reg_t out) {
 
   // Put arguments in registers
   for (expr_list_t curr_arg = call->args; curr_arg; curr_arg = curr_arg->next) {
-    ADD_INSTR("push", arg_registers[arg_idx]);
-    char *temp = gen_expr(ctx, curr_arg->expr, arg_registers[arg_idx]);
-    ADD_BLOCK(temp);
-    
-    // TODO: This logic will actually shrink once type checking is done because
-    // all we need to do is get the type off of the expression
-    if (args && curr_arg->expr->kind == ID_EX) {
-      char *arg_type = ctx_get_id_type(ctx, curr_arg->expr->u.id_ex);
-      char *target_type = args->type->u.name_ty;
-
-
+    reg_t curr_reg = arg_registers[arg_idx];
+    ADD_INSTR("push", curr_reg);
+    ADD_BLOCK(gen_expr(ctx, curr_arg->expr, "%rax"));
+    if (args) {
+      char *arg_type_label = register_or_get_string_label(args->type->u.name_ty);
+      ADD_INSTR("push", "%r10");
       ADD_INSTR("push", "%rdi");
-      ADD_INSTR("movq", concat(arg_registers[arg_idx], ", %rdi"));
-      ADD_INSTR("call", concat("__morph__", concat(arg_type, concat("_", target_type))));
+      ADD_INSTR("push", "%rsi");
+      ADD_INSTR("movq", "%rax, %rdi");
+      ADD_INSTR("movq", concat(concat("$", arg_type_label), ", %rsi"));
+      ADD_INSTR("call", "__morph");
+      ADD_INSTR("pop", "%rsi");
       ADD_INSTR("pop", "%rdi");
-      ADD_INSTR("movq", concat("%rax, ", arg_registers[arg_idx]));
+      ADD_INSTR("pop", "%r10");
     }
-
+    ADD_INSTR("movq", concat("%rax, ", curr_reg));
+    
     arg_idx++;
     if (args != NULL)
       args = args->next;
@@ -480,51 +540,44 @@ char* gen_literal_expr(context_t ctx, literal_t literal, reg_t out) {
   char *real_literal = NULL;
   char *bool_literal = NULL;
   CREATE_BUFFER;
+  ADD_INSTR("push", "%rdi");
+  ADD_INSTR("push", "%r10");
   switch(literal->kind) {
   case STRING_LIT:
     str_label = concat("$", register_or_get_string_label(literal->u.string_lit));
-    ADD_INSTR("push", "%rdi");
     ADD_INSTR("movq", concat(str_label, ", %rdi"));
     ADD_INSTR("call", "alloc_str");
-    ADD_INSTR("pop", "%rdi");
-    ADD_INSTR("movq", concat("%rax, ", out));
     break;
   case INTEGER_LIT:
     int_literal = concat("$", literal->u.integer_lit);
-    ADD_INSTR("push", "%rdi");
     ADD_INSTR("movq", concat(int_literal, ", %rdi"));
     ADD_INSTR("call", "alloc_int");
-    ADD_INSTR("pop", "%rdi");
-    ADD_INSTR("movq", concat("%rax, ", out));
     break;
   case REAL_LIT:
     real_literal = malloc(64);
     sprintf(real_literal, "$%lu", f_to_int(literal->u.real_lit));
-    ADD_INSTR("push", "%rdi");
     ADD_INSTR("movq", concat(real_literal, ", %rdi"));
     ADD_INSTR("call", "alloc_real");
-    ADD_INSTR("pop", "%rdi");
-    ADD_INSTR("movq", concat("%rax, ", out));
     break;
   case BOOLEAN_LIT:
     bool_literal = concat("$", itoa(literal->u.bool_lit == TRUE_BOOL));
-    ADD_INSTR("push", "%rdi");
     ADD_INSTR("movq", concat(bool_literal, ", %rdi"));
     ADD_INSTR("call", "alloc_bool");
-    ADD_INSTR("pop", "%rdi");
-    ADD_INSTR("movq", concat("%rax, ", out));
     break;
   case NULL_LIT:
     ADD_INSTR("movq", concat("$0, ", out));
   default:
     GEN_ERROR("Unknown literal");
   }
+  ADD_INSTR("pop", "%r10");
+  ADD_INSTR("pop", "%rdi");
+  ADD_INSTR("movq", concat("%rax, ", out));
   RETURN_BUFFER;
 }
 
 char* gen_data_segment() {
   CREATE_BUFFER;
-  ADD_BLOCK("\t.data\n");
+  ADD_INSTR(".section", ".data");
   for (ll_t l = strings; l; l = l->next) {
     string_label_t str_label = l->val;
     ADD_LABEL(str_label->label);
@@ -538,7 +591,7 @@ char* gen_id_expr(context_t ctx, char *id, reg_t out) {
   char *read_inst = malloc(64);
   static_link_t link = NULL;
   static_link_t sl = ctx_get_id_offset(ctx, id);
-  if (sl->next == NULL) {
+  if (sl->is_mod != 1 && sl->next == NULL) {
     // Dealing with local variable, just grab it from the current activation record
     sprintf(read_inst, "-%d(%%rbp), %s", WORD * (sl->offset + 2), out);
     ADD_INSTR("movq", read_inst);
@@ -566,35 +619,60 @@ char* gen_id_expr(context_t ctx, char *id, reg_t out) {
 char* gen_assign_stmt(context_t ctx, assign_stmt_t assign) {
   CREATE_BUFFER;
   ADD_INSTR("push", "%r10");
-  ADD_INSTR("push", "%r11");
-  ADD_BLOCK(gen_expr(ctx, assign->assign->expr, "%r10"));
-  ADD_BLOCK(gen_lval_expr(ctx, assign->lval, "%r11"));
-  ADD_INSTR("movq", "%r10, (%r11)");
-  ADD_INSTR("pop", "%r11");
+  ADD_INSTR("push", "%rdi");
+  ADD_INSTR("push", "%rsi");
+  ADD_BLOCK(gen_expr(ctx, assign->assign->expr, "%rdi"));
+  ADD_BLOCK(gen_lval_expr(ctx, assign->lval, "%rsi"));
+  /* ADD_INSTR("movq", "%rdi, (%rsi)"); */
+  ADD_INSTR("call", "__assign_simple");
+  ADD_INSTR("pop", "%rsi");
+  ADD_INSTR("pop", "%rdi");
   ADD_INSTR("pop", "%r10");
   RETURN_BUFFER;
 }
 
 char* gen_lval_expr(context_t ctx, expr_t lval, reg_t out) {
   static_link_t sl = NULL;
-  char *read_inst = NULL;
+  static_link_t link = NULL;
+  char read_inst[64];
   CREATE_BUFFER;
   switch(lval->kind) {
   case ID_EX:
-    ADD_INSTR("push", "%rax");
-    ADD_INSTR("leaq", "-8(%rbp), %rax");
     sl = ctx_get_id_offset(ctx, lval->u.id_ex);
     if (sl == NULL) {
-      GEN_ERROR(concat("Cannot find l-value ", lval->u.id_ex));
-    } else if (sl->levels > 0) {
-      for (int i = 0; i < sl->levels; i++) {
+      GEN_ERROR(concat("Cannot find l-value ", lval->u.id_ex)); 
+    }
+
+    if (sl->is_mod != 1 && sl->next == NULL) {
+      // Dealing with local variable, just grab it from the current activation record
+      sprintf(read_inst, "-%d(%%rbp), %s", WORD * (sl->offset + 2), out);
+      ADD_INSTR("movq", read_inst);
+    } else if (sl->is_mod) {
+      // We are directly in a module's scope, which means we are probably an init block
+      sprintf(read_inst, "%d(%%r10), %s", WORD * (sl->offset + 1), out);
+      ADD_INSTR("movq", read_inst);
+    } else {
+      // Dealing with a variable that's in a more global scope
+      ADD_INSTR("movq", "-8(%rbp), %rax");
+      for (link = sl; link->next && !link->next->is_mod; link = link->next) {
         ADD_INSTR("movq", "(%rax), %rax");
       }
+      if (link->next && link->next->is_mod)
+        sprintf(read_inst, "%d(%%rax), %s", WORD * (sl->offset + 1), out);
+      else
+        sprintf(read_inst, "-%d(%%rax), %s", WORD * (sl->offset + 1), out);
+      ADD_INSTR("movq", read_inst);
     }
-    read_inst = malloc(64);
-    sprintf(read_inst, "-%d(%%rax), ", WORD * (sl->offset + 1));
-    ADD_INSTR("leaq", concat(read_inst, out));
-    ADD_INSTR("pop", "%rax");
+
+    /* /\* if (sl == NULL) { *\/ */
+    /* /\*   GEN_ERROR(concat("Cannot find l-value ", lval->u.id_ex)); *\/ */
+    /* /\* } else if (sl->levels > 0) { *\/ */
+    /* /\*   for (int i = 0; i < sl->levels; i++) { *\/ */
+    /* /\*     ADD_INSTR("movq", "(%rax), %rax"); *\/ */
+    /* /\*   } *\/ */
+    /* /\* } *\/ */
+    /* sprintf(read_inst, "-%d(%%rax), ", WORD * (sl->offset + 1)); */
+    /* ADD_INSTR("leaq", concat(read_inst, out)); */
     break;
   case LITERAL_EX:
   case UNARY_EX:
@@ -614,6 +692,7 @@ char* gen_cond_stmt(context_t ctx, cond_stmt_t cond) {
   ll_t condition_labels = NULL;
   char *curr_label = NULL;
   char *end_label = NULL;
+  char *bool_label = register_or_get_string_label("boolean");
   CREATE_BUFFER;
 
   // Generate all of the condition labels
@@ -634,12 +713,20 @@ char* gen_cond_stmt(context_t ctx, cond_stmt_t cond) {
   ll_t cl = condition_labels;
   for (cond_stmt_t c = cond; c; c = c->else_stmt ? c->else_stmt->u.cond_stmt : NULL) {
     if (c->test != NULL) {
-      ADD_BLOCK(gen_expr(ctx, c->test, "%rax"));
 
       // TODO: This should be a morph
       ADD_INSTR("push", "%r10");
-      ADD_INSTR("movq", "(%rax), %r10"); 
-      ADD_INSTR("cmp", "$1, %r10");
+      ADD_INSTR("push", "%rdi");
+      ADD_INSTR("push", "%rsi");
+      ADD_BLOCK(gen_expr(ctx, c->test, "%rdi"));
+      ADD_INSTR("movq", concat(concat("$", bool_label), ", %rsi"));
+      ADD_INSTR("call", "__morph");
+      ADD_INSTR("movq", "%rax, %rdi");
+      ADD_INSTR("movq", concat(INT_LITERAL(0), ", %rsi"));
+      ADD_INSTR("call", "__get_data_member");
+      ADD_INSTR("cmp", "$1, %rax");
+      ADD_INSTR("pop", "%rsi");
+      ADD_INSTR("pop", "%rdi");
       ADD_INSTR("pop", "%r10");
       ADD_INSTR("je", cl->val);
     } else {
@@ -699,6 +786,7 @@ char* gen_break_stmt(context_t ctx, break_stmt_t brk) {
 
 char* gen_binary_expr(context_t ctx, binary_t binary, reg_t out) {
   CREATE_BUFFER;
+  ADD_INSTR("push", "%r10");
   ADD_INSTR("push", "%rdi");
   ADD_INSTR("push", "%rsi");
   ADD_BLOCK(gen_expr(ctx, binary->left, "%rdi"));
@@ -766,6 +854,7 @@ char* gen_binary_expr(context_t ctx, binary_t binary, reg_t out) {
   }
   ADD_INSTR("pop", "%rsi");
   ADD_INSTR("pop", "%rdi");
+  ADD_INSTR("pop", "%r10");
   ADD_INSTR("movq", concat("%rax, ", out));
   RETURN_BUFFER;
 }
@@ -825,25 +914,90 @@ char* gen_unary_expr(context_t ctx, unary_t unary, reg_t out) {
   RETURN_BUFFER;
 }
 
-char* codegen(root_t root, type_node_t *g) {
-  graph = g;
+char* gen_text_segment(root_t root) {
   CREATE_BUFFER;
+  ADD_INSTR(".section", ".text");
   ADD_INSTR(".global", "main");
+
+  // Generate main method 
+  ADD_LABEL("main");
+  ADD_INSTR("call", "init_type_graph");
+  ADD_INSTR("push", "%r10");
+  ADD_INSTR("call", "__module__Main_init");
+  ADD_INSTR("movq", "%rax, %r10");
+  ADD_INSTR("pop", "%r10");
+  ADD_INSTR("ret", NO_OPERANDS);
+
   for (mod_t mod = root->mods; mod; mod = mod->next) {
     context_t ctx = ctx_new();
     ctx_set_mod(ctx);
     ADD_BLOCK(gen_mod(ctx, mod));
   }
+  RETURN_BUFFER;
+}
 
-  // Generate main method 
-  set_entrypoint(root);
-  ADD_LABEL("main");
+char* gen_type(context_t ctx, type_decl_t type) {
+  char *type_label = concat("__type__", type->name);
+  char *type_name_label = register_or_get_string_label(type->name);
+  int morph_count = 0;
+  for (morph_t morph = type->morphs; morph; morph = morph->next)
+    morph_count++;
+  CREATE_BUFFER;
+  ADD_INSTR(".section", ".data");
+  ADD_LABEL(type_label);
+  ADD_INSTR(".quad", type_name_label);
+  ADD_INSTR(".quad", itoa(morph_count));
+  for (morph_t morph = type->morphs; morph; morph = morph->next) {
+    char *target_label = register_or_get_string_label(morph->target);
+    ADD_INSTR(".quad", target_label);
+    ADD_INSTR(".quad", concat("__morph__", concat(type->name, concat("__", morph->target))));
+  }
+  ADD_INSTR(".section", ".type_graph");
+  ADD_INSTR(".quad", type_label);
+  ADD_INSTR(".section", ".text");
+  for (morph_t morph = type->morphs; morph; morph = morph->next) {
+    ADD_BLOCK(gen_morph(ctx, type->name, morph));
+  }
+  RETURN_BUFFER;
+}
+
+char* gen_manage_types(type_decl_t types, int enable) {
+  CREATE_BUFFER;
   ADD_INSTR("push", "%r10");
-  ADD_INSTR("call", "__module__Main_init");
-  ADD_INSTR("movq", "%rax, %r10");
+  ADD_INSTR("push", "%rdi");
+  for (type_decl_t t = types; t; t = t->next) {
+    ADD_INSTR("movq", concat(concat("$", register_or_get_string_label(t->name)), ", %rdi"));
+    ADD_INSTR("call", enable ? "__activate_type" : "__deactivate_type");
+  }
+  ADD_INSTR("pop", "%rdi");
   ADD_INSTR("pop", "%r10");
+  RETURN_BUFFER;
+}
+
+char* gen_morph(context_t ctx, char *type_name, morph_t morph) {
+  CREATE_BUFFER;
+  ADD_LABEL(concat("__morph__", concat(type_name, concat("__", morph->target))));
+
+  /* TODO: Allocate space for "this" and "that" or whatever variables 
+   * we decided on. This will probably require creating a new context.
+   */
+
+  for (stmt_t s = morph->defn; s; s = s->next) {
+    ADD_BLOCK(gen_stmt(ctx, s));
+  }
+  ADD_INSTR("ret", NO_OPERANDS);
+  RETURN_BUFFER;
+}
+
+char* codegen(root_t root, type_node_t *g) {
+  graph = g;
+  CREATE_BUFFER;
+
+  // Generate text segment
+  ADD_BLOCK(gen_text_segment(root));
 
   // Generate data segment
   ADD_BLOCK(gen_data_segment());
+
   RETURN_BUFFER;
 }

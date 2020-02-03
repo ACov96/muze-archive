@@ -82,7 +82,7 @@
                      int LEVEL_SPECIFIER
 
 #define parse_log(str, ...) \
-  write_log("[%6d] "str, LEVEL_SPECIFIER, ##__VA_ARGS__)
+  if (log_enable) write_log("[%6d] "str, LEVEL_SPECIFIER, ##__VA_ARGS__)
 
 // most recent mismatch
 static struct {
@@ -98,6 +98,9 @@ static void init_fail() {
   fail_info.column = -1;
   fail_info.level = -1;
 }
+
+// Globals
+extern int log_enable;
 
 // Prototypes
 static root_t parse_root(PARSE_PARAMS);

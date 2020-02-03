@@ -1,9 +1,9 @@
 #pragma once
 
-#include "type.h"
-
 typedef struct symbol_st *symbol_t;
 typedef struct scope_st  *scope_t;
+
+#include "type.h"
 
 struct symbol_st {
   char *name;
@@ -25,7 +25,7 @@ struct symbol_st {
 
     struct {
       type_id ret_type;
-      type_id *param_type;
+      type_id *param_types;
     } func;
 
     struct {

@@ -1,19 +1,20 @@
 #pragma once
 
-typedef unsigned long type_id;
+typedef int type_id;
 
+#include "morph_graph.h"
 #include "ast.h"
 
-type_id new_type_id();
+int check_types(root_t root, type_node_t *graph);
 
-type_id evaluate_expr_type(expr_t expr);
-
+#ifndef TYPE_C
 // Builtin
-extern const type_id STRING_TYPE;
-extern const type_id BOOLEAN_TYPE;
-extern const type_id INTEGER_TYPE;
-extern const type_id REAL_TYPE;
-extern const type_id UNIT_TYPE;
-extern const type_id LIST_TYPE;
-extern const type_id HASHMAP_TYPE;
+extern type_id INTEGER_TYPE; // implemented
+extern type_id REAL_TYPE; // implemented
+extern type_id BOOLEAN_TYPE; // implemented
+extern type_id STRING_TYPE; // implemented
+extern type_id UNIT_TYPE;
+extern type_id LIST_TYPE;
+extern type_id HASHMAP_TYPE;
+#endif
 

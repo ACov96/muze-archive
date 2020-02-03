@@ -1,10 +1,10 @@
 #ifndef _MORPH_GRAPH_H
 #define _MORPH_GRAPH_H
 
+typedef struct type_node_st		*type_node_t;
+
 #include "ast.h"
 #include "muze_stdlib.h"
-
-typedef struct type_node_st		*type_node_t;
 
 type_node_t* build_graph(root_t root);
 void print_graph(type_node_t* graph);

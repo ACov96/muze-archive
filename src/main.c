@@ -161,10 +161,19 @@ int main(int argc, char* argv[]) {
     print_errors();
   }
 
+  // make graph
+
   type_node_t *graph = build_graph(ast_root);
   if (opts.print_graph) {
     print_graph(graph);
   }
+
+
+  // type check
+  if (check_types(ast_root, graph)) {
+    // type checking failed
+  }
+
   char *assembly = remove_empty_lines(codegen(ast_root, graph));
   if (opts.print_asm) {
     printf("Assembly Output:\n\n%s\n", assembly);

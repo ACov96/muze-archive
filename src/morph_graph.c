@@ -33,7 +33,7 @@ type_node_t* deactivate_node(type_node_t* graph, char* type_name);
 char** shortest_path(type_node_t* graph, char* src, char* dest);
 int* bfs(type_node_t* graph, int src, int dest);
 
-/* Gloabl variables */ 
+/* Global variables */ 
 int next_index = 0;  // next available index in the morph graph
 int graph_size = NUM_PRIMITIVES; // number of types in the graph
 char* primitive_types[] = {"integer", "real", "string", "boolean"};

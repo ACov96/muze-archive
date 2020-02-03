@@ -1,8 +1,5 @@
 #pragma once
 
-#include "util.h"
-#include "symbol.h"
-
 typedef struct root_st          *root_t;
 typedef struct mod_st           *mod_t;
 typedef struct decl_st          *decl_t;
@@ -46,6 +43,9 @@ typedef struct loop_stmt_st     *loop_stmt_t;
 typedef struct case_stmt_st     *case_stmt_t;
 typedef struct expr_stmt_st     *expr_stmt_t;
 typedef struct break_stmt_st    *break_stmt_t;
+
+#include "util.h"
+#include "symbol.h"
 
 // Entry node in the AST
 struct root_st {

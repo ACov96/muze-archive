@@ -224,7 +224,10 @@ struct assign_st {
 // Any full expression (aka rvalue)
 struct expr_st {
   // Type of the expression
-  type_t type;
+  type_id type;
+
+  // Scope of the expression
+  scope_t scope;
 
   // Tagged union of various kinds of expressions
   enum {

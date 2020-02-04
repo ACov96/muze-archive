@@ -151,6 +151,8 @@ static loop_stmt_t parse_loop_stmt(PARSE_PARAMS);
 static assign_stmt_t parse_assign_stmt(PARSE_PARAMS);
 static expr_stmt_t parse_expr_stmt(PARSE_PARAMS);
 static break_stmt_t parse_break_stmt(PARSE_PARAMS);
+static try_stmt_t parse_try_stmt(PARSE_PARAMS);
+static throw_stmt_t parse_throw_stmt(PARSE_PARAMS);
 
 
 static stmt_t parse_stmt(PARSE_PARAMS) {
@@ -186,6 +188,14 @@ static stmt_t parse_stmt(PARSE_PARAMS) {
     parse_log("Statement is break");
     stmt->kind = BREAK_STMT;
   }
+	else if (MATCH_FUN(parse_try_stmt, stmt->u.try_stmt)) {
+		parse_log("Statement is try/catch");
+		stmt->kind = TRY_STMT;
+	}
+ 	else if (MATCH_FUN(parse_throw_stmt, stmt->u.throw_stmt)) {
+		parse_log("Statement is throw");
+		stmt->kind = THROW_STMT;
+	}
   else {
     PARSE_FAIL("Expected to find a statement, instead found %s",
                token_names[BEGET->tok].pretty);
@@ -322,6 +332,47 @@ static expr_stmt_t parse_expr_stmt(PARSE_PARAMS) {
 
   PARSE_RETURN(expr_stmt);
 }
+
+static break_stmt_t parse_break_stmt(PARSE_PARAMS) {
+  EXPECT_TOK(BREAK);
+
+  // If we ever do break to a specific label, this is where we're gonna do it
+  
+  EXPECT_TOK(SEMICOLON);
+  break_stmt_t break_stmt = malloc(sizeof(struct break_stmt_st));
+  PARSE_RETURN(break_stmt);
+}
+
+
+static try_stmt_t parse_try_stmt(PARSE_PARAMS) {
+	parse_log("Attempting to parse try statement");
+
+	try_stmt_t try_stmt = malloc(sizeof(struct try_stmt_st));
+	
+	EXPECT_TOK(TRY);
+	EXPECT_FUN(parse_stmt, try_stmt->try_block);
+	EXPECT_TOK(CATCH);
+	EXPECT_FUN(parse_lval, try_stmt->catch_lval);
+	EXPECT_FUN(parse_stmt, try_stmt->catch_block);
+	EXPECT_TOK(YRT);
+	
+	parse_log("Successfully parsed try statment");
+	PARSE_RETURN(try_stmt);
+}
+
+static throw_stmt_t parse_throw_stmt(PARSE_PARAMS) {
+	parse_log("Attempting to parse throw statement");
+	
+	throw_stmt_t throw_stmt = malloc(sizeof(struct throw_stmt_st));
+
+	EXPECT_TOK(THROW);
+	EXPECT_FUN(parse_lval, throw_stmt->exception);
+	EXPECT_TOK(SEMICOLON);
+
+	parse_log("Successfully parsed throw statment");
+	PARSE_RETURN(throw_stmt);
+}
+
 
 static expr_t parse_expr(PARSE_PARAMS) {
   parse_log("Attempting to parse expression");
@@ -1259,15 +1310,6 @@ static expr_list_t parse_expr_list(PARSE_PARAMS) {
   PARSE_RETURN(curr);
 }
 
-static break_stmt_t parse_break_stmt(PARSE_PARAMS) {
-  EXPECT_TOK(BREAK);
-
-  // If we ever do break to a specific label, this is where we're gonna do it
-  
-  EXPECT_TOK(SEMICOLON);
-  break_stmt_t break_stmt = malloc(sizeof(struct break_stmt_st));
-  PARSE_RETURN(break_stmt);
-}
 
 // start parse
 root_t parse(ll_t LL_NAME) {

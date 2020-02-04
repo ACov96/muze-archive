@@ -3,7 +3,7 @@ CFLAGS = -g
 TARGET = libs.o
 .DEFAULT_GOAL = $(TARGET)
 DESTDIR = objs
-OBJLST = muze_stdlib.o # libunwind.a
+OBJLST = muze_stdlib.o libunwind.a
 OBJS = $(foreach obj, $(OBJLST), $(DESTDIR)/$(obj))
 
 $(DESTDIR):
@@ -27,4 +27,4 @@ $(TARGET): $(OBJS)
 clean:
 	rm -rf $(DESTDIR) $(TARGET)
 	cd libmuzeruntime && make clean
-	# cd libunwind && make clean && rm -rf usr
+	cd libunwind && make clean && rm -rf usr

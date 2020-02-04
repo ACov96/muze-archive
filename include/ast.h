@@ -43,8 +43,8 @@ typedef struct loop_stmt_st     *loop_stmt_t;
 typedef struct case_stmt_st     *case_stmt_t;
 typedef struct expr_stmt_st     *expr_stmt_t;
 typedef struct break_stmt_st    *break_stmt_t;
-typedef struct try_stmt_st			*try_stmt_t;
-typedef struct throw_stmt_st		*throw_stmt_t;
+typedef struct try_stmt_st	*try_stmt_t;
+typedef struct throw_stmt_st	*throw_stmt_t;
 
 #include "util.h"
 #include "symbol.h"
@@ -368,8 +368,8 @@ struct stmt_st {
     assign_stmt_t  assign_stmt;
     expr_stmt_t    expr_stmt;
     break_stmt_t   break_stmt;
-		try_stmt_t		 try_stmt;
-		throw_stmt_t	 throw_stmt;
+    try_stmt_t	   try_stmt;
+    throw_stmt_t   throw_stmt;
   } u;
 
   stmt_t next;

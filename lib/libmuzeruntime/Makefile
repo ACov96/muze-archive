@@ -11,7 +11,10 @@ CFLAGS = -g -Wall -Wfatal-errors -Werror \
 	 -Wno-error=unused-label \
 	 -I $(INCLUDEDIR) \
 	 -I ../../include \
+	 -I ../libunwind/include \
+	 -L ../libunwind/usr/local/lib \
 	 -lm \
+	 -lunwind \
 	 -no-pie
 
 OBJLST = muze_stdlib.o

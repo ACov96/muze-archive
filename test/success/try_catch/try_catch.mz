@@ -1,15 +1,12 @@
 mod Main
-	fun main() : integer
-	var
-		a : string = "exception 'a' caught";
-		e : string;
-	begin
-		try
-			throw a;
-		catch e
-			print(e);
-		yrt
-	nuf main
+var
+  a : string = "throwing exception";
+  e : string = "Test";
 begin
-	main();
+  try
+    throw a;
+    print("This should never run");
+  catch e
+    print(e);
+  yrt
 dom Main

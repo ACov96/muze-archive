@@ -139,7 +139,8 @@ static type_id evaluate_literal_type(literal_t literal) {
     case REAL_LIT:
       return REAL_TYPE;
     case NULL_LIT:
-      return UNIT_TYPE;
+      // return UNIT_TYPE;
+      return -1;
   }
 
   return -1;

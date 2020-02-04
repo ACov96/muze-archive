@@ -103,6 +103,8 @@ char* gen_binary_expr(context_t ctx, binary_t binary, reg_t out);
 char* gen_ternary_expr(context_t ctx, ternary_t ternary, reg_t out);
 char* gen_unary_expr(context_t ctx, unary_t unary, reg_t out);
 char* gen_manage_types(type_decl_t t, int enable);
+char* gen_try_catch_stmt(context_t ctx, try_stmt_t try_catch);
+char* gen_throw_stmt(context_t ctx, throw_stmt_t throw);
 
 /* HELPERS */
 unsigned int count_consts_and_vars(decl_t decl) {
@@ -431,6 +433,12 @@ char* gen_stmt(context_t ctx, stmt_t stmt) {
     break;
   case BREAK_STMT:
     ADD_BLOCK(gen_break_stmt(ctx, stmt->u.break_stmt));
+    break;
+  case TRY_STMT:
+    ADD_BLOCK(gen_try_catch_stmt(ctx, stmt->u.try_stmt));
+    break;
+  case THROW_STMT:
+    ADD_BLOCK(gen_throw_stmt(ctx, stmt->u.throw_stmt));
     break;
   default:
     GEN_ERROR("Unrecognized statement");
@@ -986,6 +994,65 @@ char* gen_morph(context_t ctx, char *type_name, morph_t morph) {
     ADD_BLOCK(gen_stmt(ctx, s));
   }
   ADD_INSTR("ret", NO_OPERANDS);
+  RETURN_BUFFER;
+}
+
+char* gen_try_catch_stmt(context_t ctx, try_stmt_t try_catch) {
+  char *catch_label = gen_label("CATCH");
+  char *end_label = gen_label("TRY_END");
+  CREATE_BUFFER;
+  ADD_INSTR("push", "%r10");
+  ADD_INSTR("push", "%rdi");
+  ADD_INSTR("push", "%rsi");
+
+  // Initialize the libunwind cursor
+  ADD_INSTR("call", "_init_try");
+  ADD_INSTR("call", "_get_current_context");
+  ADD_INSTR("push", "%rax");
+  ADD_INSTR("call", "_get_current_cursor");
+  ADD_INSTR("movq", "%rax, %rdi");
+  ADD_INSTR("pop", "%rsi");
+  ADD_INSTR("call", "_ULx86_64_init_local");
+
+  // Check for an exception
+  ADD_INSTR("call", "_check_exception");
+  ADD_INSTR("pop", "%rsi");
+  ADD_INSTR("pop", "%rdi");
+  ADD_INSTR("pop", "%r10");
+  ADD_INSTR("cmp", "$1, %rax");
+  ADD_INSTR("je", catch_label);
+
+  // Generate the statements in the try block
+  for (stmt_t s = try_catch->try_block; s; s = s->next) {
+    ADD_BLOCK(gen_stmt(ctx, s));
+  }
+  ADD_INSTR("jmp", end_label);
+
+  // Generate the statements in the catch block
+  ADD_LABEL(catch_label);
+  ADD_INSTR("push", "%r10");
+  ADD_INSTR("call", "_get_exception");
+  ADD_INSTR("push", "%rax");
+  ADD_BLOCK(gen_lval_expr(ctx, try_catch->catch_lval, "%rsi"));
+  ADD_INSTR("pop", "%rdi");
+  ADD_INSTR("call", "__assign_simple");
+  ADD_INSTR("pop", "%r10");
+  for (stmt_t s = try_catch->catch_block; s; s = s->next) {
+    ADD_BLOCK(gen_stmt(ctx, s));
+  }
+  
+  // Cleanup the try-catch
+  ADD_LABEL(end_label);
+  ADD_INSTR("push", "%r10");
+  ADD_INSTR("call", "_clear_try");
+  ADD_INSTR("pop", "%r10");
+  RETURN_BUFFER;
+}
+
+char* gen_throw_stmt(context_t ctx, throw_stmt_t throw) {
+  CREATE_BUFFER;
+  ADD_BLOCK(gen_expr(ctx, throw->exception, "%rdi"));
+  ADD_INSTR("call", "_throw_exception");
   RETURN_BUFFER;
 }
 

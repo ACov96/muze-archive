@@ -2,10 +2,13 @@
  * - Rework this whole module to use the dynamic typing system. The type header for all of these
  *   functions is just being assumed, but it should be part of the runtime.
  */
+#define UNW_LOCAL_ONLY
 #include <stdlib.h>
 #include <stdio.h>
+#include <stdbool.h>
 #include <string.h>
 #include <math.h>
+#include "libunwind.h"
 #include "muze_stdlib.h"
 #include "morph_graph.h"
 
@@ -13,6 +16,13 @@
 #define TYPE_MASK (~(0xFFFFULL << 48))
 
 typedef struct mini_type_st *mini_type_t;
+typedef struct exception_stack_st *exception_stack_t;
+
+struct exception_stack_st {
+  unw_context_t context;
+  unw_cursor_t cursor;
+  exception_stack_t prev;
+};
 
 struct mini_morph_st {
   char *dest;
@@ -25,11 +35,12 @@ struct mini_type_st {
   struct mini_morph_st morphs[];
 };
 
-
 extern struct mini_type_st __TYPE_GRAPH;
 extern unsigned __TYPE_GRAPH_END;
 
 type_node_t *graph = NULL;
+exception_stack_t exception_stack = NULL;
+data_t curr_exception = NULL;
 
 void panic(char *msg) {
   fprintf(stderr, "RUNTIME PANIC: %s\n", msg);
@@ -372,4 +383,49 @@ void __assign_simple(data_t src, data_t dest) {
       && dest_type_header != get_type_index(graph, "boolean"))
     panic("Assigning non-primitive type");
   __set_data_member(dest, __get_data_member(src_matching_type, 0), 0);
+}
+
+void _init_try(void) {
+  exception_stack_t cb = malloc(sizeof(struct exception_stack_st));
+  cb->prev = exception_stack;
+  exception_stack = cb;
+}
+
+unw_cursor_t* _get_current_cursor(void) {
+  return &exception_stack->cursor;
+}
+
+unw_context_t* _get_current_context(void) {
+  return &exception_stack->context;
+}
+
+void _clear_try(void) {
+  exception_stack_t top = exception_stack;
+  if (exception_stack != NULL)
+    exception_stack = exception_stack->prev;
+  curr_exception = NULL;
+  free(top);
+}
+
+bool _check_exception(void) {
+  return curr_exception != NULL;
+}
+
+void _print_cursor_info(unw_cursor_t *c) {
+  unw_word_t offp;
+  char buf[1024];
+  unw_get_proc_name(c, buf, 1024, &offp);
+  printf("Cursor (%p): %s + 0x%lx\n", c, buf, offp);
+}
+
+void _throw_exception(data_t exception) {
+  curr_exception = exception;
+  _print_cursor_info(&exception_stack->cursor);
+  unw_resume(&exception_stack->cursor);
+  printf("PANIC: unw_resume returned.\n");
+  exit(EXIT_FAILURE);
+}
+
+data_t _get_exception() {
+  return curr_exception;
 }

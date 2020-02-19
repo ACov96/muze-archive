@@ -1,1 +1,1 @@
-exception 'a' caught
+throwing exception

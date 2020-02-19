@@ -1029,6 +1029,7 @@ char* gen_try_catch_stmt(context_t ctx, try_stmt_t try_catch) {
   for (stmt_t s = try_catch->try_block; s; s = s->next) {
     ADD_BLOCK(gen_stmt(ctx, s));
   }
+  ADD_INSTR("call", "_clear_try");
   ADD_INSTR("jmp", end_label);
 
   // Generate the statements in the catch block
@@ -1042,6 +1043,7 @@ char* gen_try_catch_stmt(context_t ctx, try_stmt_t try_catch) {
   ADD_INSTR("call", "__assign_simple");
   ADD_INSTR("pop", "%rsi");
   ADD_INSTR("pop", "%rdi");
+  ADD_INSTR("call", "_clear_try");
   ADD_INSTR("pop", "%r10");
   for (stmt_t s = try_catch->catch_block; s; s = s->next) {
     ADD_BLOCK(gen_stmt(ctx, s));
@@ -1049,9 +1051,6 @@ char* gen_try_catch_stmt(context_t ctx, try_stmt_t try_catch) {
   
   // Cleanup the try-catch
   ADD_LABEL(end_label);
-  ADD_INSTR("push", "%r10");
-  ADD_INSTR("call", "_clear_try");
-  ADD_INSTR("pop", "%r10");
   RETURN_BUFFER;
 }
 

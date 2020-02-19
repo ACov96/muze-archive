@@ -1,0 +1,15 @@
+mod Main
+  var
+    a : string = "The error message";
+    e : string = "";
+begin
+  try
+    try
+      throw a;
+    catch e
+      throw e;
+    yrt
+  catch e
+    print(e);
+  yrt
+dom Main

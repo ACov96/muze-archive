@@ -8,7 +8,7 @@
 #include <stdbool.h>
 #include <string.h>
 #include <math.h>
-#include "libunwind.h"
+#include <ucontext.h>
 #include "muze_stdlib.h"
 #include "morph_graph.h"
 
@@ -19,8 +19,8 @@ typedef struct mini_type_st *mini_type_t;
 typedef struct exception_stack_st *exception_stack_t;
 
 struct exception_stack_st {
-  unw_context_t context;
-  unw_cursor_t cursor;
+  ucontext_t context;
+  data_t exception;
   exception_stack_t prev;
 };
 
@@ -385,47 +385,29 @@ void __assign_simple(data_t src, data_t dest) {
   __set_data_member(dest, __get_data_member(src_matching_type, 0), 0);
 }
 
-void _init_try(void) {
-  exception_stack_t cb = malloc(sizeof(struct exception_stack_st));
-  cb->prev = exception_stack;
-  exception_stack = cb;
-}
-
-unw_cursor_t* _get_current_cursor(void) {
-  return &exception_stack->cursor;
-}
-
-unw_context_t* _get_current_context(void) {
+ucontext_t *_init_try(void) {
+  exception_stack_t new_exception = malloc(sizeof(struct exception_stack_st));
+  new_exception->prev = exception_stack;
+  new_exception->exception = NULL;
+  exception_stack = new_exception;
   return &exception_stack->context;
 }
 
-void _clear_try(void) {
-  exception_stack_t top = exception_stack;
-  if (exception_stack != NULL)
-    exception_stack = exception_stack->prev;
-  curr_exception = NULL;
-  free(top);
-}
-
 bool _check_exception(void) {
-  return curr_exception != NULL;
+  return exception_stack != NULL && exception_stack->exception != NULL;
 }
 
-void _print_cursor_info(unw_cursor_t *c) {
-  unw_word_t offp;
-  char buf[1024];
-  unw_get_proc_name(c, buf, 1024, &offp);
-  printf("Cursor (%p): %s + 0x%lx\n", c, buf, offp);
+data_t _get_exception(void) {
+  return exception_stack != NULL ? exception_stack->exception : NULL;
+}
+
+void _clear_try(void) {
+  exception_stack_t curr = exception_stack;
+  exception_stack = curr->prev;
+  free(curr);
 }
 
 void _throw_exception(data_t exception) {
-  curr_exception = exception;
-  _print_cursor_info(&exception_stack->cursor);
-  unw_resume(&exception_stack->cursor);
-  printf("PANIC: unw_resume returned.\n");
-  exit(EXIT_FAILURE);
-}
-
-data_t _get_exception() {
-  return curr_exception;
+  exception_stack->exception = exception;
+  setcontext(&exception_stack->context);
 }

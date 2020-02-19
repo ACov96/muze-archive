@@ -16,7 +16,7 @@ $(DESTDIR)/muze_stdlib.o: $(DESTDIR)
 	cp libmuzeruntime/muze_stdlib.o $(DESTDIR)
 
 $(DESTDIR)/libunwind.a: $(DESTDIR)
-	cd libunwind && ./autogen.sh && ./configure && mkdir -p 'usr/local' && make && make install prefix=$(shell pwd)/libunwind/usr/local
+	cd libunwind && ./autogen.sh && ./configure CFLAGS="-g" && mkdir -p 'usr/local' && make && make install prefix=$(shell pwd)/libunwind/usr/local
 	cp libunwind/usr/local/lib/libunwind.a $(DESTDIR)
 
 $(TARGET): $(OBJS)

@@ -14,6 +14,7 @@ CFLAGS = -g -Wall -Wfatal-errors -Werror \
 	 -I ../libunwind/include \
 	 -L ../libunwind/usr/local/lib \
 	 -lm \
+	 -Wl, -Bstatic \
 	 -lunwind \
 	 -no-pie
 

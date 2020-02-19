@@ -1003,21 +1003,24 @@ char* gen_try_catch_stmt(context_t ctx, try_stmt_t try_catch) {
   CREATE_BUFFER;
   ADD_INSTR("push", "%r10");
   ADD_INSTR("push", "%rdi");
-  ADD_INSTR("push", "%rsi");
 
   // Initialize the libunwind cursor
   ADD_INSTR("call", "_init_try");
-  ADD_INSTR("call", "_get_current_context");
-  ADD_INSTR("push", "%rax");
-  ADD_INSTR("call", "_get_current_cursor");
   ADD_INSTR("movq", "%rax, %rdi");
-  ADD_INSTR("pop", "%rsi");
-  ADD_INSTR("call", "_ULx86_64_init_local");
+
+  // Save the previously push %r10 and %rdi registers into other registers,
+  // that way getcontext will save them off
+  ADD_INSTR("pop", "%r11");
+  ADD_INSTR("pop", "%r12");
+  ADD_INSTR("call", "getcontext"); // Execution will resume here
+
+  // Restore the %rdi and %r10 registers
+  ADD_INSTR("movq", "%r11, %rdi");
+  ADD_INSTR("movq", "%r12, %r10");
 
   // Check for an exception
+  ADD_INSTR("push", "%r10");
   ADD_INSTR("call", "_check_exception");
-  ADD_INSTR("pop", "%rsi");
-  ADD_INSTR("pop", "%rdi");
   ADD_INSTR("pop", "%r10");
   ADD_INSTR("cmp", "$1, %rax");
   ADD_INSTR("je", catch_label);
@@ -1031,11 +1034,14 @@ char* gen_try_catch_stmt(context_t ctx, try_stmt_t try_catch) {
   // Generate the statements in the catch block
   ADD_LABEL(catch_label);
   ADD_INSTR("push", "%r10");
-  ADD_INSTR("call", "_get_exception");
-  ADD_INSTR("push", "%rax");
+  ADD_INSTR("push", "%rdi");
+  ADD_INSTR("push", "%rsi");
   ADD_BLOCK(gen_lval_expr(ctx, try_catch->catch_lval, "%rsi"));
-  ADD_INSTR("pop", "%rdi");
+  ADD_INSTR("call", "_get_exception");
+  ADD_INSTR("movq", "%rax, %rdi");
   ADD_INSTR("call", "__assign_simple");
+  ADD_INSTR("pop", "%rsi");
+  ADD_INSTR("pop", "%rdi");
   ADD_INSTR("pop", "%r10");
   for (stmt_t s = try_catch->catch_block; s; s = s->next) {
     ADD_BLOCK(gen_stmt(ctx, s));

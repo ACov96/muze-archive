@@ -1,3 +1,0 @@
-[submodule "lib/libunwind"]
-	path = lib/libunwind
-	url = git://git.sv.gnu.org/libunwind.git

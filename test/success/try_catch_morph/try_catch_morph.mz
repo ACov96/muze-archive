@@ -1,0 +1,14 @@
+mod Main
+  var
+    err : string = "";
+  fun foo(x : integer)
+  begin
+    throw x;
+  nuf foo
+begin
+  try
+    foo(42);
+  catch err
+    print(err);
+  yrt
+dom Main

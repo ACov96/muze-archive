@@ -11,7 +11,13 @@ Clone the repository:
 
 Then run the configuration script:
 
-   $ ./configure --prefix=/path/to/install/dir
+   $ ./configure
+
+
+If you don't have sudo on your machine, you can have the configure script
+install it to a local directory:
+
+   $ ./configure --prefix=/path/to/dir
 
 
 I usually just set my prefix to /home/covinga/.local/ and let autotools
@@ -23,4 +29,4 @@ Lastly, build and install it:
    $ make install
 
 
-Make sure you set your PATH to point to the newly generated binary!
+Make sure you set your $PATH to point to the newly generated binary!

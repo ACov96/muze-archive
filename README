@@ -21,7 +21,8 @@ install it to a local directory:
 
 
 I usually just set my prefix to /home/covinga/.local/ and let autotools
-create the bin/, lib/, and script/ directories.
+create the bin/, lib/, include/, and script/ directories in the install
+location.
 
 Lastly, build and install it:
 
@@ -30,3 +31,35 @@ Lastly, build and install it:
 
 
 Make sure you set your $PATH to point to the newly generated binary!
+
+
+Usage
+-----
+
+If the installation was successful, you should now have the binary muzec,
+which is the Muze compiler. You can run it on any muze file:
+
+   $ muzec -o hello hello.mz
+
+
+For a more detailed help menu:
+
+   $ muzec -h
+
+
+The rest of the documentation can be found in the docs/ directory.
+
+
+C Extensions
+------------
+
+That's right, Muze supports C extensions! You just need to include the muze.h
+in your C project and link the Muze standard library. The muze.h header file
+will be in the $(prefix)/include/ and libmuze.a will be in $(prefix)/lib/.
+GCC can link these by doing the following:
+
+   $ export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/path/to/muze/lib # only necessary if you didn't install globally
+   $ gcc -c -o myextension.o myextension.c -lmuze
+
+More detailed documentation coming soon. This feature is still WIP.
+

@@ -25,3 +25,6 @@ src/muze_stdlib.c
 # Custom linker script
 scriptdir = $(prefix)/script
 script_DATA = config/muze.ld
+
+# Testing
+TESTS = test.sh

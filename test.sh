@@ -2,7 +2,7 @@
 
 bold=$(tput bold)
 normal=$(tput sgr0)
-MUZEC=$(readlink -f ./muzec)
+MUZEC=muzec
 
 run_test_in_directory() {
     RUN_DIR=$1

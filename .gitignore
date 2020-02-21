@@ -1,33 +1,3 @@
-# everything
-**
-
-# Except these things
-!docs
-!docs/*
-
-!include
-!include/*
-
-!src
-!src/*
-
-!test
-!test/*
-!test/*/*
-!test/*/*/*
-
-!lib
-!lib/*
-
-!examples
-!examples/*
-
-!Makefile
-!SOURCEDEPS
-!README.md
-!TODO.txt
-!.gitignore
-
 # Things that may appear in the above directories that we DEFINITELY want to ignore
 
 # binaries

@@ -30,7 +30,12 @@ Lastly, build and install it:
    $ make install
 
 
-Make sure you set your $PATH to point to the newly generated binary!
+You may need to set up some environment variables in your .bashrc if you
+haven't built libraries and programs from scratch. Add these statements
+to the end of your .bashrc:
+
+   export PATH=$PATH:/path/to/muze/bin/muzec
+   export LIBRARY_PATH=$:LIBRARY_PATH:/usr/lib:/usr/lib/x86_64-linux:/path/to/muze/lib
 
 
 Usage

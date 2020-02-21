@@ -65,6 +65,9 @@ GCC can link these by doing the following:
 
    $ export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/path/to/muze/lib # only necessary if you didn't install globally
    $ gcc -c -o myextension.o myextension.c -lmuze
+   $ muzec -c -o myprogram.o myprogram.mz
+   $ gcc -o myprogram myextension.o myprogram.o
 
-More detailed documentation coming soon. This feature is still WIP.
+More detailed documentation coming soon. This feature is still WIP, so if you
+find a bug, let us know!
 

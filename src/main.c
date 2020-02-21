@@ -111,17 +111,7 @@ struct prog_opts parse_args(int argc, char **argv) {
 }
 
 int main(int argc, char* argv[]) {
-  char *stdlib_path = getenv("MUZE_STDLIB_PATH");
-  char *linker_script_path = getenv("MUZE_LD_SCRIPT_PATH");
-  if (stdlib_path == NULL) {
-    fputs("Error: No MUZE_STDLIB_PATH environment variable set\n", stderr);
-    exit(EXIT_FAILURE);
-  }
-
-  if (linker_script_path == NULL) {
-    fputs("Error: No MUZE_LD_SCRIPT_PATH environment variable set\n", stderr);
-    exit(EXIT_FAILURE);
-  }
+  char *linker_script_path = find_linker_script(argv[0]);
 
   struct prog_opts opts;
   
@@ -215,8 +205,8 @@ int main(int argc, char* argv[]) {
                     "-g",
                     "-o",
                     opts.output_file,
-                    stdlib_path,
                     "a.o",
+                    "-lmuze",
                     "-lm",
                     "-T",
                     linker_script_path,

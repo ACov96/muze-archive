@@ -3,6 +3,8 @@
 #include <assert.h>
 #include <stdarg.h>
 #include <string.h>
+#include <unistd.h>
+#include <libgen.h>
 #include "util.h"
 #include "limits.h"
 
@@ -149,4 +151,11 @@ unsigned long f_to_int(char *d) {
   } u;
   u.x = atof(d);
   return u.l;
+}
+
+char *find_linker_script(char *executable_name) {
+  char sym_name[1024];
+  readlink("/proc/self/exe", sym_name, 1024);
+  char *dir = dirname(sym_name);
+  return concat(dir, "/../script/muze.ld");
 }

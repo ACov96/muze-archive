@@ -17,9 +17,11 @@ src/type.c \
 src/util.c
 
 # libmuze
+libmuze_a_LIBADD = -lm
 libmuze_a_SOURCES = \
 src/morph_graph.c \
 src/muze_stdlib.c
+
 
 # Custom linker script
 scriptdir = $(prefix)/script

@@ -138,7 +138,7 @@ am__v_AR_ = $(am__v_AR_@AM_DEFAULT_V@)
 am__v_AR_0 = @echo "  AR      " $@;
 am__v_AR_1 = 
 libmuze_a_AR = $(AR) $(ARFLAGS)
-libmuze_a_DEPENDENCIES =
+libmuze_a_LIBADD =
 am_libmuze_a_OBJECTS = morph_graph.$(OBJEXT) muze_stdlib.$(OBJEXT)
 libmuze_a_OBJECTS = $(am_libmuze_a_OBJECTS)
 PROGRAMS = $(bin_PROGRAMS)
@@ -339,7 +339,6 @@ src/util.c
 
 
 # libmuze
-libmuze_a_LIBADD = -lm
 libmuze_a_SOURCES = \
 src/morph_graph.c \
 src/muze_stdlib.c

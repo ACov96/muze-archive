@@ -1,0 +1,6 @@
+mod Main
+  extern
+    print(s : string);
+begin
+  print("Hello world");
+dom Main

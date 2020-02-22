@@ -10,6 +10,7 @@ typedef struct const_decl_st    *const_decl_t;
 typedef struct type_decl_st     *type_decl_t;
 typedef struct var_decl_st      *var_decl_t;
 typedef struct fun_decl_st      *fun_decl_t;
+typedef struct fun_decl_st      *extern_decl_t; // ALIAS
 typedef struct const_st         *const_t;
 typedef struct type_st          *type_t;
 typedef struct morph_st         *morph_t;
@@ -79,6 +80,7 @@ struct decl_st {
   type_decl_t types; // NULLABLE
   var_decl_t vars; // NULLABLE
   fun_decl_t funs; // NULLABLE
+  extern_decl_t ext; // NULLABLE
   mod_t mods; // NULLABLE
 }; 
 
@@ -138,7 +140,6 @@ struct fun_decl_st {
   // symbol
   symbol_t symbol;
 };
-
 
 // A type declaration
 struct type_decl_st {

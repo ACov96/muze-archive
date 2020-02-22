@@ -110,6 +110,7 @@ static type_decl_t parse_type_decl(PARSE_PARAMS);
 static const_decl_t parse_const_decl(PARSE_PARAMS);
 static fun_decl_t parse_fun_decl(PARSE_PARAMS);
 static var_decl_t parse_vars_decl(PARSE_PARAMS);
+static extern_decl_t parse_extern_decl(PARSE_PARAMS);
 
 static assign_t parse_assign(PARSE_PARAMS);
 
@@ -1043,6 +1044,30 @@ static fun_decl_t parse_fun_decl(PARSE_PARAMS) {
   PARSE_RETURN(fun);
 }
 
+static extern_decl_t parse_extern_decl(PARSE_PARAMS) {
+  extern_decl_t ext = malloc(sizeof(struct fun_decl_st));
+
+  ext->name = BEGET->val;
+  EXPECT_TOK(IDENTIFIER);
+
+  EXPECT_TOK(LPAREN);
+  MATCH_FUN(parse_arg_list, ext->args);
+  EXPECT_TOK(RPAREN);
+
+  if (MATCH_TOK(COLON)) {
+    EXPECT_FUN(parse_type_expr, ext->ret_type);
+  } else {
+    ext->ret_type = NULL;
+  }
+  ext->decl = NULL;
+  ext->stmts = NULL;
+  ext->symbol = NULL;
+  EXPECT_TOK(SEMICOLON);
+
+  MATCH_FUN(parse_extern_decl, ext->next);
+
+  PARSE_RETURN(ext);
+}
 // Assignment used in a declaration context
 static assign_t parse_static_assign(PARSE_PARAMS) {
   assign_t assign;
@@ -1229,6 +1254,10 @@ static decl_t parse_decl(PARSE_PARAMS) {
 
   if (MATCH_TOK(FUN)){
     EXPECT_FUN(parse_fun_decl, decl->funs);
+  }
+
+  if (MATCH_TOK(EXTERN)) {
+    EXPECT_FUN(parse_extern_decl, decl->ext);
   }
 
   PARSE_RETURN(decl);

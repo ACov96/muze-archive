@@ -21,6 +21,7 @@ struct prog_opts {
   int print_asm;
   int print_graph;
   int parse_log_enable;
+  int compile_only;
   char *log_file;
   int save_asm;
   char *output_file;
@@ -36,13 +37,14 @@ struct prog_opts parse_args(int argc, char **argv) {
     .print_tree = 0,
     .print_asm = 0,
     .print_graph = 0,
+    .save_asm = 0,
+    .compile_only = 0,
     .parse_log_enable = 0,
     .log_file = "/dev/null",
-    .save_asm = 0,
     .output_file = "a.out",
   };
 
-  const char *opt_string = "hko:taSmpl";
+  const char *opt_string = "hko:taScmpl";
 
   const struct option long_opts[] = {
     { "--help",   no_argument,       NULL, 'h' },
@@ -52,7 +54,7 @@ struct prog_opts parse_args(int argc, char **argv) {
     { "--asm",    no_argument,       NULL, 'a' },
     { "--graph",  no_argument,       NULL, 'm' },
     { "--parse-log", no_argument,    NULL, 'p' },
-    { "--log",    required_argument, NULL, 'l' }
+    { "--log",    required_argument, NULL, 'l' },
   };
 
   for (int opt = getopt_long(argc, argv, opt_string, long_opts, NULL);
@@ -81,6 +83,10 @@ struct prog_opts parse_args(int argc, char **argv) {
         
     case 'S':
       opts.save_asm = 1;
+      break;
+
+    case 'c':
+      opts.compile_only = 1;
       break;
 
     case 'm':
@@ -173,6 +179,7 @@ int main(int argc, char* argv[]) {
     FILE *out_file = fopen("a.s", "w");
     fputs(assembly, out_file);
     fclose(out_file);
+    return EXIT_SUCCESS;
   }
 
   // Fork and exec out to as+gcc to finish compilation
@@ -190,9 +197,11 @@ int main(int argc, char* argv[]) {
     dup2(fd[0], STDIN_FILENO);
     close(fd[0]);
     close(fd[1]);
-    char *args[] = {"as", "-W", "-g", "-o", "a.o", "--", NULL};
+    char *args[] = {"as", "-W", "-g", "-o", opts.compile_only ? opts.output_file : "a.o", "--", NULL};
     execvp(args[0], args);
   }
+  if (opts.compile_only)
+    return EXIT_SUCCESS;
 
   pid = fork();
   if (pid > 0) {

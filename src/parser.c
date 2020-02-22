@@ -1,7 +1,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
-
+#include <stdbool.h>
 #include "ast.h"
 #include "symbol.h"
 #include "lexer.h"
@@ -1005,6 +1005,7 @@ static fun_decl_t parse_fun_decl(PARSE_PARAMS) {
   fun_decl_t fun = malloc(sizeof(struct fun_decl_st));
 
   fun->name = BEGET->val;
+  fun->is_extern = false;
   EXPECT_TOK(IDENTIFIER);
 
   fun->symbol = symbol_new(fun->name);
@@ -1046,8 +1047,8 @@ static fun_decl_t parse_fun_decl(PARSE_PARAMS) {
 
 static extern_decl_t parse_extern_decl(PARSE_PARAMS) {
   extern_decl_t ext = malloc(sizeof(struct fun_decl_st));
-
   ext->name = BEGET->val;
+  ext->is_extern = true;
   EXPECT_TOK(IDENTIFIER);
 
   EXPECT_TOK(LPAREN);

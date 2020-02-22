@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include <stdbool.h>
 #include "codegen.h"
 #include "ast.h"
 #include "util.h"
@@ -301,6 +302,9 @@ char* gen_mod(context_t ctx, mod_t mod) {
 
 char* gen_fun(context_t ctx, fun_decl_t fun) {
   CREATE_BUFFER;
+  if (fun->is_extern) {
+    RETURN_BUFFER;
+  }
   ctx_set_scope_name(ctx, concat(ctx_get_scope_name(ctx), concat("_", fun->name)));
   populate_decl_into_ctx(ctx, fun->decl);
   for (arg_t arg = fun->args; arg; arg = arg->next) {

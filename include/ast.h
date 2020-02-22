@@ -47,6 +47,7 @@ typedef struct break_stmt_st    *break_stmt_t;
 typedef struct try_stmt_st	*try_stmt_t;
 typedef struct throw_stmt_st	*throw_stmt_t;
 
+#include <stdbool.h>
 #include "util.h"
 #include "symbol.h"
 
@@ -127,6 +128,9 @@ struct fun_decl_st {
 
   // return type of the function
   type_t ret_type; // NULLABLE
+
+  // Whether declaration is an external C function
+  bool is_extern;
 
   // Inner function declarations
   decl_t decl;

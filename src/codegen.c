@@ -186,7 +186,7 @@ void set_entrypoint(root_t root) {
 }
 
 void build_file_no_map(root_t root) {
-  unsigned curr = 2;
+  unsigned curr = 1;
   for (mod_t mod = root->mods; mod; mod = mod->next) {
     file_no_t file_no = malloc(sizeof(struct file_no_st));
     file_no->file_name = mod->file_name;
@@ -983,7 +983,22 @@ char* gen_unary_expr(context_t ctx, unary_t unary, reg_t out) {
 
 char* gen_text_segment(root_t root) {
   CREATE_BUFFER;
+  char *curr_file = root->mods->file_name;
+  char *file_directive;
+  asprintf(&file_directive, "\"%s\"", curr_file);
+  ADD_INSTR(".file", file_directive);
   ADD_INSTR(".section", ".text");
+  for (mod_t mod = root->mods; mod; mod = mod->next) {
+    if (strcmp(mod->file_name, curr_file) != 0) {
+      curr_file = mod->file_name;
+      asprintf(&file_directive, "\"%s\"", curr_file);
+      ADD_INSTR(".file", file_directive);
+    }
+    context_t ctx = ctx_new();
+    ctx_set_mod(ctx);
+    ctx_set_global(ctx, true);
+    ADD_BLOCK(gen_mod(ctx, mod));
+  }
   if (has_main(root)) {
     ADD_INSTR(".global", "main");
     // Generate main method 
@@ -994,13 +1009,6 @@ char* gen_text_segment(root_t root) {
     ADD_INSTR("movq", "%rax, %r10");
     ADD_INSTR("pop", "%r10");
     ADD_INSTR("ret", NO_OPERANDS);
-  }
-
-  for (mod_t mod = root->mods; mod; mod = mod->next) {
-    context_t ctx = ctx_new();
-    ctx_set_mod(ctx);
-    ctx_set_global(ctx, true);
-    ADD_BLOCK(gen_mod(ctx, mod));
   }
   RETURN_BUFFER;
 }

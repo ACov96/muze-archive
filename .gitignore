@@ -1,4 +1,5 @@
 # Things that may appear in the above directories that we DEFINITELY want to ignore
+TAGS
 
 # binaries
 *.o

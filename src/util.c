@@ -159,3 +159,11 @@ char *find_linker_script(char *executable_name) {
   char *dir = dirname(sym_name);
   return concat(dir, "/../script/muze.ld");
 }
+
+unsigned long count_char_occurences(char *s, char c) {
+  unsigned long count = 0;
+  for (unsigned long i = 0; i < strlen(s); i++)
+    if (s[i] == c)
+      count++;
+  return count;
+}

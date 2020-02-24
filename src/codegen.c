@@ -46,6 +46,7 @@
 /* TYPES */
 typedef struct label_st        *label_t;
 typedef struct string_label_st *string_label_t;
+typedef struct file_no_st      *file_no_t;
 typedef char                   *reg_t;
 
 struct label_st {
@@ -58,11 +59,18 @@ struct string_label_st {
   char    *label;
 };
 
+struct file_no_st {
+  char *file_name;
+  unsigned number;
+};
+
 /* GLOBALS */
 type_node_t *graph;
 ll_t labels = NULL;
 ll_t strings = NULL;
+ll_t file_no_map = NULL;
 unsigned int curr_label = 0;
+unsigned int curr_fileno = 1;
 reg_t arg_registers[6] = {
                         "%rdi",
                         "%rsi",
@@ -80,6 +88,9 @@ int get_id_offset(char *id, decl_t decl);
 char* register_or_get_string_label(char *str);
 void populate_decl_into_ctx(context_t ctx, decl_t decl);
 void set_entrypoint(root_t root);
+bool has_main(root_t root);
+void build_file_no_map(root_t root);
+unsigned get_file_no(char *file_name);
 
 // Generator functions
 char* gen_label(char *label);
@@ -174,6 +185,34 @@ void set_entrypoint(root_t root) {
   }
 }
 
+void build_file_no_map(root_t root) {
+  unsigned curr = 2;
+  for (mod_t mod = root->mods; mod; mod = mod->next) {
+    file_no_t file_no = malloc(sizeof(struct file_no_st));
+    file_no->file_name = mod->file_name;
+    file_no->number = curr;
+      curr++;
+    if (!file_no_map) {
+      file_no_map = ll_new();
+      file_no_map->val = file_no;
+    } else {
+      ll_append(file_no_map, file_no);
+    }
+  }
+}
+
+unsigned get_file_no(char *file_name) {
+  for (ll_t curr = file_no_map; curr; curr = curr->next) {
+    file_no_t file_no = (file_no_t) curr->val;
+    if (strcmp(file_name, file_no->file_name) == 0)
+      return file_no->number;
+  }
+  char *file_no_err;
+  asprintf(&file_no_err, "Cannot find mapping for file name %s", file_name);
+  GEN_ERROR(file_no_err);
+  return 0;
+}
+
 /* GENERATORS */
 char* gen_label(char *label) {
   char *new_label = NULL;
@@ -220,7 +259,18 @@ char* gen_mod(context_t ctx, mod_t mod) {
     ADD_BLOCK(gen_type(ctx, t));
 
   // Allocate module block
-  ADD_LABEL(concat("__module__", concat(ctx_get_scope_name(ctx), "_init")));
+  char *module_label = concat("__module__", concat(ctx_get_scope_name(ctx), "_init"));
+  ADD_INSTR(".globl", module_label);
+  char *type_directive = NULL;
+  asprintf(&type_directive, "%s, @function", module_label);
+  ADD_INSTR(".type", type_directive);
+  ADD_LABEL(module_label);
+
+  if (ctx_is_global(ctx)) {
+    char *dwarf_file_directive;
+    asprintf(&dwarf_file_directive, ".file %d \"%s\"", get_file_no(mod->file_name), mod->file_name);
+    ADD_INSTR(dwarf_file_directive, NO_OPERANDS);
+  }
 
   // Populate module block with constants and variables
   int mod_size = MODULE_MIN_SIZE;
@@ -338,6 +388,7 @@ char* gen_fun(context_t ctx, fun_decl_t fun) {
 
   // Initialize activation record
   ADD_LABEL(ctx_get_scope_name(ctx));
+  ADD_INSTR(".cfi_startproc", NO_OPERANDS);
   ADD_INSTR("push", "%rbp");
   ADD_INSTR("movq", "%rsp, %rbp");
   ADD_INSTR("sub", concat(space_str, ", %rsp"));
@@ -409,11 +460,15 @@ char* gen_fun(context_t ctx, fun_decl_t fun) {
   ADD_INSTR("movq", "$0, %rax");
   ADD_INSTR("leave", NO_OPERANDS);
   ADD_INSTR("ret", NO_OPERANDS);
+  ADD_INSTR(".cfi_endproc", NO_OPERANDS);
   RETURN_BUFFER;
 }
 
 char* gen_stmt(context_t ctx, stmt_t stmt) {
   CREATE_BUFFER;
+  char *loc_directive = NULL;
+  asprintf(&loc_directive, ".loc %d %d", curr_fileno, stmt->pos->line_no);
+  ADD_INSTR(loc_directive, NO_OPERANDS);
   switch(stmt->kind) {
   case EXPR_STMT:
     ADD_BLOCK(gen_expr_stmt(ctx, stmt->u.expr_stmt));
@@ -929,20 +984,22 @@ char* gen_unary_expr(context_t ctx, unary_t unary, reg_t out) {
 char* gen_text_segment(root_t root) {
   CREATE_BUFFER;
   ADD_INSTR(".section", ".text");
-  ADD_INSTR(".global", "main");
-
-  // Generate main method 
-  ADD_LABEL("main");
-  ADD_INSTR("call", "init_type_graph");
-  ADD_INSTR("push", "%r10");
-  ADD_INSTR("call", "__module__Main_init");
-  ADD_INSTR("movq", "%rax, %r10");
-  ADD_INSTR("pop", "%r10");
-  ADD_INSTR("ret", NO_OPERANDS);
+  if (has_main(root)) {
+    ADD_INSTR(".global", "main");
+    // Generate main method 
+    ADD_LABEL("main");
+    ADD_INSTR("call", "init_type_graph");
+    ADD_INSTR("push", "%r10");
+    ADD_INSTR("call", "__module__Main_init");
+    ADD_INSTR("movq", "%rax, %r10");
+    ADD_INSTR("pop", "%r10");
+    ADD_INSTR("ret", NO_OPERANDS);
+  }
 
   for (mod_t mod = root->mods; mod; mod = mod->next) {
     context_t ctx = ctx_new();
     ctx_set_mod(ctx);
+    ctx_set_global(ctx, true);
     ADD_BLOCK(gen_mod(ctx, mod));
   }
   RETURN_BUFFER;
@@ -1065,15 +1122,27 @@ char* gen_throw_stmt(context_t ctx, throw_stmt_t throw) {
   RETURN_BUFFER;
 }
 
+bool has_main(root_t root) {
+  for (mod_t mod = root->mods; mod; mod = mod->next)
+    if (strcmp("Main", mod->name) == 0)
+      return true;
+  return false;
+}
 char* codegen(root_t root, type_node_t *g) {
   graph = g;
+  build_file_no_map(root);
   CREATE_BUFFER;
 
   // Generate text segment
   ADD_BLOCK(gen_text_segment(root));
 
   // Generate data segment
-  ADD_BLOCK(gen_data_segment());
+  char *data_segment = remove_empty_lines(gen_data_segment());
+
+  // data_segment will have 2 \n characters if it is empty
+  if (count_char_occurences(data_segment, '\n') > 3) {
+    ADD_BLOCK(data_segment);
+  }
 
   RETURN_BUFFER;
 }

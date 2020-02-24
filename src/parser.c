@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdbool.h>
+#include <libgen.h>
 #include "ast.h"
 #include "symbol.h"
 #include "lexer.h"
@@ -160,6 +161,9 @@ static stmt_t parse_stmt(PARSE_PARAMS) {
   parse_log("Attempting to parse statement");
 
   stmt_t stmt = malloc(sizeof(struct stmt_st));
+  stmt->pos = malloc(sizeof(struct pos_st));
+  stmt->pos->line_no = BEGET->line_no;
+  stmt->pos->col_no = BEGET->col_no;
 
   if (MATCH_FUN(parse_cond_stmt, stmt->u.cond_stmt)) {
     parse_log("Statement is 'if'");
@@ -1268,6 +1272,7 @@ static decl_t parse_decl(PARSE_PARAMS) {
 static mod_t parse_module_decl(PARSE_PARAMS) {
   mod_t mod;
   mod = malloc(sizeof(struct mod_st));
+  mod->file_name = basename(BEGET->file_name);
 
   EXPECT_TOK(MOD);
 

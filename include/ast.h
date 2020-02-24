@@ -36,6 +36,7 @@ typedef struct arg_st           *arg_t;
 
 //statments
 typedef struct stmt_st          *stmt_t;
+typedef struct pos_st           *pos_t;
 typedef struct stmt_list_st     *stmt_list_t;
 typedef struct assign_stmt_st   *assign_stmt_t;
 typedef struct cond_stmt_st     *cond_stmt_t;
@@ -50,6 +51,12 @@ typedef struct throw_stmt_st	*throw_stmt_t;
 #include <stdbool.h>
 #include "util.h"
 #include "symbol.h"
+
+// Position information
+struct pos_st {
+  int line_no;
+  int col_no;
+};
 
 // Entry node in the AST
 struct root_st {
@@ -72,6 +79,8 @@ struct mod_st {
   mod_t next; // NULLABLE
 
   symbol_t symbol;
+
+  char *file_name; // Name of the file that this module is defined
 };
 
 
@@ -376,6 +385,8 @@ struct stmt_st {
     try_stmt_t	   try_stmt;
     throw_stmt_t   throw_stmt;
   } u;
+
+  pos_t pos;
 
   stmt_t next;
 };

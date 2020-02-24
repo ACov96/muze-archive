@@ -1,6 +1,7 @@
 #ifndef _CONTEXT_H
 #define _CONTEXT_H
 
+#include <stdbool.h>
 #include "ast.h"
 
 #define ADDER_HEADER(T) void ctx_add_ ## T (context_t ctx, char *id, char *type)
@@ -44,6 +45,8 @@ context_t ctx_get_curr_mod(context_t ctx);
 void ctx_set_func(context_t ctx);
 void ctx_set_mod(context_t ctx);
 int ctx_get_kind(context_t ctx);
+void ctx_set_global(context_t ctx, bool b);
+bool ctx_is_global(context_t ctx);
 
 ADDER_HEADER(constant);
 ADDER_HEADER(variable);

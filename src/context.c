@@ -1,5 +1,6 @@
 #include <stdlib.h>
 #include <string.h>
+#include <stdbool.h>
 #include "context.h"
 #include "util.h"
 #include "ast.h"
@@ -57,6 +58,7 @@ struct context_st {
   ll_t variables;
   ll_t break_labels;
   ll_t functions;
+  bool global_module;
 };
 
 /* PROTOTYPES */
@@ -71,6 +73,7 @@ context_t ctx_new() {
   ctx->parent = NULL;
   ctx->curr_mod = NULL;
   ctx->scope_name = "";
+  ctx->global_module = false;
   return ctx;
 }
 
@@ -224,4 +227,12 @@ void ctx_set_mod(context_t ctx) {
 
 int ctx_get_kind(context_t ctx) {
   return ctx->kind;
+}
+
+void ctx_set_global(context_t ctx, bool b) {
+  ctx->global_module = b;
+}
+
+bool ctx_is_global(context_t ctx) {
+  return ctx->global_module;
 }

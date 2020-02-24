@@ -4,6 +4,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <ctype.h>
+#include <libgen.h>
 #include "lexer.h"
 #include "util.h"
 #include "limits.h"
@@ -33,11 +34,13 @@ token_t token_from_word(char* s);
 int line_no = 1;
 int col_no = 1;
 int tok_col = 1;
+char *curr_file_name = NULL;
 
 ll_t lex(char* file_name) {
   FILE *f = fopen(file_name, "r");
   if (f == NULL)
     error_and_exit("Cannot open file", line_no);
+  curr_file_name = file_name;
 
   char* content = file_to_string(f);
   return generate_token_list(content);
@@ -508,6 +511,7 @@ token_t _new_token(enum token t, char* val, int line_no, int col_no) {
   tok->line_no = line_no;
   tok->col_no = tok_col;
   tok_col = col_no;
+  tok->file_name = basename(curr_file_name);
   return tok;
 }
 

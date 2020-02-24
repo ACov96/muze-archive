@@ -176,7 +176,7 @@ int main(int argc, char* argv[]) {
   }
 
   if (opts.save_asm) {
-    FILE *out_file = fopen("a.s", "w");
+    FILE *out_file = fopen(opts.output_file, "w");
     fputs(assembly, out_file);
     fclose(out_file);
     return EXIT_SUCCESS;

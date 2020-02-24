@@ -114,7 +114,8 @@ static var_decl_t parse_vars_decl(PARSE_PARAMS);
 static assign_t parse_assign(PARSE_PARAMS);
 
 static expr_t parse_expr(PARSE_PARAMS);
-static expr_t parse_lval(PARSE_PARAMS);
+static lval_t parse_lval(PARSE_PARAMS);
+static accessor_list_t parse_accessor_list(PARSE_PARAMS);
 
 
 // In order of precedence
@@ -142,6 +143,7 @@ static arg_t parse_arg_list(PARSE_PARAMS);
 static char *parse_right_identifier(PARSE_PARAMS);
 static call_t parse_fun_call(PARSE_PARAMS);
 static expr_list_t parse_expr_list(PARSE_PARAMS);
+
 
 static stmt_t parse_stmt(PARSE_PARAMS);
 static cond_stmt_t parse_cond_stmt(PARSE_PARAMS);
@@ -349,19 +351,42 @@ static expr_t parse_id_expr(PARSE_PARAMS) {
   PARSE_RETURN(id);
 }
 
-static expr_t parse_lval(PARSE_PARAMS) {
+static lval_t parse_lval(PARSE_PARAMS) {
   parse_log("Attempting to parse lvalue");
 
-  expr_t lval = malloc(sizeof(struct expr_st));
+  lval_t lval = malloc(sizeof(struct expr_st));
+	
+	// Parse the id expression part of the lval
+  EXPECT_FUN(parse_id_expr, lval->expr);
 
-  // TODO: delete this line and finish this function, maybe treat subscripting
-  // and property access as "operators"
-  EXPECT_FUN(parse_id_expr, lval);
-//  if (MATCH_FUN(parse_id_expr, lval)) {
-//  }
-//  else if (MATCH_FUN(
+	// check for accessors
+	MATCH_FUN(parse_accessor_list, lval->accessors);
 
   PARSE_RETURN(lval);
+}
+
+static accessor_list_t parse_accessor_list(PARSE_PARAMS) {
+	parse_log("Attempting to parse accessor list");
+
+	accessor_list_t acc_list = malloc(sizeof(struct accessor_list_st));
+
+	if (MATCH_TOK(LPAREN)) {
+		parse_log("access is subscript.");
+		acc_list->kind = SUBSCRIPT;
+		EXPECT_FUN(parse_expr, acc_list->u.subscript_expr);
+		EXPECT_TOK(RPAREN);
+	}
+	else if (MATCH_TOK(DOT)) {
+		parse_log("accessor is field.");
+		acc_list->kind = FIELD;
+    acc_list->u.field_id = BEGET->val;
+	}
+
+	MATCH_FUN(parse_accessor_list, acc_list->next);
+
+	parse_log("Successfully parsed accessor list");
+	
+	PARSE_RETURN(acc_list);
 }
 
 static expr_t parse_unit_expr(PARSE_PARAMS) {
@@ -427,7 +452,7 @@ static expr_t parse_postfix_expr(PARSE_PARAMS) {
   expr->kind = UNARY_EX;
   expr->u.unary_ex = unary;
 
-  EXPECT_FUN(parse_lval, unary->expr);
+  EXPECT_FUN(parse_expr, unary->expr);
 
   if (MATCH_TOK(INC)) {
     parse_log("Postfix expression is increment");
@@ -468,7 +493,7 @@ static expr_t parse_prefix_expr(PARSE_PARAMS) {
                token_names[BEGET->tok].pretty);
   }
 
-  EXPECT_FUN(parse_lval, unary->expr);
+  EXPECT_FUN(parse_expr, unary->expr);
 
   parse_log("Successfully parsed prefix expression");
 
@@ -872,7 +897,6 @@ static literal_t parse_literal(PARSE_PARAMS) {
   default:
     PARSE_FAIL("Literal expected");
   }
-
   PARSE_RETURN(lit);
 }
 
@@ -885,7 +909,7 @@ static char *parse_right_identifier(PARSE_PARAMS) {
       || MATCH_TOK(INTEGER)
       || MATCH_TOK(REAL)
       || MATCH_TOK(BOOLEAN)
-      || MATCH_TOK(ARRAY)
+			|| MATCH_TOK(ARRAY)
       || MATCH_TOK(LIST)
       || MATCH_TOK(TRUE)
       || MATCH_TOK(FALSE)

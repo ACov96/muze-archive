@@ -622,7 +622,8 @@ char* gen_assign_stmt(context_t ctx, assign_stmt_t assign) {
   ADD_INSTR("push", "%rdi");
   ADD_INSTR("push", "%rsi");
   ADD_BLOCK(gen_expr(ctx, assign->assign->expr, "%rdi"));
-  ADD_BLOCK(gen_lval_expr(ctx, assign->lval, "%rsi"));
+  // Might need to pass the lval accessor list to this function somehow -TD
+  ADD_BLOCK(gen_lval_expr(ctx, assign->lval->expr, "%rsi"));
   /* ADD_INSTR("movq", "%rdi, (%rsi)"); */
   ADD_INSTR("call", "__assign_simple");
   ADD_INSTR("pop", "%rsi");

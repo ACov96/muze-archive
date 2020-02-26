@@ -38,6 +38,7 @@ typedef struct boolean_st       *boolean_t;
 typedef struct enum_st          *enum_t;
 typedef struct rec_st           *rec_t;
 typedef struct arg_st           *arg_t;
+typedef struct array_type_st    *array_type_t;
 
 //statments
 typedef struct stmt_st          *stmt_t;
@@ -184,17 +185,22 @@ struct type_st {
   enum {
 // Not sure about these, seems like they all fall under the category of
 // 'named type'
-//    STRING_TY, INTEGER_TY, REAL_TY, BOOLEAN_TY, ARRAY_TY, HASH_TY, LIST_TY,
-    NAME_TY, REC_TY, ENUM_TY, MORPH_TY
+//    STRING_TY, INTEGER_TY, REAL_TY, BOOLEAN_TY, HASH_TY, LIST_TY,
+    NAME_TY, ARRAY_TY, REC_TY, ENUM_TY, MORPH_TY
   } kind;
   union {
     char *name_ty;
+    array_type_t array_ty;
     rec_t rec_ty;
     enum_t enum_ty;
     morph_chain_t morph_ty;
   } u;
 };
 
+
+struct array_type_st {
+  type_t type;
+};
 
 // A specific path to follow for a morph
 struct morph_chain_st {
@@ -339,7 +345,7 @@ struct literal_st {
   // Tagged union of literal possibilities
   enum {
     STRING_LIT, INTEGER_LIT, REAL_LIT,
-    BOOLEAN_LIT, NULL_LIT
+    BOOLEAN_LIT, NULL_LIT, ARRAY_LIT
   } kind;
 
   union {
@@ -348,6 +354,7 @@ struct literal_st {
     char *string_lit;
     char *integer_lit;
     char *real_lit;
+    expr_list_t array_lit;
     enum {
       TRUE_BOOL,
       FALSE_BOOL

@@ -118,6 +118,8 @@ static lval_t parse_lval(PARSE_PARAMS);
 static accessor_list_t parse_accessor_list(PARSE_PARAMS);
 static array_type_t parse_array_decl(PARSE_PARAMS);
 static rec_t parse_rec_decl(PARSE_PARAMS);
+static rec_field_t parse_rec_fields(PARSE_PARAMS);
+static id_list_t parse_id_list(PARSE_PARAMS);
 
 
 // In order of precedence
@@ -896,11 +898,19 @@ static literal_t parse_literal(PARSE_PARAMS) {
 		lit->u.bool_lit = FALSE_BOOL;
 		EXPECT_TOK(FALSE);
 		break;
+	// array literal
 	case LBRACKET:
 		EXPECT_TOK(LBRACKET);
 		EXPECT_FUN(parse_expr_list, lit->u.array_lit);
 		lit->kind = ARRAY_LIT;
 		EXPECT_TOK(RBRACKET);
+		break;
+	// record literal
+	case LBRACE:
+		EXPECT_TOK(LBRACE);
+		EXPECT_FUN(parse_expr_list, lit->u.record_lit);
+		lit->kind = RECORD_LIT;
+		EXPECT_TOK(RBRACE);
 		break;
 	default:
 		PARSE_FAIL("Literal expected");
@@ -922,7 +932,7 @@ static char *parse_right_identifier(PARSE_PARAMS) {
 			|| MATCH_TOK(FALSE)
 			|| MATCH_TOK(IDENTIFIER)
 			)) {
-		PARSE_FAIL("Expected identifier");
+		PARSE_FAIL("Expected identifier, got %s", id);
 	}
 
 	PARSE_RETURN(id);
@@ -950,12 +960,32 @@ static morph_chain_t parse_morph_chain(PARSE_PARAMS) {
 }
 
 static rec_t parse_rec_decl(PARSE_PARAMS) {
+	parse_log("Attempting to parse record");
 	rec_t rec = malloc(sizeof(struct rec_st));
 
 	EXPECT_TOK(REC);
+	EXPECT_FUN(parse_rec_fields, rec->fields);
 	EXPECT_TOK(CER);
 
+	parse_log("Successfully parsed record");
 	PARSE_RETURN(rec);
+}
+
+static rec_field_t parse_rec_fields(PARSE_PARAMS) {
+	parse_log("Attempting to parse record fields");
+	
+	rec_field_t rec_field = malloc(sizeof(struct rec_field_st));
+
+	EXPECT_FUN(parse_id_list, rec_field->name);
+	EXPECT_TOK(COLON);
+	EXPECT_FUN(parse_type_expr, rec_field->type);
+	EXPECT_TOK(SEMICOLON);
+
+	MATCH_FUN(parse_rec_fields, rec_field->next);
+
+	parse_log("Successfully parsed record fields");
+
+	PARSE_RETURN(rec_field);
 }
 
 static array_type_t parse_array_decl(PARSE_PARAMS){

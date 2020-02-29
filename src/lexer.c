@@ -444,6 +444,8 @@ token_t token_from_word(char* s) {
   // Composite types
   else if (strcmp(buf, "rec") == 0)
     return new_token(REC, "rec");
+  else if (strcmp(buf, "cer") == 0)
+    return new_token(CER, "cer:w");
   else if (strcmp(buf, "array") == 0)
     return new_token(ARRAY, "array");
   else if (strcmp(buf, "tuple") == 0)

@@ -37,6 +37,7 @@ typedef struct morph_chain_st   *morph_chain_t;
 typedef struct boolean_st       *boolean_t;
 typedef struct enum_st          *enum_t;
 typedef struct rec_st           *rec_t;
+typedef struct rec_field_st    *rec_field_t;
 typedef struct arg_st           *arg_t;
 typedef struct array_type_st    *array_type_t;
 
@@ -176,7 +177,19 @@ struct type_decl_st {
 };
 
 
+// record type
 struct rec_st {
+  rec_field_t fields;
+};
+
+
+struct rec_field_st {
+  // name of the field(s)
+  id_list_t name;
+  // type of the field
+  type_t type;
+  // next field
+  rec_field_t next;
 };
 
 
@@ -345,7 +358,7 @@ struct literal_st {
   // Tagged union of literal possibilities
   enum {
     STRING_LIT, INTEGER_LIT, REAL_LIT,
-    BOOLEAN_LIT, NULL_LIT, ARRAY_LIT
+    BOOLEAN_LIT, NULL_LIT, ARRAY_LIT, RECORD_LIT
   } kind;
 
   union {
@@ -355,6 +368,7 @@ struct literal_st {
     char *integer_lit;
     char *real_lit;
     expr_list_t array_lit;
+    expr_list_t record_lit;
     enum {
       TRUE_BOOL,
       FALSE_BOOL

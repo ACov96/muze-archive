@@ -28,6 +28,6 @@ AC_FUNC_REALLOC
 AC_PREREQ
 
 # Create the Makefile
-AM_INIT_AUTOMAKE
+AM_INIT_AUTOMAKE([subdir-objects])
 AC_CONFIG_FILES([Makefile])
 AC_OUTPUT

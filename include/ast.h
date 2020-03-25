@@ -178,9 +178,6 @@ struct rec_field_st {
 // A "type expression", something which evaluates to a concrete type
 struct type_st {
   enum {
-// Not sure about these, seems like they all fall under the category of
-// 'named type'
-//    STRING_TY, INTEGER_TY, REAL_TY, BOOLEAN_TY, HASH_TY, LIST_TY,
     NAME_TY, ARRAY_TY, REC_TY, ENUM_TY, MORPH_TY
   } kind;
   union {

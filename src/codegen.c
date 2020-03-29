@@ -133,9 +133,9 @@ unsigned int count_consts_and_vars(decl_t decl) {
 
 void populate_decl_into_ctx(context_t ctx, decl_t decl) {
   // TODO: This only considers name types, not records or morphs
-	printf("inside populate_decl function\n");
 	for (const_decl_t c = decl->constants; c; c = c->next) {	
-		//ctx_add_constant(ctx, c->name, c->ty->u.name_ty);
+		ctx_add_constant(ctx, c->name, c->ty->u.name_ty);
+		/*
 		switch (c->ty->kind) {
     	case NAME_TY:
 				printf("inside case NAME_TY\n");
@@ -144,7 +144,6 @@ void populate_decl_into_ctx(context_t ctx, decl_t decl) {
 			case ARRAY_TY:
 				ctx_add_constant(ctx, c->name, "array");
 				break;
-		/*
 			case REC_TY:
 				ctx_add_constant(ctx, c->name, "record");
 				break;
@@ -154,15 +153,16 @@ void populate_decl_into_ctx(context_t ctx, decl_t decl) {
 			case MORPH_TY:
 				ctx_add_constant(ctx, c->name, "morph");
 				break;
-		*/
 			default: 
 				GEN_ERROR("unrecognized constant type");
 				break;
 		}
+		*/
 	}
   for (var_decl_t v = decl->vars; v; v = v->next) {
     for (id_list_t id = v->names; id; id = id->next) {
-      //ctx_add_variable(ctx, id->name, v->type->u.name_ty);
+      ctx_add_variable(ctx, id->name, v->type->u.name_ty);
+			/*
 			switch (v->type->kind) {
     		case NAME_TY:
 					ctx_add_variable(ctx, id->name, v->type->u.name_ty);
@@ -170,7 +170,6 @@ void populate_decl_into_ctx(context_t ctx, decl_t decl) {
 				case ARRAY_TY:
 					ctx_add_variable(ctx, id->name, "array");
 					break;
-			/*
 				case REC_TY:
 					ctx_add_variable(ctx, id->name, "record");
 					break;
@@ -180,11 +179,11 @@ void populate_decl_into_ctx(context_t ctx, decl_t decl) {
 				case MORPH_TY:
 					ctx_add_variable(ctx, id->name, "morph");
 					break;
-			*/
 				default: 
 					GEN_ERROR("unrecognized variable type");
 					break;
 			}
+		*/
 		}	
 	}
 }

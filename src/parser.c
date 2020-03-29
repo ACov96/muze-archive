@@ -441,6 +441,9 @@ static accessor_list_t parse_accessor_list(PARSE_PARAMS) {
 		acc_list->kind = FIELD;
 		acc_list->u.field_id = BEGET->val;
 	}
+	else{
+		return NULL;
+	}
 
 	MATCH_FUN(parse_accessor_list, acc_list->next);
 
@@ -1221,7 +1224,7 @@ static id_list_t parse_id_list(PARSE_PARAMS) {
 	EXPECT_TOK(IDENTIFIER);
 
 	ADD_SYMBOL(symbol_new(id_list->name));
-
+	
 	if (MATCH_TOK(COMMA)) {
 		EXPECT_FUN(parse_id_list, id_list->next);
 	}
@@ -1285,7 +1288,7 @@ static var_decl_t parse_vars_decl(PARSE_PARAMS) {
 	EXPECT_FUN(parse_id_list, var->names);
 	EXPECT_TOK(COLON);
 	EXPECT_FUN(parse_type_expr, var->type);
-
+	
 	MATCH_FUN(parse_static_assign, var->assign);
 
 	EXPECT_TOK(SEMICOLON);
@@ -1447,6 +1450,7 @@ root_t parse(ll_t LL_NAME) {
 								 "Syntax error", fail_info.msg);
 	}
 
+	printf("parse ended successfully\n");
 	return root;
 }
 

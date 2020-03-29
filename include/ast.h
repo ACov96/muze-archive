@@ -282,6 +282,8 @@ struct expr_st {
     range_t       range_ex;
     morph_expr_t  morph_ex;
   } u;
+
+  accessor_list_t accessors;
 };
 
 // One operand expression
@@ -439,7 +441,7 @@ struct case_stmt_st {
 };
 
 struct assign_stmt_st {
-  lval_t   lval;
+  expr_t   lval;
   assign_t assign;
 };
 

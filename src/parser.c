@@ -442,7 +442,6 @@ static expr_t parse_unit_expr(PARSE_PARAMS) {
 			unit->u.id_ex = id;
 			parse_log("Unit expression is right identifier");
 
-			printf("parsed id: %s\n", id);
 			// check if the id has any accessors
 			MATCH_FUN(parse_accessor_list, unit->accessors);
 			parse_log("Unit expression has accessors");

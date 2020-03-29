@@ -118,8 +118,7 @@ unsigned int count_consts_and_vars(decl_t decl) {
 void populate_decl_into_ctx(context_t ctx, decl_t decl) {
   // TODO: This only considers name types, not records or morphs
 	for (const_decl_t c = decl->constants; c; c = c->next) {	
-		ctx_add_constant(ctx, c->name, c->ty->u.name_ty);
-		/*
+		//ctx_add_constant(ctx, c->name, c->ty->u.name_ty);
 		switch (c->ty->kind) {
     	case NAME_TY:
 				printf("inside case NAME_TY\n");
@@ -141,12 +140,10 @@ void populate_decl_into_ctx(context_t ctx, decl_t decl) {
 				GEN_ERROR("unrecognized constant type");
 				break;
 		}
-		*/
 	}
   for (var_decl_t v = decl->vars; v; v = v->next) {
     for (id_list_t id = v->names; id; id = id->next) {
-      ctx_add_variable(ctx, id->name, v->type->u.name_ty);
-			/*
+      //ctx_add_variable(ctx, id->name, v->type->u.name_ty);
 			switch (v->type->kind) {
     		case NAME_TY:
 					ctx_add_variable(ctx, id->name, v->type->u.name_ty);
@@ -167,7 +164,6 @@ void populate_decl_into_ctx(context_t ctx, decl_t decl) {
 					GEN_ERROR("unrecognized variable type");
 					break;
 			}
-		*/
 		}	
 	}
 }
@@ -612,8 +608,15 @@ char* gen_literal_expr(context_t ctx, literal_t literal, reg_t out) {
     ADD_INSTR("movq", concat(bool_literal, ", %rdi"));
     ADD_INSTR("call", "alloc_bool");
     break;
+  case ARRAY_LIT:
+    printf("found an array literal\n");
+    expr_list_t array_lit = literal->u.array_lit;
+    for (expr_list_t curr = array_lit; curr; curr = curr->next) {
+      printf("index\n");
+    }
   case NULL_LIT:
     ADD_INSTR("movq", concat("$0, ", out));
+    break;
   default:
     GEN_ERROR("Unknown literal");
   }
@@ -670,8 +673,7 @@ char* gen_assign_stmt(context_t ctx, assign_stmt_t assign) {
   ADD_INSTR("push", "%rdi");
   ADD_INSTR("push", "%rsi");
   ADD_BLOCK(gen_expr(ctx, assign->assign->expr, "%rdi"));
-  // Might need to pass the lval accessor list to this function somehow -TD
-  ADD_BLOCK(gen_lval_expr(ctx, assign->lval->expr, "%rsi"));
+  ADD_BLOCK(gen_lval_expr(ctx, assign->lval, "%rsi"));
   /* ADD_INSTR("movq", "%rdi, (%rsi)"); */
   ADD_INSTR("call", "__assign_simple");
   ADD_INSTR("pop", "%rsi");

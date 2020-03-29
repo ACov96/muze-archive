@@ -41,9 +41,9 @@ void write_log(char *msg, ...) {
   va_list args;
 
   va_start(args, msg);
-  vfprintf(LOG_FILE, msg, args);
+  vfprintf(stdout, msg, args);
   va_end(args);
-  fprintf(LOG_FILE, "\n");
+  fprintf(stdout, "\n");
 }
 
 typedef struct err_queue_st *err_queue_t;

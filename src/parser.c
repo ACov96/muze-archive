@@ -1371,7 +1371,7 @@ root_t parse(ll_t LL_NAME) {
 								 "Syntax error", fail_info.msg);
 	}
 
-	printf("parse ended successfully\n");
+	//printf("parse ended successfully\n");
 	return root;
 }
 

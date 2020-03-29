@@ -114,7 +114,7 @@ static var_decl_t parse_vars_decl(PARSE_PARAMS);
 static assign_t parse_assign(PARSE_PARAMS);
 
 static expr_t parse_expr(PARSE_PARAMS);
-static lval_t parse_lval(PARSE_PARAMS);
+static expr_t parse_lval(PARSE_PARAMS);
 static accessor_list_t parse_accessor_list(PARSE_PARAMS);
 static array_type_t parse_array_decl(PARSE_PARAMS);
 static rec_t parse_rec_decl(PARSE_PARAMS);
@@ -355,16 +355,18 @@ static expr_t parse_id_expr(PARSE_PARAMS) {
 	PARSE_RETURN(id);
 }
 
-static lval_t parse_lval(PARSE_PARAMS) {
+static expr_t parse_lval(PARSE_PARAMS) {
 	parse_log("Attempting to parse lvalue");
 
-	lval_t lval = malloc(sizeof(struct expr_st));
+	expr_t lval = malloc(sizeof(struct expr_st));
 	
-	// Parse the id expression part of the lval
-	EXPECT_FUN(parse_id_expr, lval->expr);
+	// Parse the id expression
+	EXPECT_FUN(parse_id_expr, lval);
 
 	// check for accessors
 	MATCH_FUN(parse_accessor_list, lval->accessors);
+
+	parse_log("successfully parsed lval");
 
 	PARSE_RETURN(lval);
 }
@@ -374,16 +376,17 @@ static accessor_list_t parse_accessor_list(PARSE_PARAMS) {
 
 	accessor_list_t acc_list = malloc(sizeof(struct accessor_list_st));
 
-	if (MATCH_TOK(LPAREN)) {
+	if (MATCH_TOK(LBRACKET)) {
 		parse_log("access is subscript.");
 		acc_list->kind = SUBSCRIPT;
 		EXPECT_FUN(parse_expr, acc_list->u.subscript_expr);
-		EXPECT_TOK(RPAREN);
+		EXPECT_TOK(RBRACKET);
 	}
 	else if (MATCH_TOK(DOT)) {
 		parse_log("accessor is field.");
 		acc_list->kind = FIELD;
 		acc_list->u.field_id = BEGET->val;
+		EXPECT_TOK(IDENTIFIER);
 	}
 	else{
 		return NULL;
@@ -438,6 +441,11 @@ static expr_t parse_unit_expr(PARSE_PARAMS) {
 			unit->kind = ID_EX;
 			unit->u.id_ex = id;
 			parse_log("Unit expression is right identifier");
+
+			printf("parsed id: %s\n", id);
+			// check if the id has any accessors
+			MATCH_FUN(parse_accessor_list, unit->accessors);
+			parse_log("Unit expression has accessors");
 		}
 	}
 	else if (MATCH_TOK(LPAREN)) {

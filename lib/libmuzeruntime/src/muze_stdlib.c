@@ -75,6 +75,12 @@ data_t alloc_real(unsigned long x) {
   return d;
 }
 
+data_t alloc_array(int n) {
+  data_t d = __create_new_data(n);
+  __set_data_type_header(&d, get_type_index(graph, "array"));
+  return d;
+}
+
 data_t _add(data_t x, data_t y) {
   // TODO: Take type header into account
   long z = (long)(__get_data_member(x, 0)) + (long)(__get_data_member(y, 0));
@@ -341,7 +347,12 @@ void __deactivate_type(char *type) {
 }
 
 data_t __morph(data_t d, char *target) {
+
   char *curr_type_name = get_type_name(graph, __get_data_type_header(d));
+  //printf("current_type: %s, target: %s\n", curr_type_name, target);
+  if (strcmp(target, "") == 0){
+    return d;
+  }
   if (strcmp(curr_type_name, target) == 0)
     return d;
   char **path = shortest_path(graph, curr_type_name, target);

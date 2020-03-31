@@ -658,6 +658,11 @@ char* gen_literal_expr(context_t ctx, literal_t literal, reg_t out) {
   char *int_literal = NULL;
   char *real_literal = NULL;
   char *bool_literal = NULL;
+  char *array_literal = NULL;
+  // for use with array literal
+  int len = 0; // length of array
+  int i = 0; // index in array
+  expr_list_t curr = NULL;
   CREATE_BUFFER;
   ADD_INSTR("push", "%rdi");
   ADD_INSTR("push", "%r10");
@@ -684,11 +689,26 @@ char* gen_literal_expr(context_t ctx, literal_t literal, reg_t out) {
     ADD_INSTR("call", "alloc_bool");
     break;
   case ARRAY_LIT:
-    printf("found an array literal\n");
-    expr_list_t array_lit = literal->u.array_lit;
-    for (expr_list_t curr = array_lit; curr; curr = curr->next) {
-      printf("index\n");
+    // get length of array
+    curr = literal->u.array_lit;
+    for (; curr; curr = curr->next)
+      len++;
+    // store length of array in %rdi
+    ADD_INSTR("movq", concat("$", concat(itoa(len), ", %rdi")));
+    // allocate space for array
+    ADD_INSTR("call", "alloc_array");
+    // move the pointer to the array to %rdi
+    ADD_INSTR("movq", "%rax, %rdi"); 
+    // populate array 
+    curr = literal->u.array_lit;
+    for (; curr; curr = curr->next) {
+      // evaluate each member with gen_expr, store in %rsi
+      gen_expr(ctx, curr->expr, "%rsi");
+      ADD_INSTR("movq", concat("$", concat(itoa(i), ", %rdx")));
+      ADD_INSTR("call", "__set_data_member");
+      i++;
     }
+    break;
   case NULL_LIT:
     ADD_INSTR("movq", concat("$0, ", out));
     break;

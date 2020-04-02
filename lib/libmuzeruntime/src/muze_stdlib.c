@@ -350,10 +350,9 @@ data_t __morph(data_t d, char *target) {
 
   char *curr_type_name = get_type_name(graph, __get_data_type_header(d));
   //printf("current_type: %s, target: %s\n", curr_type_name, target);
-  if (strcmp(target, "") == 0){
-    return d;
-  }
-  if (strcmp(curr_type_name, target) == 0)
+  if (strcmp(target, "") == 0)
+    panic("No target data type provided");
+  if (strcmp(curr_type_name, target) == 0 || strcmp(target, "array") == 0)
     return d;
   char **path = shortest_path(graph, curr_type_name, target);
   if (path == NULL)
@@ -377,10 +376,12 @@ void __assign_simple(data_t src, data_t dest) {
    * This only works for primitive types, so extend this to work for 
    * congolmerate types.
    */
+  /*
   if (dest_type_header != get_type_index(graph, "integer")
       && dest_type_header != get_type_index(graph, "real")
       && dest_type_header != get_type_index(graph, "string")
       && dest_type_header != get_type_index(graph, "boolean"))
     panic("Assigning non-primitive type");
+  */
   __set_data_member(dest, __get_data_member(src_matching_type, 0), 0);
 }

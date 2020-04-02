@@ -330,9 +330,8 @@ int* bfs(type_node_t* graph, int src, int dest) {
           dist[index] = dist[c] + 1;
           pred[index] = c;
 
-          if (index == dest) {
+          if (index == dest)
             return pred;
-          }
                                 
           q[p] = index;
           p++;

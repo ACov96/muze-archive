@@ -121,7 +121,6 @@ void populate_decl_into_ctx(context_t ctx, decl_t decl) {
 		//ctx_add_constant(ctx, c->name, c->ty->u.name_ty);
 		switch (c->ty->kind) {
     	case NAME_TY:
-				printf("inside case NAME_TY\n");
 				ctx_add_constant(ctx, c->name, c->ty->u.name_ty);
 				break;
 			case ARRAY_TY:
@@ -287,7 +286,25 @@ char* gen_mod(context_t ctx, mod_t mod) {
     ADD_INSTR("push", "%rdi");
     ADD_INSTR("push", "%rsi");
     ADD_BLOCK(gen_expr(ctx, assign->expr, "%rdi"));
-    char *type_label = register_or_get_string_label(c->ty->u.name_ty);
+    char *type_label = NULL;
+    switch(c->ty->kind) {
+    case NAME_TY:
+      type_label = register_or_get_string_label(c->ty->u.name_ty);
+      break;
+    case ARRAY_TY:
+      // need to revisit to handle typed arrays
+      type_label = register_or_get_string_label("array");
+      break;
+    case REC_TY:
+      type_label = register_or_get_string_label("record");
+      break;
+    case ENUM_TY:
+      type_label = register_or_get_string_label("enum");
+      break;
+    default:
+      GEN_ERROR("Unrecognized variable type");
+      break;
+    }
     ADD_INSTR("movq", concat(concat("$", type_label), ", %rsi"));
     ADD_INSTR("call", "__morph");
     ADD_INSTR("pop", "%rsi");
@@ -302,7 +319,25 @@ char* gen_mod(context_t ctx, mod_t mod) {
     ADD_INSTR("push", "%rdi");
     ADD_INSTR("push", "%rsi");
     ADD_BLOCK(gen_expr(ctx, assign->expr, "%rdi"));
-    char *type_label = register_or_get_string_label(v->type->u.name_ty);
+    char *type_label = NULL;
+    switch(v->type->kind) {
+    case NAME_TY:
+      type_label = register_or_get_string_label(v->type->u.name_ty);
+      break;
+    case ARRAY_TY:
+      // need to revisit to handle typed arrays
+      type_label = register_or_get_string_label("array");
+      break;
+    case REC_TY:
+      type_label = register_or_get_string_label("record");
+      break;
+    case ENUM_TY:
+      type_label = register_or_get_string_label("enum");
+      break;
+    default:
+      GEN_ERROR("Unrecognized variable type");
+      break;
+    }
     ADD_INSTR("movq", concat(concat("$", type_label), ", %rsi"));
     ADD_INSTR("call", "__morph");
     ADD_INSTR("pop", "%rsi");
@@ -489,9 +524,19 @@ char* gen_expr_stmt(context_t ctx, expr_stmt_t expr) {
 
 char* gen_expr(context_t ctx, expr_t expr, reg_t out) {
   CREATE_BUFFER;
+  char *idx = NULL;
   switch(expr->kind) {
   case ID_EX:
     ADD_BLOCK(gen_id_expr(ctx, expr->u.id_ex, out));
+    // check expression for accessors
+    if (expr->accessors) {
+      ADD_INSTR("movq", concat(out, ", %rdi"));
+      idx = concat("$", expr->accessors->u.subscript_expr->u.literal_ex->u.integer_lit);
+      ADD_INSTR("movq", concat(idx, ", %rsi"));
+      //ADD_BLOCK(gen_expr(ctx, expr->accessors->u.subscript_expr, "%rsi"));
+      ADD_INSTR("call", "__get_data_member");
+      ADD_INSTR("movq", concat("%rax, ", out));
+    } 
     break;
   case LITERAL_EX:
     ADD_BLOCK(gen_literal_expr(ctx, expr->u.literal_ex, out));
@@ -525,7 +570,7 @@ char* gen_call_expr(context_t ctx, call_t call, reg_t out) {
   CREATE_BUFFER;
 
   // Put arguments in registers
-  for (expr_list_t curr_arg = call->args; curr_arg; curr_arg = curr_arg->next) {
+  for (expr_list_t curr_arg = call->args; curr_arg; curr_arg = curr_arg->next) {  
     reg_t curr_reg = arg_registers[arg_idx];
     ADD_INSTR("push", curr_reg);
     ADD_BLOCK(gen_expr(ctx, curr_arg->expr, "%rax"));
@@ -541,6 +586,7 @@ char* gen_call_expr(context_t ctx, call_t call, reg_t out) {
       ADD_INSTR("pop", "%rdi");
       ADD_INSTR("pop", "%r10");
     }
+
     ADD_INSTR("movq", concat("%rax, ", curr_reg));
     
     arg_idx++;
@@ -590,6 +636,7 @@ char* gen_literal_expr(context_t ctx, literal_t literal, reg_t out) {
   expr_list_t curr = NULL;
   CREATE_BUFFER;
   ADD_INSTR("push", "%rdi");
+  ADD_INSTR("push", "%rsi");
   ADD_INSTR("push", "%r10");
   switch(literal->kind) {
   case STRING_LIT:
@@ -627,12 +674,12 @@ char* gen_literal_expr(context_t ctx, literal_t literal, reg_t out) {
     // populate array 
     curr = literal->u.array_lit;
     for (; curr; curr = curr->next) {
-      // evaluate each member with gen_expr, store in %rsi
-      gen_expr(ctx, curr->expr, "%rsi");
+      ADD_BLOCK(gen_expr(ctx, curr->expr, "%rsi"));
       ADD_INSTR("movq", concat("$", concat(itoa(i), ", %rdx")));
       ADD_INSTR("call", "__set_data_member");
       i++;
     }
+    ADD_INSTR("movq", "%rdi, %rax"); 
     break;
   case NULL_LIT:
     ADD_INSTR("movq", concat("$0, ", out));
@@ -641,6 +688,7 @@ char* gen_literal_expr(context_t ctx, literal_t literal, reg_t out) {
     GEN_ERROR("Unknown literal");
   }
   ADD_INSTR("pop", "%r10");
+  ADD_INSTR("pop", "%rsi");
   ADD_INSTR("pop", "%rdi");
   ADD_INSTR("movq", concat("%rax, ", out));
   RETURN_BUFFER;
@@ -692,10 +740,11 @@ char* gen_assign_stmt(context_t ctx, assign_stmt_t assign) {
   ADD_INSTR("push", "%r10");
   ADD_INSTR("push", "%rdi");
   ADD_INSTR("push", "%rsi");
-  ADD_BLOCK(gen_expr(ctx, assign->assign->expr, "%rdi"));
+  ADD_INSTR("push", "%rdx");
   ADD_BLOCK(gen_lval_expr(ctx, assign->lval, "%rsi"));
-  /* ADD_INSTR("movq", "%rdi, (%rsi)"); */
+  ADD_BLOCK(gen_expr(ctx, assign->assign->expr, "%rdi"));
   ADD_INSTR("call", "__assign_simple");
+  ADD_INSTR("pop", "%rdx");
   ADD_INSTR("pop", "%rsi");
   ADD_INSTR("pop", "%rdi");
   ADD_INSTR("pop", "%r10");
@@ -706,6 +755,7 @@ char* gen_lval_expr(context_t ctx, expr_t lval, reg_t out) {
   static_link_t sl = NULL;
   static_link_t link = NULL;
   char read_inst[64];
+  char *idx = NULL;
   CREATE_BUFFER;
   switch(lval->kind) {
   case ID_EX:
@@ -734,7 +784,15 @@ char* gen_lval_expr(context_t ctx, expr_t lval, reg_t out) {
         sprintf(read_inst, "-%d(%%rax), %s", WORD * (sl->offset + 1), out);
       ADD_INSTR("movq", read_inst);
     }
-
+    // check the expression for accessors
+    if (lval->accessors) {
+      ADD_INSTR("movq", concat(out, ", %rdi"));
+      idx = concat("$", lval->accessors->u.subscript_expr->u.literal_ex->u.integer_lit);
+      ADD_INSTR("movq", concat(idx, ", %rsi"));
+      //ADD_BLOCK(gen_expr(ctx, expr->accessors->u.subscript_expr, "%rsi"));
+      ADD_INSTR("call", "__get_data_member");
+      ADD_INSTR("movq", concat("%rax, ", out));
+    }
     /* /\* if (sl == NULL) { *\/ */
     /* /\*   GEN_ERROR(concat("Cannot find l-value ", lval->u.id_ex)); *\/ */
     /* /\* } else if (sl->levels > 0) { *\/ */

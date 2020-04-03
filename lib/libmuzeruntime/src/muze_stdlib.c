@@ -352,7 +352,7 @@ data_t __morph(data_t d, char *target) {
   //printf("current_type: %s, target: %s\n", curr_type_name, target);
   if (strcmp(target, "") == 0)
     panic("No target data type provided");
-  if (strcmp(curr_type_name, target) == 0 || strcmp(target, "array") == 0)
+  if (strcmp(curr_type_name, target) == 0)
     return d;
   char **path = shortest_path(graph, curr_type_name, target);
   if (path == NULL)

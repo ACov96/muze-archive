@@ -531,9 +531,12 @@ char* gen_expr(context_t ctx, expr_t expr, reg_t out) {
     // check expression for accessors
     if (expr->accessors) {
       ADD_INSTR("movq", concat(out, ", %rdi"));
-      //ADD_BLOCK(gen_expr(ctx, expr->accessors->u.subscript_expr, "%rsi"));
-      idx = concat("$", expr->accessors->u.subscript_expr->u.literal_ex->u.integer_lit);
-      ADD_INSTR("movq", concat(idx, ", %rsi"));
+      ADD_INSTR("push", "%rdi");
+      ADD_BLOCK(gen_expr(ctx, expr->accessors->u.subscript_expr, "%rdi"));
+      ADD_INSTR("movq", "$0, %rsi");
+      ADD_INSTR("call", "__get_data_member");
+      ADD_INSTR("movq", "%rax, %rsi");
+      ADD_INSTR("pop", "%rdi");
       ADD_INSTR("call", "__get_data_member");
       ADD_INSTR("movq", concat("%rax, ", out));
     } 
@@ -668,6 +671,7 @@ char* gen_literal_expr(context_t ctx, literal_t literal, reg_t out) {
     ADD_INSTR("movq", concat("$", concat(itoa(len), ", %rdi")));
     // allocate space for array
     ADD_INSTR("call", "alloc_array");
+    ADD_INSTR("pop", "%r10");
     // move the pointer to the array to %rdi
     ADD_INSTR("movq", "%rax, %rdi"); 
     // populate array 
@@ -679,6 +683,7 @@ char* gen_literal_expr(context_t ctx, literal_t literal, reg_t out) {
       i++;
     }
     ADD_INSTR("movq", "%rdi, %rax"); 
+    ADD_INSTR("push", "%r10");
     break;
   case NULL_LIT:
     ADD_INSTR("movq", concat("$0, ", out));
@@ -786,9 +791,12 @@ char* gen_lval_expr(context_t ctx, expr_t lval, reg_t out) {
     // check the expression for accessors
     if (lval->accessors) {
       ADD_INSTR("movq", concat(out, ", %rdi"));
-      //ADD_BLOCK(gen_expr(ctx, expr->accessors->u.subscript_expr, "%rsi"));
-      idx = concat("$", lval->accessors->u.subscript_expr->u.literal_ex->u.integer_lit);
-      ADD_INSTR("movq", concat(idx, ", %rsi"));
+      ADD_INSTR("push", "%rdi");
+      ADD_BLOCK(gen_expr(ctx, lval->accessors->u.subscript_expr, "%rdi"));
+      ADD_INSTR("movq", "$0, %rsi");
+      ADD_INSTR("call", "__get_data_member");
+      ADD_INSTR("movq", "%rax, %rsi");
+      ADD_INSTR("pop", "%rdi");
       ADD_INSTR("call", "__get_data_member");
       ADD_INSTR("movq", concat("%rax, ", out));
     }

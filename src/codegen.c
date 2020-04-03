@@ -606,9 +606,9 @@ char* gen_expr(context_t ctx, expr_t expr, reg_t out) {
     // check expression for accessors
     if (expr->accessors) {
       ADD_INSTR("movq", concat(out, ", %rdi"));
+      //ADD_BLOCK(gen_expr(ctx, expr->accessors->u.subscript_expr, "%rsi"));
       idx = concat("$", expr->accessors->u.subscript_expr->u.literal_ex->u.integer_lit);
       ADD_INSTR("movq", concat(idx, ", %rsi"));
-      //ADD_BLOCK(gen_expr(ctx, expr->accessors->u.subscript_expr, "%rsi"));
       ADD_INSTR("call", "__get_data_member");
       ADD_INSTR("movq", concat("%rax, ", out));
     } 
@@ -704,7 +704,6 @@ char* gen_literal_expr(context_t ctx, literal_t literal, reg_t out) {
   char *int_literal = NULL;
   char *real_literal = NULL;
   char *bool_literal = NULL;
-  char *array_literal = NULL;
   // for use with array literal
   int len = 0; // length of array
   int i = 0; // index in array
@@ -862,9 +861,9 @@ char* gen_lval_expr(context_t ctx, expr_t lval, reg_t out) {
     // check the expression for accessors
     if (lval->accessors) {
       ADD_INSTR("movq", concat(out, ", %rdi"));
+      //ADD_BLOCK(gen_expr(ctx, expr->accessors->u.subscript_expr, "%rsi"));
       idx = concat("$", lval->accessors->u.subscript_expr->u.literal_ex->u.integer_lit);
       ADD_INSTR("movq", concat(idx, ", %rsi"));
-      //ADD_BLOCK(gen_expr(ctx, expr->accessors->u.subscript_expr, "%rsi"));
       ADD_INSTR("call", "__get_data_member");
       ADD_INSTR("movq", concat("%rax, ", out));
     }

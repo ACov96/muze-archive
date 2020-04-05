@@ -819,11 +819,30 @@ char* gen_assign_stmt(context_t ctx, assign_stmt_t assign) {
   ADD_INSTR("push", "%r10");
   ADD_INSTR("push", "%rdi");
   ADD_INSTR("push", "%rsi");
-  ADD_INSTR("push", "%rdx");
-  ADD_BLOCK(gen_lval_expr(ctx, assign->lval, "%rsi"));
-  ADD_BLOCK(gen_expr(ctx, assign->assign->expr, "%rdi"));
-  ADD_INSTR("call", "__assign_simple");
-  ADD_INSTR("pop", "%rdx");
+  // if assignment dest is an array member call __assign_array_member()
+  // else call __assign_simple()
+  if (assign->lval->accessors) {
+    ADD_INSTR("push", "%rdx");
+    ADD_BLOCK(gen_lval_expr(ctx, assign->lval, "%rdi"));
+    ADD_INSTR("push", "%rdi");
+    ADD_BLOCK(gen_expr(ctx, assign->lval->accessors->u.subscript_expr, "%rdi"));
+    ADD_INSTR("movq", "$0, %rsi");
+    ADD_INSTR("call", "__get_data_member");
+    ADD_INSTR("movq", "%rax, %rsi");
+    ADD_INSTR("pop", "%rdi");
+    ADD_INSTR("call", "__get_data_member");
+    ADD_INSTR("movq", "%rax, %rsi");
+    ADD_INSTR("movq", "%rdi, %rdx");
+    ADD_INSTR("push", "%rdx");
+    ADD_BLOCK(gen_expr(ctx, assign->assign->expr, "%rdi"));
+    ADD_INSTR("pop", "%rdx");
+    ADD_INSTR("call", "__assign_array_member");
+    ADD_INSTR("pop", "%rdx");
+  } else{
+    ADD_BLOCK(gen_lval_expr(ctx, assign->lval, "%rsi"));
+    ADD_BLOCK(gen_expr(ctx, assign->assign->expr, "%rdi"));
+    ADD_INSTR("call", "__assign_simple");
+  }
   ADD_INSTR("pop", "%rsi");
   ADD_INSTR("pop", "%rdi");
   ADD_INSTR("pop", "%r10");
@@ -863,18 +882,7 @@ char* gen_lval_expr(context_t ctx, expr_t lval, reg_t out) {
         sprintf(read_inst, "-%d(%%rax), %s", WORD * (sl->offset + 1), out);
       ADD_INSTR("movq", read_inst);
     }
-    // check the expression for accessors
-    if (lval->accessors) {
-      ADD_INSTR("movq", concat(out, ", %rdi"));
-      ADD_INSTR("push", "%rdi");
-      ADD_BLOCK(gen_expr(ctx, lval->accessors->u.subscript_expr, "%rdi"));
-      ADD_INSTR("movq", "$0, %rsi");
-      ADD_INSTR("call", "__get_data_member");
-      ADD_INSTR("movq", "%rax, %rsi");
-      ADD_INSTR("pop", "%rdi");
-      ADD_INSTR("call", "__get_data_member");
-      ADD_INSTR("movq", concat("%rax, ", out));
-    }
+    
     /* /\* if (sl == NULL) { *\/ */
     /* /\*   GEN_ERROR(concat("Cannot find l-value ", lval->u.id_ex)); *\/ */
     /* /\* } else if (sl->levels > 0) { *\/ */

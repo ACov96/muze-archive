@@ -443,3 +443,13 @@ data_t __identity_helper(data_t d, char *type_name) {
   __set_data_type_header(&d, td);
   return d;
 }
+  
+/* If dest is a member of an untyped array, then set the data member to src. 
+   Else call __assign_simple()*/
+void __assign_array_member(data_t src, data_t dest, data_t arr) {
+  char *array_type = get_type_name(graph, __get_data_type_header(arr));
+  if (strcmp(array_type, "array") == 0)
+    __set_data_member(dest, __get_data_member(src, 0), 0);
+  else
+    __assign_simple(src, dest);
+}

@@ -1429,16 +1429,6 @@ static expr_list_t parse_expr_list(PARSE_PARAMS) {
 	PARSE_RETURN(curr);
 }
 
-static break_stmt_t parse_break_stmt(PARSE_PARAMS) {
-	EXPECT_TOK(BREAK);
-
-	// If we ever do break to a specific label, this is where we're gonna do it
-	
-	EXPECT_TOK(SEMICOLON);
-	break_stmt_t break_stmt = malloc(sizeof(struct break_stmt_st));
-	PARSE_RETURN(break_stmt);
-}
-
 // start parse
 root_t parse(ll_t LL_NAME) {
 	root_t root = malloc(sizeof(struct root_st));

@@ -1002,6 +1002,10 @@ static array_type_t parse_array_decl(PARSE_PARAMS){
 	array_type_t arr = malloc(sizeof(struct array_type_st));
 
 	EXPECT_TOK(ARRAY);
+	if (MATCH_TOK(LBRACKET)) {
+		EXPECT_FUN(parse_expr, arr->length);
+		EXPECT_TOK(RBRACKET);
+	}
 	if (MATCH_TOK(OF))
 		EXPECT_FUN(parse_type_expr, arr->type);
 

@@ -314,17 +314,28 @@ char* gen_mod(context_t ctx, mod_t mod) {
     offset++;
   }
   for (var_decl_t v = mod->decl->vars; v; v = v->next) {
-    assign_t assign = v->assign;
     ADD_INSTR("push", "%r10");
     ADD_INSTR("push", "%rdi");
     ADD_INSTR("push", "%rsi");
-    ADD_BLOCK(gen_expr(ctx, assign->expr, "%rdi"));
+    if (v->assign) {
+      assign_t assign = v->assign;
+      ADD_BLOCK(gen_expr(ctx, assign->expr, "%rdi"));
+    }
     char *type_label = NULL;
     switch(v->type->kind) {
     case NAME_TY:
       type_label = register_or_get_string_label(v->type->u.name_ty);
       break;
     case ARRAY_TY:
+      // if the the array was declared but not initialized, then allocate space for it 
+      if (v->type->u.array_ty->length && !v->assign) {
+        ADD_BLOCK(gen_expr(ctx, v->type->u.array_ty->length, "%rdi"));
+        ADD_INSTR("movq", "$0, %rsi");
+        ADD_INSTR("call", "__get_data_member");
+        ADD_INSTR("movq", "%rax, %rdi");
+        ADD_INSTR("call", "init_default_array");
+        ADD_INSTR("movq", "%rax, %rdi");
+      }
       // need to revisit to handle typed arrays
       type_label = register_or_get_string_label("array");
       break;
@@ -807,7 +818,7 @@ char* gen_lval_expr(context_t ctx, expr_t lval, reg_t out) {
         sprintf(read_inst, "-%d(%%rax), %s", WORD * (sl->offset + 1), out);
       ADD_INSTR("movq", read_inst);
     }
-    
+
     /* /\* if (sl == NULL) { *\/ */
     /* /\*   GEN_ERROR(concat("Cannot find l-value ", lval->u.id_ex)); *\/ */
     /* /\* } else if (sl->levels > 0) { *\/ */

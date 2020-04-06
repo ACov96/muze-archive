@@ -1,9 +1,11 @@
 mod Main
 var
-  a : array = ["b", "c", "xty"];
+  a : array[3];
 begin
-  a[0] = "d";
-  a[1] = "e";
+  a[0] = "a";
+  a[1] = "b";
+  a[2] = "c";
+  //a = ["a", "b", "c"];
   print(a[0]);
   print(a[1]);
   print(a[2]);

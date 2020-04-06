@@ -95,6 +95,16 @@ data_t alloc_array(int n) {
   return d;
 }
 
+/* Used for arrays that are declared, but not initialized. 
+Sets all members of the given array to 0 */
+data_t init_default_array(int n) {
+  data_t d = __create_new_data(n);
+  __set_data_type_header(&d, get_type_index(graph, "array"));
+  for (int i = 0; i < n; i++)
+    __set_data_member(d, (member_t)alloc_int(0), i);
+  return d;
+}
+
 data_t _add(data_t x, data_t y) {
   // TODO: Take type header into account
   long z = (long)(__get_data_member(x, 0)) + (long)(__get_data_member(y, 0));

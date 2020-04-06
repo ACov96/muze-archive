@@ -209,6 +209,7 @@ struct type_st {
 
 
 struct array_type_st {
+  expr_t length;
   type_t type;
 };
 

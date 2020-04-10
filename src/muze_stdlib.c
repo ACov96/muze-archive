@@ -90,6 +90,10 @@ data_t alloc_real(unsigned long x) {
 }
 
 data_t alloc_array(int n) {
+  // TODO: add dope vector with length, upper, and lower bounds.
+  // first member points to dope vector
+  // figure out how to layout members for multi-dimensional arrays
+  // probably column major
   data_t d = __create_new_data(n);
   __set_data_type_header(&d, get_type_index(graph, "array"));
   return d;
@@ -97,11 +101,13 @@ data_t alloc_array(int n) {
 
 /* Used for arrays that are declared, but not initialized. 
 Sets all members of the given array to 0 */
-data_t init_default_array(int n) {
+data_t init_default_array(int n, char *array_type) {
   data_t d = __create_new_data(n);
-  __set_data_type_header(&d, get_type_index(graph, "array"));
+  __set_data_type_header(&d, get_type_index(graph, array_type));
+  char *member_type = array_type + 9;
   for (int i = 0; i < n; i++)
-    __set_data_member(d, (member_t)alloc_int(0), i);
+    __set_data_member(d, __morph(alloc_int(0), member_type), i);
+
   return d;
 }
 
@@ -379,6 +385,10 @@ void __activate_type(char *type) {
 
 void __deactivate_type(char *type) {
   graph = deactivate_node(graph, type);
+}
+
+void __add_type(char *type) {
+  graph = add_type(graph, type);
 }
 
 data_t __morph(data_t d, char *target) {

@@ -99,6 +99,7 @@ char* gen_type_graph_segment();
 char* gen_mod(context_t ctx, mod_t mod);
 char* gen_fun(context_t ctx, fun_decl_t fun);
 char* gen_type(context_t ctx, type_decl_t type);
+char* gen_type_constructor(context_t ctx, type_decl_t type);
 char* gen_morph(context_t ctx, char *type_name, morph_t morph);
 char* gen_stmt(context_t ctx, stmt_t stmt);
 char* gen_expr_stmt(context_t ctx, expr_stmt_t expr);
@@ -256,6 +257,9 @@ char* gen_mod(context_t ctx, mod_t mod) {
   populate_decl_into_ctx(ctx, mod->decl);
 
   for (type_decl_t t = mod->decl->types; t; t = t->next)
+    ctx_add_type(ctx, t);
+
+  for (type_decl_t t = mod->decl->types; t; t = t->next)
     ADD_BLOCK(gen_type(ctx, t));
 
   // Allocate module block
@@ -268,7 +272,7 @@ char* gen_mod(context_t ctx, mod_t mod) {
 
   if (ctx_is_global(ctx)) {
     char *dwarf_file_directive;
-    asprintf(&dwarf_file_directive, ".file %d \"%s\"", get_file_no(mod->file_name), mod->file_name);
+    asprintf(&dwarf_file_directive, ".file %d \"%s\"", get_file_no(mod->file_name)+1, mod->file_name);
     ADD_INSTR(dwarf_file_directive, NO_OPERANDS);
   }
 
@@ -367,6 +371,9 @@ char* gen_fun(context_t ctx, fun_decl_t fun) {
 
   // TODO: Generate child modules
 
+  for (type_decl_t t = fun->decl->types; t; t = t->next)
+    ctx_add_type(ctx, t);
+  
   for (type_decl_t t = fun->decl->types; t; t = t->next)
     ADD_BLOCK(gen_type(ctx, t));
   
@@ -1016,6 +1023,7 @@ char* gen_text_segment(root_t root) {
 char* gen_type(context_t ctx, type_decl_t type) {
   char *type_label = concat("__type__", type->name);
   char *type_name_label = register_or_get_string_label(type->name);
+  char *parent_name_label = register_or_get_string_label(type->type->name);
   int morph_count = 0;
   for (morph_t morph = type->morphs; morph; morph = morph->next)
     morph_count++;
@@ -1023,6 +1031,8 @@ char* gen_type(context_t ctx, type_decl_t type) {
   ADD_INSTR(".section", ".data");
   ADD_LABEL(type_label);
   ADD_INSTR(".quad", type_name_label);
+  ADD_INSTR(".quad", parent_name_label);
+  ADD_INSTR(".quad", concat("__morph__", concat(type->type->name, concat("__", type->name))));
   ADD_INSTR(".quad", itoa(morph_count));
   for (morph_t morph = type->morphs; morph; morph = morph->next) {
     char *target_label = register_or_get_string_label(morph->target);
@@ -1032,9 +1042,40 @@ char* gen_type(context_t ctx, type_decl_t type) {
   ADD_INSTR(".section", ".type_graph");
   ADD_INSTR(".quad", type_label);
   ADD_INSTR(".section", ".text");
+  ADD_BLOCK(gen_type_constructor(ctx, type));
   for (morph_t morph = type->morphs; morph; morph = morph->next) {
     ADD_BLOCK(gen_morph(ctx, type->name, morph));
   }
+  RETURN_BUFFER;
+}
+
+char* gen_type_constructor(context_t ctx, type_decl_t type) {
+  // TODO: This assumes no morph chains as the "base type". Also doesn't work for non-primitive types
+  CREATE_BUFFER;
+  ADD_LABEL(concat("__type__constructor__", type->name));
+  ADD_INSTR("push", "%rbp");
+  ADD_INSTR("movq", "%rsp, %rbp");
+  ADD_INSTR("push", "%r10");
+  ADD_INSTR("push", "%rdi");
+  if (strcmp(type->type->u.name_ty, "integer") == 0) {
+    ADD_INSTR("movq", "$0, %rdi");
+    ADD_INSTR("call", "alloc_integer");
+  } else if (strcmp(type->type->u.name_ty, "string") == 0) {
+    char *str_label = register_or_get_string_label("");
+    ADD_INSTR("movq", concat("$", concat(str_label, ", %rdi")));
+    ADD_INSTR("call", "alloc_string");
+  } else if (strcmp(type->type->u.name_ty, "real") == 0) {
+    ADD_INSTR("movq", "$0, %rdi");
+    ADD_INSTR("call", "alloc_real");
+  } else if (strcmp(type->type->u.name_ty, "boolean") == 0) {
+    ADD_INSTR("movq", "$1, %rdi");
+    ADD_INSTR("call", "alloc_bool");
+  } else {
+    ADD_INSTR("call", concat("__type__constructor__", type->type->u.name_ty));
+  }
+  ADD_INSTR("pop", "%rdi");
+  ADD_INSTR("pop", "%r10");
+  ADD_INSTR("ret", NO_OPERANDS);
   RETURN_BUFFER;
 }
 
@@ -1058,10 +1099,47 @@ char* gen_morph(context_t ctx, char *type_name, morph_t morph) {
   /* TODO: Allocate space for "this" and "that" or whatever variables 
    * we decided on. This will probably require creating a new context.
    */
+  context_t new_ctx = ctx_new();
+  ctx_set_parent(new_ctx, ctx);
+  ctx_add_variable(new_ctx, "this", type_name);
+  ctx_add_variable(new_ctx, "that", morph->target);
 
-  for (stmt_t s = morph->defn; s; s = s->next) {
-    ADD_BLOCK(gen_stmt(ctx, s));
+  ADD_INSTR("push", "%rbp");
+  ADD_INSTR("movq", "%rsp, %rbp");
+  ADD_INSTR("sub", "$16, %rsp");
+  ADD_INSTR("push", "%r10");
+
+  // Prepare "this" variable
+  ADD_INSTR("call", concat("__type__constructor__", type_name));
+  ADD_INSTR("movq", "%rax, -8(%rbp)");
+
+  type_decl_t target_type_decl = (type_decl_t) ctx_get_type(ctx, morph->target);
+  if (target_type_decl == NULL) {
+    GEN_ERROR(concat("Cannot find declaration for type ", morph->target)); 
   }
+  // Prepare "that" variable
+  if (strcmp(target_type_decl->type->u.name_ty, "integer") == 0) {
+    ADD_INSTR("movq", "$0, %rdi");
+    ADD_INSTR("call", "alloc_integer");
+  } else if (strcmp(target_type_decl->type->u.name_ty, "string") == 0) {
+    char *str_label = register_or_get_string_label("");
+    ADD_INSTR("movq", concat("$", concat(str_label, ", %rdi")));
+    ADD_INSTR("call", "alloc_string");
+  } else if (strcmp(target_type_decl->type->u.name_ty, "real") == 0) {
+    ADD_INSTR("movq", "$0, %rdi");
+    ADD_INSTR("call", "alloc_real");
+  } else if (strcmp(target_type_decl->type->u.name_ty, "boolean") == 0) {
+    ADD_INSTR("movq", "$1, %rdi");
+    ADD_INSTR("call", "alloc_bool");
+  } else {
+    ADD_INSTR("call", concat("__type__constructor__", morph->target));
+  }
+  ADD_INSTR("pop", "%r10");
+  ADD_INSTR("movq", "%rax, -16(%rbp)");
+  for (stmt_t s = morph->defn; s; s = s->next) {
+    ADD_BLOCK(gen_stmt(new_ctx, s));
+  }
+  ADD_INSTR("movq", "-8(%rbp), %rax");
   ADD_INSTR("ret", NO_OPERANDS);
   RETURN_BUFFER;
 }
@@ -1136,6 +1214,7 @@ bool has_main(root_t root) {
       return true;
   return false;
 }
+
 char* codegen(root_t root, type_node_t *g) {
   graph = g;
   build_file_no_map(root);

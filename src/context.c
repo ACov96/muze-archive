@@ -58,6 +58,7 @@ struct context_st {
   ll_t variables;
   ll_t break_labels;
   ll_t functions;
+  ll_t types;
   bool global_module;
 };
 
@@ -235,4 +236,22 @@ void ctx_set_global(context_t ctx, bool b) {
 
 bool ctx_is_global(context_t ctx) {
   return ctx->global_module;
+}
+
+void ctx_add_type(context_t ctx, type_decl_t t) {
+  if (ctx->types == NULL) {
+    ctx->types = ll_new();
+    ctx->types->val = t;
+  } else {
+    ll_append(ctx->types, t);
+  }
+}
+
+type_decl_t ctx_get_type(context_t ctx, char *type_name) {
+  for (ll_t l = ctx->types; l; l = l->next) {
+    type_decl_t t = (type_decl_t) l->val;
+    if (strcmp(type_name, t->name) == 0)
+      return t;
+  }
+  return NULL;
 }

@@ -47,6 +47,8 @@ void ctx_set_mod(context_t ctx);
 int ctx_get_kind(context_t ctx);
 void ctx_set_global(context_t ctx, bool b);
 bool ctx_is_global(context_t ctx);
+void ctx_add_type(context_t ctx, type_decl_t t);
+type_decl_t ctx_get_type(context_t ctx, char *type_name);
 
 ADDER_HEADER(constant);
 ADDER_HEADER(variable);

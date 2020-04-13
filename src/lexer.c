@@ -334,7 +334,9 @@ ll_t generate_token_list(char* s) {
 
     // Some weird character, error out
     else {
-      error_and_exit("Unrecognized character", line_no);
+      char *msg = "Unrecognized character  ";
+      msg[strlen(msg) - 1] = c;
+      error_and_exit(msg, line_no);
     }
   }
 

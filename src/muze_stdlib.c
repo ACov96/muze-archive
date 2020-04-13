@@ -31,6 +31,8 @@ struct mini_morph_st {
 
 struct mini_type_st {
   char *name;
+  char *parent_name;
+  morph_f parent_morph;
   unsigned long morph_length;
   struct mini_morph_st morphs[];
 };
@@ -332,6 +334,14 @@ void init_type_graph() {
     for (unsigned long i = 0; i < num_morphs; i++) {
       graph = add_morph(graph, type_name, (*t)->morphs[i].dest, (*t)->morphs[i].morph_fun);
     }
+  }
+
+  for (mini_type_t *t = (mini_type_t*)&__TYPE_GRAPH;
+       (unsigned long)t < (unsigned long)(&__TYPE_GRAPH_END);
+       t++) {
+    char *type_name = (*t)->name;
+    char *parent_name = (*t)->parent_name;
+    graph = add_morph(graph, parent_name, type_name, (*t)->parent_morph);
   }
 
   // Add standard morphs and activate them

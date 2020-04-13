@@ -32,7 +32,8 @@ struct mini_morph_st {
 struct mini_type_st {
   char *name;
   char *parent_name;
-  morph_f parent_morph;
+  morph_f parent_to_child_morph;
+  morph_f child_to_parent_morph;
   unsigned long morph_length;
   struct mini_morph_st morphs[];
 };
@@ -50,7 +51,7 @@ void panic(char *msg) {
 }
 
 void print(data_t d) {
-  char* msg = __get_data_member(d, 0);
+  char* msg = __get_data_member(__morph(d, "string"), 0);
   printf("%s\n", msg);
 }
 
@@ -253,10 +254,10 @@ data_t __morph__string_integer(data_t in) {
 /*   return alloc_int(l); */
 /* } */
 
-/* data_t __morph__integer_real(data_t in) { */
-/*   double d = (double)((long)in->members[0]); */
-/*   return alloc_real(d); */
-/* } */
+data_t __morph__integer_real(data_t in) {
+  double d = (double)((unsigned long)__get_data_member(in, 0));
+  return alloc_real(d);
+}
 
 data_t __morph__integer_boolean(data_t in) {
   long l = (long)__get_data_member(in, 0);
@@ -341,7 +342,8 @@ void init_type_graph() {
        t++) {
     char *type_name = (*t)->name;
     char *parent_name = (*t)->parent_name;
-    graph = add_morph(graph, parent_name, type_name, (*t)->parent_morph);
+    graph = add_morph(graph, parent_name, type_name, (*t)->parent_to_child_morph);
+    graph = add_morph(graph, type_name, parent_name, (*t)->child_to_parent_morph);
   }
 
   // Add standard morphs and activate them
@@ -351,6 +353,8 @@ void init_type_graph() {
   set_morph(graph, "string", "boolean", &__morph__string_boolean);
   set_morph(graph, "boolean", "string", &__morph__boolean_string);
   set_morph(graph, "boolean", "integer", &__morph__boolean_integer);
+  set_morph(graph, "integer", "real", &__morph__integer_real);
+  // set_morph(graph, "real", "integer", &__morph__real_integer);
 }
 
 void __activate_type(char *type) {
@@ -420,4 +424,10 @@ void _clear_try(void) {
 void _throw_exception(data_t exception) {
   exception_stack->exception = exception;
   setcontext(&exception_stack->context);
+}
+
+data_t __identity_helper(data_t d, char *type_name) {
+  type_descriptor_t td = get_type_index(graph, type_name);
+  __set_data_type_header(&d, td);
+  return d;
 }

@@ -101,6 +101,7 @@ char* gen_fun(context_t ctx, fun_decl_t fun);
 char* gen_type(context_t ctx, type_decl_t type);
 char* gen_type_constructor(context_t ctx, type_decl_t type);
 char* gen_morph(context_t ctx, char *type_name, morph_t morph);
+char* gen_identity_morph(char *src, char *dest);
 char* gen_stmt(context_t ctx, stmt_t stmt);
 char* gen_expr_stmt(context_t ctx, expr_stmt_t expr);
 char* gen_expr(context_t ctx, expr_t expr, reg_t out);
@@ -1023,7 +1024,7 @@ char* gen_text_segment(root_t root) {
 char* gen_type(context_t ctx, type_decl_t type) {
   char *type_label = concat("__type__", type->name);
   char *type_name_label = register_or_get_string_label(type->name);
-  char *parent_name_label = register_or_get_string_label(type->type->name);
+  char *parent_name_label = register_or_get_string_label(type->type->u.name_ty);
   int morph_count = 0;
   for (morph_t morph = type->morphs; morph; morph = morph->next)
     morph_count++;
@@ -1032,7 +1033,8 @@ char* gen_type(context_t ctx, type_decl_t type) {
   ADD_LABEL(type_label);
   ADD_INSTR(".quad", type_name_label);
   ADD_INSTR(".quad", parent_name_label);
-  ADD_INSTR(".quad", concat("__morph__", concat(type->type->name, concat("__", type->name))));
+  ADD_INSTR(".quad", concat("__morph__", concat(type->type->u.name_ty, concat("__", type->name))));
+  ADD_INSTR(".quad", concat("__morph__", concat(type->name, concat("__", type->type->u.name_ty))));
   ADD_INSTR(".quad", itoa(morph_count));
   for (morph_t morph = type->morphs; morph; morph = morph->next) {
     char *target_label = register_or_get_string_label(morph->target);
@@ -1042,6 +1044,8 @@ char* gen_type(context_t ctx, type_decl_t type) {
   ADD_INSTR(".section", ".type_graph");
   ADD_INSTR(".quad", type_label);
   ADD_INSTR(".section", ".text");
+  ADD_BLOCK(gen_identity_morph(type->name, type->type->u.name_ty));
+  ADD_BLOCK(gen_identity_morph(type->type->u.name_ty, type->name));
   ADD_BLOCK(gen_type_constructor(ctx, type));
   for (morph_t morph = type->morphs; morph; morph = morph->next) {
     ADD_BLOCK(gen_morph(ctx, type->name, morph));
@@ -1056,10 +1060,9 @@ char* gen_type_constructor(context_t ctx, type_decl_t type) {
   ADD_INSTR("push", "%rbp");
   ADD_INSTR("movq", "%rsp, %rbp");
   ADD_INSTR("push", "%r10");
-  ADD_INSTR("push", "%rdi");
   if (strcmp(type->type->u.name_ty, "integer") == 0) {
     ADD_INSTR("movq", "$0, %rdi");
-    ADD_INSTR("call", "alloc_integer");
+    ADD_INSTR("call", "alloc_int");
   } else if (strcmp(type->type->u.name_ty, "string") == 0) {
     char *str_label = register_or_get_string_label("");
     ADD_INSTR("movq", concat("$", concat(str_label, ", %rdi")));
@@ -1073,8 +1076,25 @@ char* gen_type_constructor(context_t ctx, type_decl_t type) {
   } else {
     ADD_INSTR("call", concat("__type__constructor__", type->type->u.name_ty));
   }
-  ADD_INSTR("pop", "%rdi");
+  ADD_INSTR("movq", "%rax, %rdi");
+  ADD_INSTR("call", concat("__morph__", concat(type->name, concat("__", type->type->u.name_ty))));
   ADD_INSTR("pop", "%r10");
+  ADD_INSTR("leave", NO_OPERANDS);
+  ADD_INSTR("ret", NO_OPERANDS);
+  RETURN_BUFFER;
+}
+
+char* gen_identity_morph(char *src, char *dest) {
+  char *dest_label = register_or_get_string_label(dest);
+  CREATE_BUFFER;
+  ADD_LABEL(concat("__morph__", concat(src, concat("__", dest))));
+  ADD_INSTR("push", "%rbp");
+  ADD_INSTR("movq", "%rsp, %rbp");
+  ADD_INSTR("push", "%r10");
+  ADD_INSTR("movq", concat(concat("$", dest_label), ", %rsi"));
+  ADD_INSTR("call", "__identity_helper");
+  ADD_INSTR("pop", "%r10");
+  ADD_INSTR("leave", NO_OPERANDS);
   ADD_INSTR("ret", NO_OPERANDS);
   RETURN_BUFFER;
 }

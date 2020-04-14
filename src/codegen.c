@@ -1187,7 +1187,7 @@ char* gen_text_segment(root_t root) {
   char *curr_file = root->mods->file_name;
   char *file_directive;
   asprintf(&file_directive, "\"%s\"", curr_file);
-  ADD_INSTR(".file", file_directive);
+  // ADD_INSTR(".file", file_directive);
   ADD_INSTR(".section", ".text");
   for (mod_t mod = root->mods; mod; mod = mod->next) {
     if (strcmp(mod->file_name, curr_file) != 0) {

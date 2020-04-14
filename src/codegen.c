@@ -348,11 +348,11 @@ char* gen_mod(context_t ctx, mod_t mod) {
   ADD_INSTR(".type", type_directive);
   ADD_LABEL(module_label);
 
-  if (ctx_is_global(ctx)) {
-    char *dwarf_file_directive;
-    asprintf(&dwarf_file_directive, ".file %d \"%s\"", get_file_no(mod->file_name), mod->file_name);
-    ADD_INSTR(dwarf_file_directive, NO_OPERANDS);
-  }
+  /* if (ctx_is_global(ctx)) { */
+  /*   char *dwarf_file_directive; */
+  /*   asprintf(&dwarf_file_directive, ".file %d \"%s\"", get_file_no(mod->file_name), mod->file_name); */
+  /*   ADD_INSTR(dwarf_file_directive, NO_OPERANDS); */
+  /* } */
 
   // Populate module block with constants and variables
   int mod_size = MODULE_MIN_SIZE;

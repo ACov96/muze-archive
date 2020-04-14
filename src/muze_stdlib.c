@@ -512,7 +512,7 @@ data_t __identity_helper(data_t d, char *type_name) {
   
 /* If dest is a member of an untyped array, then set the data member to src. 
    Else call __assign_simple()*/
-void __assign_array_member(data_t src, data_t dest, data_t arr) {
+void __assign_array_member(data_t src, data_t idx, data_t arr) {
   long index = calc_index(idx, arr);
   char *array_type = get_type_name(graph, __get_data_type_header(arr));
   data_t dest = __get_data_member(arr, index);

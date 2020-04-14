@@ -1,5 +1,7 @@
 #pragma once
 
+#include "util.h"
+
 typedef struct root_st          *root_t;
 typedef struct mod_st           *mod_t;
 typedef struct decl_st          *decl_t;
@@ -14,6 +16,9 @@ typedef struct fun_decl_st      *extern_decl_t; // ALIAS
 typedef struct const_st         *const_t;
 typedef struct type_st          *type_t;
 typedef struct morph_st         *morph_t;
+typedef struct subscript_list_st  *subscript_list_t;
+typedef struct lval_st						*lval_t;
+typedef struct accessor_list_st   *accessor_list_t;
 // typedef struct var_st           *var_t;
 // typedef struct fun_st           *fun_t;
 
@@ -276,7 +281,10 @@ struct unary_st {
     POST_DEC_OP
   } op;
 
-  // The operand
+  // The operand. 
+  // Probably need to change this from an expr to an lval at some point 
+  // so the operand can have accessors associated with it. -TD
+  //lval_t lval;
   expr_t expr;
 };
 
@@ -413,7 +421,7 @@ struct case_stmt_st {
 };
 
 struct assign_stmt_st {
-  expr_t   lval;
+  lval_t   lval;
   assign_t assign;
 };
 
@@ -445,6 +453,16 @@ struct expr_list_st {
   expr_list_t next;
 };
 
+struct accessor_list_st {
+	union{expr_t	subscript_expr; char* field_id;} u;
+	enum{SUBSCRIPT, FIELD} kind;
+	accessor_list_t next;
+};
+
+struct lval_st {
+	expr_t expr;
+	accessor_list_t accessors;
+};
 
 // prototypes
 root_t parse(ll_t ll_tokens);

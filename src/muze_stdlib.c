@@ -24,6 +24,10 @@ struct exception_stack_st {
   exception_stack_t prev;
 };
 
+// Helper functions
+data_t create_dope_vec(int num_dims, int *dimensions);
+long calc_index(data_t idx, data_t arr);
+
 struct mini_morph_st {
   char *dest;
   morph_f morph_fun;
@@ -101,13 +105,49 @@ data_t alloc_array(int n) {
 
 /* Used for arrays that are declared, but not initialized. 
 Sets all members of the given array to 0 */
-data_t init_default_array(int n, char *array_type) {
-  data_t d = __create_new_data(n);
+data_t init_default_array(data_t dims, char *array_type) {
+  int num_dims = dims->length;
+  long array_size = 1;
+  int *dimensions = malloc(sizeof(int) * num_dims);
+  int curr_dim = 0;
+  // calculate total array size from dimensions
+  for (int i = 0; i < num_dims; i++) {
+    curr_dim = (long)__get_data_member((__get_data_member(dims, i)), 0);
+    if (curr_dim <= 0) panic("Cannot initialize array with dimension size <= 0");
+    array_size *= curr_dim;
+    dimensions[i] = curr_dim;
+  }
+  // add 1 to array_size to account for the dope vector in index 0
+  array_size++;
+  // create the dope vector for the array
+  data_t dope_vec = create_dope_vec(num_dims, dimensions);
+  data_t d = __create_new_data(array_size);
   __set_data_type_header(&d, get_type_index(graph, array_type));
-  char *member_type = array_type + 9;
-  for (int i = 0; i < n; i++)
-    __set_data_member(d, __morph(alloc_int(0), member_type), i);
+  // set first member in the array to be the dope vector
+  __set_data_member(d, dope_vec, 0);
+  if (strcmp(array_type, "array") != 0) {
+    // cut off "array of " portion of array type string to get data type
+    char *member_type = array_type + 9;
+    for (int i = 1; i < array_size; i++)
+      __set_data_member(d, __morph(alloc_int(0), member_type), i);
+  } else {
+    for (int i = 1; i < array_size; i++)
+      __set_data_member(d, alloc_int(0), i);
+  }
 
+  return d;
+}
+
+data_t create_dope_vec(int num_dims, int *dimensions) {
+  // allocate 2 members (upper and lower bounds) for each dimensions
+  data_t d = alloc_array(num_dims*2);
+
+  for (int i = 0; i < num_dims*2; i+=2) {
+    // set lower bound
+     __set_data_member(d, alloc_int(0), i);
+     // set upper bound
+     __set_data_member(d, alloc_int(dimensions[i/2]), i+1);
+  }
   return d;
 }
 
@@ -315,6 +355,8 @@ data_t __create_new_data(unsigned long size) {
 }
 
 member_t __get_data_member(data_t d, int idx) {
+  //char *type_name = get_type_name(graph, __get_data_type_header(d));
+  //printf("d type = %s, index = %d\n", type_name, idx);
   data_t d_masked = (data_t)((unsigned long)(d) & TYPE_MASK);
   if (d_masked->length <= idx) panic("Data index out of bounds in get");
   return d_masked->members[idx];
@@ -467,9 +509,36 @@ data_t __identity_helper(data_t d, char *type_name) {
 /* If dest is a member of an untyped array, then set the data member to src. 
    Else call __assign_simple()*/
 void __assign_array_member(data_t src, data_t dest, data_t arr) {
+  long index = calc_index(idx, arr);
   char *array_type = get_type_name(graph, __get_data_type_header(arr));
+  data_t dest = __get_data_member(arr, index);
   if (strcmp(array_type, "array") == 0)
     __set_data_member(dest, __get_data_member(src, 0), 0);
   else
     __assign_simple(src, dest);
+}
+
+/* calculates the index in the array in memory */
+long calc_index(data_t idx, data_t arr) {
+  //char *type_name = get_type_name(graph, __get_data_type_header(arr));
+  //printf("arr type = %s\n", type_name);
+
+  if (idx->length == 1) {
+    return (long)__get_data_member(__get_data_member(idx, 0), 0) + 1;
+  }
+  int l = idx->length;
+  //printf("index length is %d\n", l);
+  data_t d_vec = __get_data_member(arr, 0);
+  long curr_dim = (long)__get_data_member(__get_data_member(idx, 0), 0);
+  long curr_bound = (long)__get_data_member(__get_data_member(d_vec, 1), 0);;
+  long final_index = curr_dim + 1;
+  int d = 3;
+  for (int i = 1; i < l; i++) {
+    curr_dim = (long)__get_data_member(__get_data_member(idx, i), 0);
+    curr_bound = (long)__get_data_member(__get_data_member(d_vec, d), 0);
+    final_index += curr_dim * pow(curr_bound, i);
+    d += 2;
+  }
+  //printf("final_index = %ld\n", final_index);
+  return final_index;
 }

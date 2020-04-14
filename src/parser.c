@@ -435,7 +435,7 @@ static accessor_list_t parse_accessor_list(PARSE_PARAMS) {
 	if (MATCH_TOK(LBRACKET)) {
 		parse_log("access is subscript.");
 		acc_list->kind = SUBSCRIPT;
-		EXPECT_FUN(parse_expr, acc_list->u.subscript_expr);
+		EXPECT_FUN(parse_expr_list, acc_list->u.subscript_expr);
 		EXPECT_TOK(RBRACKET);
 	}
 	else if (MATCH_TOK(DOT)) {
@@ -1059,7 +1059,7 @@ static array_type_t parse_array_decl(PARSE_PARAMS){
 
 	EXPECT_TOK(ARRAY);
 	if (MATCH_TOK(LBRACKET)) {
-		EXPECT_FUN(parse_expr, arr->length);
+		EXPECT_FUN(parse_expr_list, arr->dimensions);
 		EXPECT_TOK(RBRACKET);
 	}
 	if (MATCH_TOK(OF))
@@ -1451,7 +1451,6 @@ root_t parse(ll_t LL_NAME) {
 								 "Syntax error", fail_info.msg);
 	}
 
-	//printf("parse ended successfully\n");
 	return root;
 }
 

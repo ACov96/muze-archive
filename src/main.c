@@ -209,6 +209,7 @@ int main(int argc, char* argv[]) {
     waitpid(pid, &status, 0);
   } else {
     char *args[] = {"gcc",
+	    	    concat("-L", concat(PREFIX, "/lib")),
                     "-fno-pie",
                     "-no-pie",
                     "-g",

@@ -153,11 +153,8 @@ unsigned long f_to_int(char *d) {
   return u.l;
 }
 
-char *find_linker_script(char *executable_name) {
-  char sym_name[1024];
-  readlink("/proc/self/exe", sym_name, 1024);
-  char *dir = dirname(sym_name);
-  return concat(dir, "/../script/muze.ld");
+char *find_linker_script() {
+  return concat(PREFIX, "/share/muze/muze.ld");
 }
 
 unsigned long count_char_occurences(char *s, char c) {

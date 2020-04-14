@@ -117,7 +117,7 @@ struct prog_opts parse_args(int argc, char **argv) {
 }
 
 int main(int argc, char* argv[]) {
-  char *linker_script_path = find_linker_script(argv[0]);
+  char *linker_script_path = find_linker_script();
 
   struct prog_opts opts;
   

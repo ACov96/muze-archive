@@ -28,6 +28,10 @@ struct exception_stack_st {
 data_t create_dope_vec(int num_dims, int *dimensions);
 long calc_index(data_t idx, data_t arr);
 
+// Helper functions
+data_t create_dope_vec(int num_dims, int *dimensions);
+long calc_index(data_t idx, data_t arr);
+
 struct mini_morph_st {
   char *dest;
   morph_f morph_fun;

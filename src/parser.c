@@ -1096,9 +1096,9 @@ static type_t parse_type_expr(PARSE_PARAMS) {
 static fun_decl_t parse_fun_decl(PARSE_PARAMS) {
 	fun_decl_t fun = malloc(sizeof(struct fun_decl_st));
 
-  fun->name = BEGET->val;
-  fun->is_extern = false;
-  EXPECT_TOK(IDENTIFIER);
+        fun->name = BEGET->val;
+        fun->is_extern = false;
+        EXPECT_TOK(IDENTIFIER);
 
 	fun->symbol = symbol_new(fun->name);
 
@@ -1161,6 +1161,7 @@ static extern_decl_t parse_extern_decl(PARSE_PARAMS) {
 
   PARSE_RETURN(ext);
 }
+
 // Assignment used in a declaration context
 static assign_t parse_static_assign(PARSE_PARAMS) {
 	assign_t assign;
@@ -1353,7 +1354,7 @@ static decl_t parse_decl(PARSE_PARAMS) {
     EXPECT_FUN(parse_extern_decl, decl->ext);
   }
 
-  PARSE_RETURN(decl);
+	PARSE_RETURN(decl);
 }
 
 // parse module decalarations

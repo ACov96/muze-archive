@@ -103,6 +103,7 @@ char* gen_binary_expr(context_t ctx, binary_t binary, reg_t out);
 char* gen_ternary_expr(context_t ctx, ternary_t ternary, reg_t out);
 char* gen_unary_expr(context_t ctx, unary_t unary, reg_t out);
 char* gen_manage_types(type_decl_t t, int enable);
+char* gen_array_dimensions(context_t ctx, expr_list_t dimensions, reg_t out);
 
 /* HELPERS */
 unsigned int count_consts_and_vars(decl_t decl) {
@@ -244,6 +245,39 @@ char* gen_label(char *label) {
   return new_label;
 }
 
+char* gen_array_dimensions(context_t ctx, expr_list_t dimensions, reg_t out) {
+  CREATE_BUFFER;
+  ADD_INSTR("push", "%r10");
+  ADD_INSTR("push", "%rdi");
+  ADD_INSTR("push", "%rsi");
+  ADD_INSTR("push", "%rdx");
+  int num_dims = 0;
+  int idx = 0;
+  expr_list_t curr_dim = dimensions;
+  // get number of dimensions
+  for (; curr_dim; curr_dim = curr_dim->next)
+    num_dims++;
+  //allocate space for the dimensions array
+  ADD_INSTR("movq", concat(concat("$", itoa(num_dims)), ", %rdi"));
+  ADD_INSTR("call", "alloc_array");
+  ADD_INSTR("movq", "%rax, %rdi");
+  // populate array with dimensions
+  curr_dim = dimensions;
+  for (; curr_dim; curr_dim = curr_dim->next) {
+    ADD_BLOCK(gen_expr(ctx, curr_dim->expr, "%rsi"));
+    ADD_INSTR("movq", concat(concat("$", itoa(idx)), ", %rdx"));
+    ADD_INSTR("call", "__set_data_member");
+    idx++;
+  }
+  ADD_INSTR("pop", "%rdx");
+  ADD_INSTR("pop", "%rsi");
+  ADD_INSTR("pop", "%rdi");
+  ADD_INSTR("pop", "%r10");
+  ADD_INSTR("movq", concat("%rax, ", out));
+
+  RETURN_BUFFER;
+}
+
 char* gen_mod(context_t ctx, mod_t mod) {
   CREATE_BUFFER;
   if (strlen(ctx_get_scope_name(ctx)) == 0) {
@@ -322,7 +356,11 @@ char* gen_mod(context_t ctx, mod_t mod) {
       ADD_BLOCK(gen_expr(ctx, assign->expr, "%rdi"));
     }
     char *type_label = NULL;
-    char *array_type = NULL;
+    // variables used for array stuff
+    char *array_type = NULL; // type of array (if typed)
+    int num_dims = 0; // number of dimensions in array
+    int *dims = NULL; // array dimensions
+    expr_list_t curr_dim = NULL; // used for looping through
     switch(v->type->kind) {
     case NAME_TY:
       type_label = register_or_get_string_label(v->type->u.name_ty);
@@ -338,11 +376,8 @@ char* gen_mod(context_t ctx, mod_t mod) {
         type_label = register_or_get_string_label("array");
       }
       // if the the array was declared but not initialized, then allocate space for it 
-      if (v->type->u.array_ty->length && !v->assign) {
-        ADD_BLOCK(gen_expr(ctx, v->type->u.array_ty->length, "%rdi"));
-        ADD_INSTR("movq", "$0, %rsi");
-        ADD_INSTR("call", "__get_data_member");
-        ADD_INSTR("movq", "%rax, %rdi");
+      if (v->type->u.array_ty->dimensions && !v->assign) {
+        ADD_BLOCK(gen_array_dimensions(ctx, v->type->u.array_ty->dimensions, "%rdi"));
         ADD_INSTR("movq", concat(concat("$", type_label), ", %rsi"));
         ADD_INSTR("call", "init_default_array");
         ADD_INSTR("movq", "%rax, %rdi");
@@ -547,19 +582,20 @@ char* gen_expr(context_t ctx, expr_t expr, reg_t out) {
   char *idx = NULL;
   switch(expr->kind) {
   case ID_EX:
-    ADD_BLOCK(gen_id_expr(ctx, expr->u.id_ex, out));
     // check expression for accessors
     if (expr->accessors) {
-      ADD_INSTR("movq", concat(out, ", %rdi"));
-      ADD_INSTR("push", "%rdi");
-      ADD_BLOCK(gen_expr(ctx, expr->accessors->u.subscript_expr, "%rdi"));
-      ADD_INSTR("movq", "$0, %rsi");
-      ADD_INSTR("call", "__get_data_member");
+      ADD_BLOCK(gen_array_dimensions(ctx, expr->accessors->u.subscript_expr, "%rdi"));
+      ADD_BLOCK(gen_id_expr(ctx, expr->u.id_ex, "%rsi"));
+      ADD_INSTR("push", "%rsi");
+      ADD_INSTR("call", "calc_index");
+      ADD_INSTR("pop", "%rsi");
+      ADD_INSTR("movq", "%rsi, %rdi");
       ADD_INSTR("movq", "%rax, %rsi");
-      ADD_INSTR("pop", "%rdi");
       ADD_INSTR("call", "__get_data_member");
       ADD_INSTR("movq", concat("%rax, ", out));
     } 
+    else
+      ADD_BLOCK(gen_id_expr(ctx, expr->u.id_ex, out));
     break;
   case LITERAL_EX:
     ADD_BLOCK(gen_literal_expr(ctx, expr->u.literal_ex, out));
@@ -764,30 +800,23 @@ char* gen_assign_stmt(context_t ctx, assign_stmt_t assign) {
   ADD_INSTR("push", "%r10");
   ADD_INSTR("push", "%rdi");
   ADD_INSTR("push", "%rsi");
+  ADD_INSTR("push", "%rdx");
   // if assignment dest is an array member call __assign_array_member()
   // else call __assign_simple()
   if (assign->lval->accessors) {
+    ADD_BLOCK(gen_lval_expr(ctx, assign->lval, "%rdx"));
     ADD_INSTR("push", "%rdx");
-    ADD_BLOCK(gen_lval_expr(ctx, assign->lval, "%rdi"));
-    ADD_INSTR("push", "%rdi");
-    ADD_BLOCK(gen_expr(ctx, assign->lval->accessors->u.subscript_expr, "%rdi"));
-    ADD_INSTR("movq", "$0, %rsi");
-    ADD_INSTR("call", "__get_data_member");
-    ADD_INSTR("movq", "%rax, %rsi");
-    ADD_INSTR("pop", "%rdi");
-    ADD_INSTR("call", "__get_data_member");
-    ADD_INSTR("movq", "%rax, %rsi");
-    ADD_INSTR("movq", "%rdi, %rdx");
-    ADD_INSTR("push", "%rdx");
+    ADD_BLOCK(gen_array_dimensions(ctx, assign->lval->accessors->u.subscript_expr, "%rsi"));
     ADD_BLOCK(gen_expr(ctx, assign->assign->expr, "%rdi"));
+    //ADD_INSTR("pop", "%rsi");
     ADD_INSTR("pop", "%rdx");
     ADD_INSTR("call", "__assign_array_member");
-    ADD_INSTR("pop", "%rdx");
   } else{
     ADD_BLOCK(gen_lval_expr(ctx, assign->lval, "%rsi"));
     ADD_BLOCK(gen_expr(ctx, assign->assign->expr, "%rdi"));
     ADD_INSTR("call", "__assign_simple");
   }
+  ADD_INSTR("pop", "%rdx");
   ADD_INSTR("pop", "%rsi");
   ADD_INSTR("pop", "%rdi");
   ADD_INSTR("pop", "%r10");

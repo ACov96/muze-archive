@@ -191,7 +191,7 @@ struct type_st {
 
 
 struct array_type_st {
-  expr_t length;
+  expr_list_t dimensions;
   type_t type;
 };
 
@@ -440,7 +440,7 @@ struct expr_list_st {
 };
 
 struct accessor_list_st {
-	union{expr_t	subscript_expr; char* field_id;} u;
+	union{expr_list_t	subscript_expr; char* field_id;} u;
 	enum{SUBSCRIPT, FIELD} kind;
 	accessor_list_t next;
 };

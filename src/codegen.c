@@ -350,7 +350,7 @@ char* gen_mod(context_t ctx, mod_t mod) {
 
   if (ctx_is_global(ctx)) {
     char *dwarf_file_directive;
-    asprintf(&dwarf_file_directive, ".file %d \"%s\"", get_file_no(mod->file_name)+1, mod->file_name);
+    asprintf(&dwarf_file_directive, ".file %d \"%s\"", get_file_no(mod->file_name), mod->file_name);
     ADD_INSTR(dwarf_file_directive, NO_OPERANDS);
   }
 

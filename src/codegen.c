@@ -305,6 +305,7 @@ char* gen_array_dimensions(context_t ctx, expr_list_t dimensions, reg_t out) {
   ADD_INSTR("movq", concat(concat("$", itoa(num_dims)), ", %rdi"));
   ADD_INSTR("call", "alloc_array");
   ADD_INSTR("movq", "%rax, %rdi");
+  ADD_INSTR("push", "%rdi");
   // populate array with dimensions
   curr_dim = dimensions;
   for (; curr_dim; curr_dim = curr_dim->next) {
@@ -313,6 +314,7 @@ char* gen_array_dimensions(context_t ctx, expr_list_t dimensions, reg_t out) {
     ADD_INSTR("call", "__set_data_member");
     idx++;
   }
+  ADD_INSTR("pop", "%rax");
   ADD_INSTR("pop", "%rdx");
   ADD_INSTR("pop", "%rsi");
   ADD_INSTR("pop", "%rdi");

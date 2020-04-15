@@ -110,6 +110,7 @@ data_t alloc_array(int n) {
 /* Used for arrays that are declared, but not initialized. 
 Sets all members of the given array to 0 */
 data_t init_default_array(data_t dims, char *array_type) {
+  dims = (data_t)((unsigned long)(dims) & TYPE_MASK);
   int num_dims = dims->length;
   long array_size = 1;
   int *dimensions = malloc(sizeof(int) * num_dims);
@@ -146,6 +147,8 @@ data_t create_dope_vec(int num_dims, int *dimensions) {
   // allocate 2 members (upper and lower bounds) for each dimensions
   data_t d = alloc_array(num_dims*2);
 
+  /* TODO: once we are parsing ranges the parsed lowerbound should be
+  used instead of always using zero for the lower bound */
   for (int i = 0; i < num_dims*2; i+=2) {
     // set lower bound
      __set_data_member(d, alloc_int(0), i);
@@ -294,7 +297,7 @@ data_t __morph__integer_string(data_t in) {
   while (old_val % ((long)pow(10, digits)) < old_val) {
     digits++;
   }
-  char *val = malloc(sizeof(char) * digits);
+  char *val = malloc(sizeof(char) * digits + 1);
   sprintf(val, "%ld", old_val);
   return alloc_str(val);
 }
@@ -526,6 +529,8 @@ void __assign_array_member(data_t src, data_t idx, data_t arr) {
 long calc_index(data_t idx, data_t arr) {
   //char *type_name = get_type_name(graph, __get_data_type_header(arr));
   //printf("arr type = %s\n", type_name);
+  idx = (data_t)((unsigned long)(idx) & TYPE_MASK);
+  arr = (data_t)((unsigned long)(arr) & TYPE_MASK);
 
   if (idx->length == 1) {
     return (long)__get_data_member(__get_data_member(idx, 0), 0) + 1;

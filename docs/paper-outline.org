@@ -1,0 +1,99 @@
+* Paper Outline
+** Abstract
+** Introduction                                                        :alex:
+   Trying to compile a language but support high-level
+   constructs.
+
+   "Have our cake and eat it too."
+*** Overview of Muze
+**** Language Labels
+***** Imperative 
+***** Compiled
+***** Novel Type Morphing
+***** Separate Compilation via Modules
+**** Motivation
+***** Kinds of programming
+****** Application
+****** Systems
+**** Scope Limitations
+***** *nix/*BSD
+***** x86-64 CPUs
+** Language Design                                                   :trevor:
+*** Influences
+**** Ada
+**** Icon/Unicon
+*** Syntax
+*** Hardware Mapping
+**** High Order Bits
+*** Intrinsic Types
+**** Some examples for less obvious
+**** Primitive
+***** Integer
+***** Real
+***** String
+***** Boolean
+**** Composite
+***** Arrays
+***** Records
+*** Control Flow
+*** Expressions
+**** Ordering of morphs
+***** left to right
+*** Modules
+*** Functions
+*** Morphs
+**** "pure" functions
+**** "this"/"that" for free
+*** Main module
+*** Operators
+**** Precedence
+*** Assignments
+**** Variables/Constants
+*** Copy/Deep copy
+** Type System                                                       :trevor:
+*** Cascading Type Morphs
+**** user defined
+**** transformational
+*** Type Morphing
+**** Definition
+**** Diagram
+**** Examples
+*** Morph Functions
+**** Intended to be pure
+** Compiler                                                          :trevor:
+*** Tools/Dependencies
+**** libc
+**** gcc
+**** No lex/yacc, flex/bison, LLVM
+*** Parser
+**** No lex/yacc, flex/bison
+**** LL(k)
+*** Separate Compilation
+**** Each module tracks its own sub type graph
+*** Compiler Architecture
+**** Diagram
+**** Description
+** Runtime                                                             :alex:
+*** Influences
+**** Icon/Unicon
+**** C++
+*** Diagram
+*** Object Organization
+*** External C Extensions
+**** Example for calling external C library
+*** Exception Handling
+**** DWARF/ELF
+*** Hardware Mapping
+**** High Order Bits
+** Tutorial
+*** Define a module
+** OOP Design Patterns                                                 :alex:
+** Conclusion
+*** Future Work
+**** Garbage Collection
+**** Inheritence
+**** Concurrency
+** Appendix
+*** Links other resources
+*** Standard library stuff
+*** Reserved Words

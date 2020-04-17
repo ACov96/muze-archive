@@ -49,6 +49,7 @@
     A(ARROW, "'->'"), \
     A(ST, "'st'"), A(IN, "'in'"), A(DO, "'do'"), \
     A(IDENTIFIER, "identifier"), \
+		A(TRY, "'try'"), A(YRT, "'yrt'"), A(CATCH, "'catch'"), A(THROW, "'throw'"), \
     A(LEXEOF, "EOF"), A(NULL_VAL, "null")
 
 enum token {

@@ -1,8 +1,5 @@
 #pragma once
 
-#include "util.h"
-#include "symbol.h"
-
 typedef struct root_st          *root_t;
 typedef struct mod_st           *mod_t;
 typedef struct decl_st          *decl_t;
@@ -13,6 +10,7 @@ typedef struct const_decl_st    *const_decl_t;
 typedef struct type_decl_st     *type_decl_t;
 typedef struct var_decl_st      *var_decl_t;
 typedef struct fun_decl_st      *fun_decl_t;
+typedef struct fun_decl_st      *extern_decl_t; // ALIAS
 typedef struct const_st         *const_t;
 typedef struct type_st          *type_t;
 typedef struct morph_st         *morph_t;
@@ -46,6 +44,12 @@ typedef struct loop_stmt_st     *loop_stmt_t;
 typedef struct case_stmt_st     *case_stmt_t;
 typedef struct expr_stmt_st     *expr_stmt_t;
 typedef struct break_stmt_st    *break_stmt_t;
+typedef struct try_stmt_st	*try_stmt_t;
+typedef struct throw_stmt_st	*throw_stmt_t;
+
+#include <stdbool.h>
+#include "util.h"
+#include "symbol.h"
 
 // Entry node in the AST
 struct root_st {
@@ -77,6 +81,7 @@ struct decl_st {
   type_decl_t types; // NULLABLE
   var_decl_t vars; // NULLABLE
   fun_decl_t funs; // NULLABLE
+  extern_decl_t ext; // NULLABLE
   mod_t mods; // NULLABLE
 }; 
 
@@ -124,6 +129,9 @@ struct fun_decl_st {
   // return type of the function
   type_t ret_type; // NULLABLE
 
+  // Whether declaration is an external C function
+  bool is_extern;
+
   // Inner function declarations
   decl_t decl;
 
@@ -136,7 +144,6 @@ struct fun_decl_st {
   // symbol
   symbol_t symbol;
 };
-
 
 // A type declaration
 struct type_decl_st {
@@ -224,7 +231,10 @@ struct assign_st {
 // Any full expression (aka rvalue)
 struct expr_st {
   // Type of the expression
-  type_t type;
+  type_id type;
+
+  // Scope of the expression
+  scope_t scope;
 
   // Tagged union of various kinds of expressions
   enum {
@@ -352,7 +362,7 @@ struct stmt_st {
   enum {
     COND_STMT, FOR_STMT, LOOP_STMT,
     CASE_STMT, ASSIGN_STMT, EXPR_STMT,
-    BREAK_STMT
+    BREAK_STMT, TRY_STMT, THROW_STMT
   } kind;
 
   union{
@@ -363,6 +373,8 @@ struct stmt_st {
     assign_stmt_t  assign_stmt;
     expr_stmt_t    expr_stmt;
     break_stmt_t   break_stmt;
+    try_stmt_t	   try_stmt;
+    throw_stmt_t   throw_stmt;
   } u;
 
   stmt_t next;
@@ -400,6 +412,16 @@ struct expr_stmt_st {
 
 struct break_stmt_st {
   // Empty
+};
+
+struct try_stmt_st {
+	stmt_t try_block;
+	expr_t catch_lval;
+	stmt_t catch_block;
+};
+
+struct throw_stmt_st {
+	expr_t exception;
 };
 
 struct call_st {

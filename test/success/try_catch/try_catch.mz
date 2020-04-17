@@ -1,0 +1,12 @@
+mod Main
+var
+  a : string = "throwing exception";
+  e : string = "Test";
+begin
+  try
+    throw a;
+    print("This should never run");
+  catch e
+    print(e);
+  yrt
+dom Main

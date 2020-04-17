@@ -461,6 +461,16 @@ token_t token_from_word(char* s) {
   else if (strcmp(buf, "end") == 0)
     return new_token(END, "end");
 
+	// Try/catch stuff
+	else if (strcmp(buf, "try") == 0)
+		return new_token(TRY, "try");
+	else if (strcmp(buf, "yrt") == 0)
+		return new_token(YRT, "yrt");
+	else if (strcmp(buf, "catch") == 0)
+		return new_token(CATCH, "catch");
+	else if (strcmp(buf, "throw") == 0)
+		return new_token(THROW, "throw");
+
   // None of the above, so probably an identifier
   else
     return new_token(IDENTIFIER, buf);

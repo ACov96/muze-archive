@@ -1,0 +1,15 @@
+mod Main
+  fun foo(s : string)
+  begin
+    print(s);
+  nuf foo
+begin
+  // integer -> string
+  foo(1);
+
+  // boolean -> string
+  foo(true);
+
+  // string -> string
+  foo("Hello world");
+dom Main

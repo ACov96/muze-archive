@@ -1,0 +1,77 @@
+This is the repository for Dr. Meehan's Muze language project.
+
+
+Setup
+-----
+
+Clone the repository:
+
+   $ git clone git@gitlab.cs.wwu.edu:covinga/language-design-research.git
+
+Install some dependencies and generate the configure script:
+
+   $ ./autogen.sh
+
+
+Then run the configuration script:
+
+   $ ./configure
+
+
+If you don't have sudo on your machine, you can have the configure script
+install it to a local directory:
+
+   $ ./configure --prefix=/path/to/dir
+
+
+I usually just set my prefix to /home/covinga/.local/ and let autotools
+create the bin/, lib/, include/, and script/ directories in the install
+location.
+
+Lastly, build and install it:
+
+   $ make
+   $ make install
+
+
+You may need to set up some environment variables in your .bashrc if you
+haven't built libraries and programs from scratch. Add these statements
+to the end of your .bashrc:
+
+   export PATH=$PATH:/path/to/muze/bin/muzec
+   export LIBRARY_PATH=$:LIBRARY_PATH:/usr/lib:/usr/lib/x86_64-linux:/path/to/muze/lib
+
+
+Usage
+-----
+
+If the installation was successful, you should now have the binary muzec,
+which is the Muze compiler. You can run it on any muze file:
+
+   $ muzec -o hello hello.mz
+
+
+For a more detailed help menu:
+
+   $ muzec -h
+
+
+The rest of the documentation can be found in the docs/ directory.
+
+
+C Extensions
+------------
+
+That's right, Muze supports C extensions! You just need to include the muze.h
+in your C project and link the Muze standard library. The muze.h header file
+will be in the $(prefix)/include/ and libmuze.a will be in $(prefix)/lib/.
+GCC can link these by doing the following:
+
+   $ export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/path/to/muze/lib # only necessary if you didn't install globally
+   $ gcc -c -o myextension.o myextension.c -lmuze
+   $ muzec -c -o myprogram.o myprogram.mz
+   $ gcc -o myprogram myextension.o myprogram.o
+
+More detailed documentation coming soon. This feature is still WIP, so if you
+find a bug, let us know!
+

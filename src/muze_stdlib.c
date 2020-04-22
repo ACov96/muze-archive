@@ -98,12 +98,15 @@ data_t alloc_real(unsigned long x) {
 }
 
 data_t alloc_array(int n) {
-  // TODO: add dope vector with length, upper, and lower bounds.
-  // first member points to dope vector
-  // figure out how to layout members for multi-dimensional arrays
-  // probably column major
   data_t d = __create_new_data(n);
   __set_data_type_header(&d, get_type_index(graph, "array"));
+  return d;
+}
+
+data_t alloc_record(int n, data_t fields) {
+  data_t d = __create_new_data(n);
+  __set_data_type_header(&d, get_type_index(graph, "record"));
+  __set_data_member(d, fields, 0);
   return d;
 }
 
@@ -437,7 +440,8 @@ void __deactivate_type(char *type) {
 }
 
 void __add_type(char *type) {
-  graph = add_type(graph, type);
+  if (get_type_index(graph, type) == -1)
+    graph = add_type(graph, type);
 }
 
 data_t __morph(data_t d, char *target) {
@@ -516,6 +520,10 @@ data_t __identity_helper(data_t d, char *type_name) {
 /* If dest is a member of an untyped array, then set the data member to src. 
    Else call __assign_simple()*/
 void __assign_array_member(data_t src, data_t idx, data_t arr) {
+  //src = (data_t)((unsigned long)(src) & TYPE_MASK);
+  //arr = (data_t)((unsigned long)(arr) & TYPE_MASK);
+  //idx = (data_t)((unsigned long)(arr) & TYPE_MASK);
+
   long index = calc_index(idx, arr);
   char *array_type = get_type_name(graph, __get_data_type_header(arr));
   data_t dest = __get_data_member(arr, index);
@@ -529,14 +537,12 @@ void __assign_array_member(data_t src, data_t idx, data_t arr) {
 long calc_index(data_t idx, data_t arr) {
   //char *type_name = get_type_name(graph, __get_data_type_header(arr));
   //printf("arr type = %s\n", type_name);
-  idx = (data_t)((unsigned long)(idx) & TYPE_MASK);
-  arr = (data_t)((unsigned long)(arr) & TYPE_MASK);
+  data_t idx_masked = (data_t)((unsigned long)(idx) & TYPE_MASK);
 
-  if (idx->length == 1) {
+  if (idx_masked->length == 1) {
     return (long)__get_data_member(__get_data_member(idx, 0), 0) + 1;
   }
-  int l = idx->length;
-  //printf("index length is %d\n", l);
+  int l = idx_masked->length;
   data_t d_vec = __get_data_member(arr, 0);
   long curr_dim = (long)__get_data_member(__get_data_member(idx, 0), 0);
   long curr_bound = (long)__get_data_member(__get_data_member(d_vec, 1), 0);;

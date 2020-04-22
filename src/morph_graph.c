@@ -5,7 +5,7 @@
 #include "ast.h"
 #include "muze_stdlib.h"
 
-#define NUM_PRIMITIVES 5
+#define NUM_PRIMITIVES 6
 
 struct type_node_st {
   char* name;
@@ -36,7 +36,7 @@ int* bfs(type_node_t* graph, int src, int dest);
 /* Global variables */ 
 int next_index = 0;  // next available index in the morph graph
 int graph_size = NUM_PRIMITIVES; // number of types in the graph
-char* primitive_types[] = {"integer", "real", "string", "boolean", "array"};
+char* primitive_types[] = {"integer", "real", "string", "boolean", "array", "record"};
 
 
 /*Function called from main to build morph graph*/

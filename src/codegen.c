@@ -120,6 +120,7 @@ char* gen_manage_types(type_decl_t t, int enable);
 char* gen_try_catch_stmt(context_t ctx, try_stmt_t try_catch);
 char* gen_throw_stmt(context_t ctx, throw_stmt_t throw);
 char* gen_array_dimensions(context_t ctx, expr_list_t dimensions, reg_t out);
+char* gen_record(context_t ctx, rec_t r, reg_t out);
 
 /* HELPERS */
 unsigned int count_consts_and_vars(decl_t decl) {
@@ -289,41 +290,6 @@ char* gen_label(char *label) {
   return new_label;
 }
 
-char* gen_array_dimensions(context_t ctx, expr_list_t dimensions, reg_t out) {
-  CREATE_BUFFER;
-  ADD_INSTR("push", "%r10");
-  ADD_INSTR("push", "%rdi");
-  ADD_INSTR("push", "%rsi");
-  ADD_INSTR("push", "%rdx");
-  int num_dims = 0;
-  int idx = 0;
-  expr_list_t curr_dim = dimensions;
-  // get number of dimensions
-  for (; curr_dim; curr_dim = curr_dim->next)
-    num_dims++;
-  //allocate space for the dimensions array
-  ADD_INSTR("movq", concat(concat("$", itoa(num_dims)), ", %rdi"));
-  ADD_INSTR("call", "alloc_array");
-  ADD_INSTR("movq", "%rax, %rdi");
-  ADD_INSTR("push", "%rdi");
-  // populate array with dimensions
-  curr_dim = dimensions;
-  for (; curr_dim; curr_dim = curr_dim->next) {
-    ADD_BLOCK(gen_expr(ctx, curr_dim->expr, "%rsi"));
-    ADD_INSTR("movq", concat(concat("$", itoa(idx)), ", %rdx"));
-    ADD_INSTR("call", "__set_data_member");
-    idx++;
-  }
-  ADD_INSTR("pop", "%rax");
-  ADD_INSTR("pop", "%rdx");
-  ADD_INSTR("pop", "%rsi");
-  ADD_INSTR("pop", "%rdi");
-  ADD_INSTR("pop", "%r10");
-  ADD_INSTR("movq", concat("%rax, ", out));
-
-  RETURN_BUFFER;
-}
-
 char* gen_mod(context_t ctx, mod_t mod) {
   CREATE_BUFFER;
   if (strlen(ctx_get_scope_name(ctx)) == 0) {
@@ -381,13 +347,21 @@ char* gen_mod(context_t ctx, mod_t mod) {
     ADD_INSTR("push", "%rsi");
     ADD_BLOCK(gen_expr(ctx, assign->expr, "%rdi"));
     char *type_label = NULL;
+    char *array_type = NULL;
     switch(c->ty->kind) {
     case NAME_TY:
       type_label = register_or_get_string_label(c->ty->u.name_ty);
       break;
     case ARRAY_TY:
-      // need to revisit to handle typed arrays
-      type_label = register_or_get_string_label("array");
+      // check if array is typed
+      if (c->ty->u.array_ty->type) {
+        array_type = concat("array of ", c->ty->u.array_ty->type->u.name_ty);
+        type_label = register_or_get_string_label(array_type);
+        ADD_INSTR("movq", concat(concat("$", type_label), ", %rdi"));
+        ADD_INSTR("call", "__add_type");
+      } else {
+        type_label = register_or_get_string_label("array");
+      }
       break;
     case REC_TY:
       type_label = register_or_get_string_label("record");
@@ -411,18 +385,17 @@ char* gen_mod(context_t ctx, mod_t mod) {
     ADD_INSTR("push", "%r10");
     ADD_INSTR("push", "%rdi");
     ADD_INSTR("push", "%rsi");
-    if (v->assign) {
+    /*
+    if (v->assign && v->type->kind != REC_TY) {
       assign_t assign = v->assign;
       ADD_BLOCK(gen_expr(ctx, assign->expr, "%rdi"));
     }
+    */
     char *type_label = NULL;
-    // variables used for array stuff
-    char *array_type = NULL; // type of array (if typed)
-    int num_dims = 0; // number of dimensions in array
-    int *dims = NULL; // array dimensions
-    expr_list_t curr_dim = NULL; // used for looping through
+    char *array_type = NULL;
     switch(v->type->kind) {
     case NAME_TY:
+      ADD_BLOCK(gen_expr(ctx, v->assign->expr, "%rdi"));
       type_label = register_or_get_string_label(v->type->u.name_ty);
       break;
     case ARRAY_TY:
@@ -444,6 +417,7 @@ char* gen_mod(context_t ctx, mod_t mod) {
       }
       break;
     case REC_TY:
+      ADD_BLOCK(gen_record(ctx, v->type->u.rec_ty, "%rdi"));
       type_label = register_or_get_string_label("record");
       break;
     case ENUM_TY:
@@ -488,6 +462,87 @@ char* gen_mod(context_t ctx, mod_t mod) {
     ctx_set_func(func_ctx);
     ADD_BLOCK(gen_fun(func_ctx, f));
   }
+  RETURN_BUFFER;
+}
+
+char* gen_array_dimensions(context_t ctx, expr_list_t dimensions, reg_t out) {
+  CREATE_BUFFER;
+  ADD_INSTR("push", "%r10");
+  ADD_INSTR("push", "%rdi");
+  ADD_INSTR("push", "%rsi");
+  ADD_INSTR("push", "%rdx");
+  int num_dims = 0;
+  int idx = 0;
+  expr_list_t curr_dim = dimensions;
+  // get number of dimensions
+  for (; curr_dim; curr_dim = curr_dim->next)
+    num_dims++;
+  //allocate space for the dimensions array
+  ADD_INSTR("movq", concat(concat("$", itoa(num_dims)), ", %rdi"));
+  ADD_INSTR("call", "alloc_array");
+  ADD_INSTR("movq", "%rax, %rdi");
+  ADD_INSTR("push", "%rdi");
+  // populate array with dimensions
+  curr_dim = dimensions;
+  for (; curr_dim; curr_dim = curr_dim->next) {
+    ADD_BLOCK(gen_expr(ctx, curr_dim->expr, "%rsi"));
+    ADD_INSTR("movq", concat(concat("$", itoa(idx)), ", %rdx"));
+    ADD_INSTR("call", "__set_data_member");
+    idx++;
+  }
+  ADD_INSTR("pop", "%rax");
+  ADD_INSTR("pop", "%rdx");
+  ADD_INSTR("pop", "%rsi");
+  ADD_INSTR("pop", "%rdi");
+  ADD_INSTR("pop", "%r10");
+  ADD_INSTR("movq", concat("%rax, ", out));
+
+  RETURN_BUFFER;
+}
+
+char* gen_record(context_t ctx, rec_t r, reg_t out) {
+  CREATE_BUFFER;
+  int size = 0;
+  int i = 0;
+  char *str_label= NULL;
+  id_list_t id = NULL;
+  rec_field_t curr = r->fields;
+
+  for (; curr; curr = curr->next){
+    id = curr->name;
+    for (; id; id = id->next)
+      size++;
+  }
+  // generate an array of the record fields  
+  //ADD_BLOCK(gen_record_fields(ctx, v->type->u.rec_ty->fields, ))
+  ADD_INSTR("movq", concat(concat("$", itoa(size)), ", %rdi"));
+  ADD_INSTR("call", "__create_new_data");
+  ADD_INSTR("movq", "%rax, %rdi");
+  ADD_INSTR("push", "%rdi");
+  curr = r->fields;
+  for (; curr; curr = curr->next) {
+    id = curr->name;
+    for (; id; id = id->next) {
+      str_label = concat("$", register_or_get_string_label(id->name));
+      ADD_INSTR("movq", concat(str_label, ", %rdi"));
+      ADD_INSTR("call", "alloc_str");
+      ADD_INSTR("movq", "%rax, %rsi");
+      ADD_INSTR("movq", concat(concat("$", itoa(i)), ", %rdx"));
+      ADD_INSTR("pop", "%rdi");
+      ADD_INSTR("call", "__set_data_member");
+      ADD_INSTR("push", "%rdi");
+      i++;
+    }
+  }
+  ADD_INSTR("pop", "%rsi");
+  // allocate space for the record (size+1)
+  // the field array will be placed in the 0th index of the record's members array.
+  // the field array will be used to translate field names to indices in members array.
+  ADD_INSTR("movq", concat(concat("$", itoa(size+1)), ", %rdi"));
+  ADD_INSTR("call", "alloc_record");
+  ADD_INSTR("movq", "%rax, %rdi");
+  // if record is being initialized, populate the fields
+
   RETURN_BUFFER;
 }
 
@@ -659,17 +714,25 @@ char* gen_expr(context_t ctx, expr_t expr, reg_t out) {
   char *idx = NULL;
   switch(expr->kind) {
   case ID_EX:
-    // check expression for accessors
+    // check expression for accessors (subscripts/fields)
     if (expr->accessors) {
-      ADD_BLOCK(gen_array_dimensions(ctx, expr->accessors->u.subscript_expr, "%rdi"));
-      ADD_BLOCK(gen_id_expr(ctx, expr->u.id_ex, "%rsi"));
-      ADD_INSTR("push", "%rsi");
-      ADD_INSTR("call", "calc_index");
-      ADD_INSTR("pop", "%rsi");
-      ADD_INSTR("movq", "%rsi, %rdi");
-      ADD_INSTR("movq", "%rax, %rsi");
-      ADD_INSTR("call", "__get_data_member");
-      ADD_INSTR("movq", concat("%rax, ", out));
+      switch(expr->accessors->kind) {
+      case SUBSCRIPT:
+        ADD_BLOCK(gen_array_dimensions(ctx, expr->accessors->u.subscript_expr, "%rdi"));
+        ADD_BLOCK(gen_id_expr(ctx, expr->u.id_ex, "%rsi"));
+        ADD_INSTR("push", "%rsi");
+        ADD_INSTR("call", "calc_index");
+        ADD_INSTR("pop", "%rsi");
+        ADD_INSTR("movq", "%rsi, %rdi");
+        ADD_INSTR("movq", "%rax, %rsi");
+        ADD_INSTR("call", "__get_data_member");
+        ADD_INSTR("movq", concat("%rax, ", out));
+        break;
+      case FIELD:
+        break;
+      default:
+        break;
+      }
     } 
     else
       ADD_BLOCK(gen_id_expr(ctx, expr->u.id_ex, out));
@@ -804,7 +867,6 @@ char* gen_literal_expr(context_t ctx, literal_t literal, reg_t out) {
     ADD_INSTR("movq", concat("$", concat(itoa(len), ", %rdi")));
     // allocate space for array
     ADD_INSTR("call", "alloc_array");
-    ADD_INSTR("pop", "%r10");
     // move the pointer to the array to %rdi
     ADD_INSTR("movq", "%rax, %rdi"); 
     // populate array 
@@ -816,7 +878,23 @@ char* gen_literal_expr(context_t ctx, literal_t literal, reg_t out) {
       i++;
     }
     ADD_INSTR("movq", "%rdi, %rax"); 
-    ADD_INSTR("push", "%r10");
+    break;
+  case RECORD_LIT:
+    // get the size of the record
+    curr = literal->u.record_lit;
+    for (; curr; curr = curr->next)
+      len++;
+    ADD_INSTR("movq", concat("$", concat(itoa(len), ", %rdi")));
+    ADD_INSTR("call", "alloc_record");
+    ADD_INSTR("movq", "%rax, %rdi");
+    curr = literal->u.record_lit;
+    for (; curr; curr = curr->next) {
+      ADD_BLOCK(gen_expr(ctx, curr->expr, "%rsi"));
+      ADD_INSTR("movq", concat("$", concat(itoa(i), ", %rdx")));
+      ADD_INSTR("call", "__set_data_member");
+      i++;
+    }
+    ADD_INSTR("movq", "%rdi, %rax"); 
     break;
   case NULL_LIT:
     ADD_INSTR("movq", concat("$0, ", out));
@@ -878,16 +956,22 @@ char* gen_assign_stmt(context_t ctx, assign_stmt_t assign) {
   ADD_INSTR("push", "%rdi");
   ADD_INSTR("push", "%rsi");
   ADD_INSTR("push", "%rdx");
-  // if assignment dest is an array member call __assign_array_member()
-  // else call __assign_simple()
+  // check lval for accessors (subscripts/fields)
   if (assign->lval->accessors) {
-    ADD_BLOCK(gen_lval_expr(ctx, assign->lval, "%rdx"));
-    ADD_INSTR("push", "%rdx");
-    ADD_BLOCK(gen_array_dimensions(ctx, assign->lval->accessors->u.subscript_expr, "%rsi"));
-    ADD_BLOCK(gen_expr(ctx, assign->assign->expr, "%rdi"));
-    //ADD_INSTR("pop", "%rsi");
-    ADD_INSTR("pop", "%rdx");
-    ADD_INSTR("call", "__assign_array_member");
+    switch(assign->lval->accessors->kind) {
+    case SUBSCRIPT:
+      ADD_BLOCK(gen_lval_expr(ctx, assign->lval, "%rdx"));
+      ADD_INSTR("push", "%rdx");
+      ADD_BLOCK(gen_array_dimensions(ctx, assign->lval->accessors->u.subscript_expr, "%rsi"));
+      ADD_BLOCK(gen_expr(ctx, assign->assign->expr, "%rdi"));
+      ADD_INSTR("pop", "%rdx");
+      ADD_INSTR("call", "__assign_array_member");
+      break;
+    case FIELD:
+      break;
+    default:
+      break;
+    }
   } else{
     ADD_BLOCK(gen_lval_expr(ctx, assign->lval, "%rsi"));
     ADD_BLOCK(gen_expr(ctx, assign->assign->expr, "%rdi"));
@@ -1189,7 +1273,7 @@ char* gen_text_segment(root_t root) {
   char *curr_file = root->mods->file_name;
   char *file_directive;
   asprintf(&file_directive, "\"%s\"", curr_file);
-  // ADD_INSTR(".file", file_directive);
+  ADD_INSTR(".file", file_directive);
   ADD_INSTR(".section", ".text");
   for (mod_t mod = root->mods; mod; mod = mod->next) {
     if (strcmp(mod->file_name, curr_file) != 0) {

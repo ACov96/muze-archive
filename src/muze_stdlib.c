@@ -28,10 +28,6 @@ struct exception_stack_st {
 data_t create_dope_vec(int num_dims, int *dimensions);
 long calc_index(data_t idx, data_t arr);
 
-// Helper functions
-data_t create_dope_vec(int num_dims, int *dimensions);
-long calc_index(data_t idx, data_t arr);
-
 struct mini_morph_st {
   char *dest;
   morph_f morph_fun;
@@ -104,9 +100,15 @@ data_t alloc_array(int n) {
 }
 
 data_t alloc_record(int n, data_t fields) {
-  data_t d = __create_new_data(n);
+  data_t d = __create_new_data(n*2);
+  data_t f = (data_t)((unsigned long)(fields) & TYPE_MASK);
   __set_data_type_header(&d, get_type_index(graph, "record"));
-  __set_data_member(d, fields, 0);
+  for (int i = 0 ; i < n*2; i++) {
+    if (i % 2 == 0)
+      __set_data_member(d, f->members[i/2], i);
+    else
+      __set_data_member(d, alloc_int(0), i);
+  }
   return d;
 }
 
@@ -465,25 +467,6 @@ data_t __morph(data_t d, char *target) {
   return ret;
 }
 
-void __assign_simple(data_t src, data_t dest) {
-  int dest_type_header = __get_data_type_header(dest);
-  data_t src_matching_type
-    = __morph(src, get_type_name(graph, dest_type_header));
-
-  /* TODO:
-   * This only works for primitive types, so extend this to work for 
-   * congolmerate types.
-   */
-  /*
-  if (dest_type_header != get_type_index(graph, "integer")
-      && dest_type_header != get_type_index(graph, "real")
-      && dest_type_header != get_type_index(graph, "string")
-      && dest_type_header != get_type_index(graph, "boolean"))
-    panic("Assigning non-primitive type");
-  */
-  __set_data_member(dest, __get_data_member(src_matching_type, 0), 0);
-}
-
 ucontext_t *_init_try(void) {
   exception_stack_t new_exception = malloc(sizeof(struct exception_stack_st));
   new_exception->prev = exception_stack;
@@ -515,6 +498,26 @@ data_t __identity_helper(data_t d, char *type_name) {
   type_descriptor_t td = get_type_index(graph, type_name);
   __set_data_type_header(&d, td);
   return d;
+}
+
+
+void __assign_simple(data_t src, data_t dest) {
+  int dest_type_header = __get_data_type_header(dest);
+  data_t src_matching_type
+    = __morph(src, get_type_name(graph, dest_type_header));
+
+  /* TODO:
+   * This only works for primitive types, so extend this to work for 
+   * congolmerate types.
+   */
+  /*
+  if (dest_type_header != get_type_index(graph, "integer")
+      && dest_type_header != get_type_index(graph, "real")
+      && dest_type_header != get_type_index(graph, "string")
+      && dest_type_header != get_type_index(graph, "boolean"))
+    panic("Assigning non-primitive type");
+  */
+  __set_data_member(dest, __get_data_member(src_matching_type, 0), 0);
 }
   
 /* If dest is a member of an untyped array, then set the data member to src. 
@@ -556,4 +559,22 @@ long calc_index(data_t idx, data_t arr) {
   }
   //printf("final_index = %ld\n", final_index);
   return final_index;
+}
+
+// translate a record field name to the corresponding index in memory
+long field_to_index(data_t d, char *field) {
+  data_t d_masked = (data_t)((unsigned long)(d) & TYPE_MASK);
+  int len = d_masked->length;
+  for (long i = 0; i < len-1; i += 2) {
+    if (strcmp((char*)__get_data_member(d_masked->members[i], 0), field) == 0) {
+      return i+1;
+    }
+  }
+  return -1;
+}
+
+void __assign_record_member(data_t src, data_t rec, char *field) {
+  long idx = field_to_index(rec, field);
+  data_t rec_member = __get_data_member(rec, idx);
+  __assign_simple(src, rec_member);
 }

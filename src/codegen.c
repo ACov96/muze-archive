@@ -538,7 +538,7 @@ char* gen_record(context_t ctx, rec_t r, reg_t out) {
   // allocate space for the record (size+1)
   // the field array will be placed in the 0th index of the record's members array.
   // the field array will be used to translate field names to indices in members array.
-  ADD_INSTR("movq", concat(concat("$", itoa(size+1)), ", %rdi"));
+  ADD_INSTR("movq", concat(concat("$", itoa(size)), ", %rdi"));
   ADD_INSTR("call", "alloc_record");
   ADD_INSTR("movq", "%rax, %rdi");
   // if record is being initialized, populate the fields
@@ -958,16 +958,23 @@ char* gen_assign_stmt(context_t ctx, assign_stmt_t assign) {
   ADD_INSTR("push", "%rdx");
   // check lval for accessors (subscripts/fields)
   if (assign->lval->accessors) {
-    switch(assign->lval->accessors->kind) {
+    accessor_list_t a = assign->lval->accessors;
+    char *str_label = NULL;
+    switch(a->kind) {
     case SUBSCRIPT:
       ADD_BLOCK(gen_lval_expr(ctx, assign->lval, "%rdx"));
       ADD_INSTR("push", "%rdx");
-      ADD_BLOCK(gen_array_dimensions(ctx, assign->lval->accessors->u.subscript_expr, "%rsi"));
+      ADD_BLOCK(gen_array_dimensions(ctx, a->u.subscript_expr, "%rsi"));
       ADD_BLOCK(gen_expr(ctx, assign->assign->expr, "%rdi"));
       ADD_INSTR("pop", "%rdx");
       ADD_INSTR("call", "__assign_array_member");
       break;
     case FIELD:
+      ADD_BLOCK(gen_expr(ctx, assign->assign->expr, "%rdi"));
+      ADD_BLOCK(gen_lval_expr(ctx, assign->lval, "%rsi"));
+      str_label = concat("$", register_or_get_string_label(a->u.field_id));
+      ADD_INSTR("movq", concat(str_label, ", %rdx"));
+      ADD_INSTR("call", "__assign_record_member");
       break;
     default:
       break;

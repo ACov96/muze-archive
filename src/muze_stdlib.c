@@ -48,6 +48,7 @@ struct mini_type_st {
 
 extern struct mini_type_st __TYPE_GRAPH;
 extern unsigned __TYPE_GRAPH_END;
+extern data_t (*__module_Main_init)();
 
 type_node_t *graph = NULL;
 exception_stack_t exception_stack = NULL;
@@ -556,4 +557,9 @@ long calc_index(data_t idx, data_t arr) {
   }
   //printf("final_index = %ld\n", final_index);
   return final_index;
+}
+
+int main(int argc, char *argv[]) {
+  init_type_graph();
+  __module__Main_init();
 }

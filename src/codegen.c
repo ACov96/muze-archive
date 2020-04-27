@@ -755,8 +755,14 @@ char* gen_lval_expr(context_t ctx, expr_t lval, reg_t out) {
       ADD_INSTR("movq", read_inst);
     } else if (sl->is_mod) {
       // We are directly in a module's scope, which means we are probably an init block
-      sprintf(read_inst, "%d(%%r10), %s", WORD * (sl->offset + 1), out);
-      ADD_INSTR("movq", read_inst);
+      ADD_INSTR("push", "%r10");
+      ADD_INSTR("push", "%rdi");
+      ADD_INSTR("movq", "%r10, %rdi");
+      ADD_INSTR("movq", concat(INT_LITERAL(sl->offset + 1), ", %rsi"));
+      ADD_INSTR("call", "__get_data_member");
+      ADD_INSTR("movq", concat("%rax, ", out));
+      ADD_INSTR("pop", "%rdi");
+      ADD_INSTR("pop", "%r10");
     } else {
       // Dealing with a variable that's in a more global scope
       ADD_INSTR("movq", "-8(%rbp), %rax");

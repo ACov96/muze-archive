@@ -391,23 +391,61 @@ char* gen_mod(context_t ctx, mod_t mod) {
     offset++;
   }
 
-  for (var_decl_t v = mod->decl->vars; v; v = v->next)
-    for (id_list_t id = v->names; id; id = id->next) {
+for (var_decl_t v = mod->decl->vars; v; v = v->next) {
+    ADD_INSTR("push", "%r10");
+    ADD_INSTR("push", "%rdi");
+    ADD_INSTR("push", "%rsi");
+    /*
+    if (v->assign && v->type->kind != REC_TY) {
       assign_t assign = v->assign;
-      ADD_INSTR("push", "%r10");
       ADD_BLOCK(gen_expr(ctx, assign->expr, "%rdi"));
-      char *type_label = register_or_get_string_label(v->type->u.name_ty);
-      ADD_INSTR("movq", concat(concat("$", type_label), ", %rsi"));
-      ADD_INSTR("call", "__morph");
-      ADD_INSTR("movq", "%rax, %rsi");
-      ADD_INSTR("movq", concat(INT_LITERAL(offset), ", %rdx"));
-      ADD_INSTR("pop", "%r10");
-      ADD_INSTR("movq", "%r10, %rdi");
-      ADD_INSTR("push", "%r10");
-      ADD_INSTR("call", "__set_data_member");
-      ADD_INSTR("pop", "%r10");
-      offset++;
     }
+    */
+    char *type_label = NULL;
+    char *array_type = NULL;
+    switch(v->type->kind) {
+    case NAME_TY:
+      ADD_BLOCK(gen_expr(ctx, v->assign->expr, "%rdi"));
+      type_label = register_or_get_string_label(v->type->u.name_ty);
+      break;
+    case ARRAY_TY:
+      // check if array is typed
+      if (v->type->u.array_ty->type) {
+        array_type = concat("array of ", v->type->u.array_ty->type->u.name_ty);
+        type_label = register_or_get_string_label(array_type);
+        ADD_INSTR("movq", concat(concat("$", type_label), ", %rdi"));
+        ADD_INSTR("call", "__add_type");
+      } else {
+        type_label = register_or_get_string_label("array");
+      }
+      // if the the array was declared but not initialized, then allocate space for it 
+      if (v->type->u.array_ty->dimensions && !v->assign) {
+        ADD_BLOCK(gen_array_dimensions(ctx, v->type->u.array_ty->dimensions, "%rdi"));
+        ADD_INSTR("movq", concat(concat("$", type_label), ", %rsi"));
+        ADD_INSTR("call", "init_default_array");
+        ADD_INSTR("movq", "%rax, %rdi");
+      }
+      break;
+    case REC_TY:
+      ADD_BLOCK(gen_record(ctx, v->type->u.rec_ty, "%rdi"));
+      type_label = register_or_get_string_label("record");
+      break;
+    case ENUM_TY:
+      type_label = register_or_get_string_label("enum");
+      break;
+    default:
+      GEN_ERROR("Unrecognized variable type");
+      break;
+    }
+    ADD_INSTR("movq", concat(concat("$", type_label), ", %rsi"));
+    ADD_INSTR("call", "__morph");
+    ADD_INSTR("pop", "%rsi");
+    ADD_INSTR("pop", "%rdi");
+    ADD_INSTR("pop", "%r10");
+    ADD_INSTR("movq", concat("%rax, ", concat(itoa(offset * WORD), "(%r10)")));
+    offset++;
+  }
+
 
   // Enable all types defined in this scope
   ADD_BLOCK(gen_manage_types(mod->decl->types, 1));
@@ -995,6 +1033,7 @@ char* gen_lval_expr(context_t ctx, expr_t lval, reg_t out) {
       ADD_INSTR("movq", read_inst);
     } else if (sl->is_mod) {
       // We are directly in a module's scope, which means we are probably an init block
+      printf("in the init block case of gen_lval\n");
       ADD_INSTR("push", "%r10");
       ADD_INSTR("push", "%rdi");
       ADD_INSTR("movq", "%r10, %rdi");

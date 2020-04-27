@@ -20,10 +20,10 @@
 
 #define INT_LITERAL(I) (concat("$", itoa(I)))
 
-#define ADD_BLOCK(B) \
-  do { \
-    buf = concat(buf, B);      \
-    buf = concat(buf, "\n");   \
+#define ADD_BLOCK(B)                            \
+  do {                                          \
+    buf = concat(buf, B);                       \
+    buf = concat(buf, "\n");                    \
   } while(0)
 
 #define ADD_LABEL(L) buf = concat(buf, L);      \
@@ -72,12 +72,12 @@ ll_t file_no_map = NULL;
 unsigned int curr_label = 0;
 unsigned int curr_fileno = 1;
 reg_t arg_registers[6] = {
-                        "%rdi",
-                        "%rsi",
-                        "%rdx",
-                        "%rcx",
-                        "%r8",
-                        "%r9"
+  "%rdi",
+  "%rsi",
+  "%rdx",
+  "%rcx",
+  "%r8",
+  "%r9"
 };
 char *entrypoint = NULL;
 
@@ -135,54 +135,54 @@ unsigned int count_consts_and_vars(decl_t decl) {
 
 void populate_decl_into_ctx(context_t ctx, decl_t decl) {
   // TODO: This only considers name types, not records or morphs
-	for (const_decl_t c = decl->constants; c; c = c->next) {	
-		//ctx_add_constant(ctx, c->name, c->ty->u.name_ty);
-		switch (c->ty->kind) {
-    	case NAME_TY:
-				ctx_add_constant(ctx, c->name, c->ty->u.name_ty);
-				break;
-			case ARRAY_TY:
-				ctx_add_constant(ctx, c->name, "array");
-				break;
-			case REC_TY:
-				ctx_add_constant(ctx, c->name, "record");
-				break;
-			case ENUM_TY:
-				ctx_add_constant(ctx, c->name, "enum");
-				break;
-			case MORPH_TY:
-				ctx_add_constant(ctx, c->name, "morph");
-				break;
-			default: 
-				GEN_ERROR("unrecognized constant type");
-				break;
-		}
-	}
+  for (const_decl_t c = decl->constants; c; c = c->next) {	
+    //ctx_add_constant(ctx, c->name, c->ty->u.name_ty);
+    switch (c->ty->kind) {
+    case NAME_TY:
+      ctx_add_constant(ctx, c->name, c->ty->u.name_ty);
+      break;
+    case ARRAY_TY:
+      ctx_add_constant(ctx, c->name, "array");
+      break;
+    case REC_TY:
+      ctx_add_constant(ctx, c->name, "record");
+      break;
+    case ENUM_TY:
+      ctx_add_constant(ctx, c->name, "enum");
+      break;
+    case MORPH_TY:
+      ctx_add_constant(ctx, c->name, "morph");
+      break;
+    default: 
+      GEN_ERROR("unrecognized constant type");
+      break;
+    }
+  }
   for (var_decl_t v = decl->vars; v; v = v->next) {
     for (id_list_t id = v->names; id; id = id->next) {
       //ctx_add_variable(ctx, id->name, v->type->u.name_ty);
-			switch (v->type->kind) {
-    		case NAME_TY:
-					ctx_add_variable(ctx, id->name, v->type->u.name_ty);
-					break;
-				case ARRAY_TY:
-					ctx_add_variable(ctx, id->name, "array");
-					break;
-				case REC_TY:
-					ctx_add_variable(ctx, id->name, "record");
-					break;
-				case ENUM_TY:
-					ctx_add_variable(ctx, id->name, "enum");
-					break;
-				case MORPH_TY:
-					ctx_add_variable(ctx, id->name, "morph");
-					break;
-				default: 
-					GEN_ERROR("unrecognized variable type");
-					break;
-			}
-		}	
-	}
+      switch (v->type->kind) {
+      case NAME_TY:
+        ctx_add_variable(ctx, id->name, v->type->u.name_ty);
+        break;
+      case ARRAY_TY:
+        ctx_add_variable(ctx, id->name, "array");
+        break;
+      case REC_TY:
+        ctx_add_variable(ctx, id->name, "record");
+        break;
+      case ENUM_TY:
+        ctx_add_variable(ctx, id->name, "enum");
+        break;
+      case MORPH_TY:
+        ctx_add_variable(ctx, id->name, "morph");
+        break;
+      default: 
+        GEN_ERROR("unrecognized variable type");
+        break;
+      }
+    }	
+  }
 }
 
 int get_id_offset(char *id, decl_t decl) {
@@ -238,7 +238,7 @@ void build_file_no_map(root_t root) {
     file_no_t file_no = malloc(sizeof(struct file_no_st));
     file_no->file_name = mod->file_name;
     file_no->number = curr;
-      curr++;
+    curr++;
     if (!file_no_map) {
       file_no_map = ll_new();
       file_no_map->val = file_no;
@@ -380,6 +380,7 @@ char* gen_mod(context_t ctx, mod_t mod) {
       break;
     }
     ADD_INSTR("movq", concat(concat("$", type_label), ", %rsi"));
+    ADD_INSTR("push", "%r10");
     ADD_INSTR("call", "__morph");
     ADD_INSTR("movq", "%rax, %rsi");
     ADD_INSTR("movq", concat(INT_LITERAL(offset), ", %rdx"));
@@ -391,30 +392,27 @@ char* gen_mod(context_t ctx, mod_t mod) {
     offset++;
   }
 
-for (var_decl_t v = mod->decl->vars; v; v = v->next) {
-    ADD_INSTR("push", "%r10");
-    ADD_INSTR("push", "%rdi");
-    ADD_INSTR("push", "%rsi");
-    /*
-    if (v->assign && v->type->kind != REC_TY) {
-      assign_t assign = v->assign;
-      ADD_BLOCK(gen_expr(ctx, assign->expr, "%rdi"));
-    }
-    */
+  ADD_INSTR("push", "%r10");
+  ADD_INSTR("push", "%rdi");
+  ADD_INSTR("push", "%rsi");
+  for (var_decl_t v = mod->decl->vars; v; v = v->next) {
     char *type_label = NULL;
     char *array_type = NULL;
     switch(v->type->kind) {
-    case NAME_TY:
+    case NAME_TY: {
       ADD_BLOCK(gen_expr(ctx, v->assign->expr, "%rdi"));
       type_label = register_or_get_string_label(v->type->u.name_ty);
       break;
-    case ARRAY_TY:
+    }
+    case ARRAY_TY: {
       // check if array is typed
       if (v->type->u.array_ty->type) {
         array_type = concat("array of ", v->type->u.array_ty->type->u.name_ty);
         type_label = register_or_get_string_label(array_type);
         ADD_INSTR("movq", concat(concat("$", type_label), ", %rdi"));
+        ADD_INSTR("push", "%r10");
         ADD_INSTR("call", "__add_type");
+        ADD_INSTR("pop", "%r10");
       } else {
         type_label = register_or_get_string_label("array");
       }
@@ -422,29 +420,42 @@ for (var_decl_t v = mod->decl->vars; v; v = v->next) {
       if (v->type->u.array_ty->dimensions && !v->assign) {
         ADD_BLOCK(gen_array_dimensions(ctx, v->type->u.array_ty->dimensions, "%rdi"));
         ADD_INSTR("movq", concat(concat("$", type_label), ", %rsi"));
+        ADD_INSTR("push", "%r10");
         ADD_INSTR("call", "init_default_array");
+        ADD_INSTR("pop", "%r10");
         ADD_INSTR("movq", "%rax, %rdi");
       }
       break;
-    case REC_TY:
+    }
+    case REC_TY: {
       ADD_BLOCK(gen_record(ctx, v->type->u.rec_ty, "%rdi"));
       type_label = register_or_get_string_label("record");
       break;
-    case ENUM_TY:
+    }
+    case ENUM_TY: {
       type_label = register_or_get_string_label("enum");
       break;
-    default:
+    }
+    default: {
       GEN_ERROR("Unrecognized variable type");
       break;
     }
+    }
+    ADD_INSTR("push", "%r10");
     ADD_INSTR("movq", concat(concat("$", type_label), ", %rsi"));
     ADD_INSTR("call", "__morph");
-    ADD_INSTR("pop", "%rsi");
-    ADD_INSTR("pop", "%rdi");
+    ADD_INSTR("movq", "%rax, %rsi");
+    ADD_INSTR("movq", concat(INT_LITERAL(offset), ", %rdx"));
     ADD_INSTR("pop", "%r10");
-    ADD_INSTR("movq", concat("%rax, ", concat(itoa(offset * WORD), "(%r10)")));
+    ADD_INSTR("movq", "%r10, %rdi");
+    ADD_INSTR("push", "%r10");
+    ADD_INSTR("call", "__set_data_member");
+    ADD_INSTR("pop", "%r10");
     offset++;
   }
+  ADD_INSTR("pop", "%rsi");
+  ADD_INSTR("pop", "%rdi");
+  ADD_INSTR("pop", "%r10");
 
 
   // Enable all types defined in this scope

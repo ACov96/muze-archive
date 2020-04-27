@@ -40,6 +40,7 @@ struct mini_type_st {
 
 extern struct mini_type_st __TYPE_GRAPH;
 extern unsigned __TYPE_GRAPH_END;
+extern data_t (*__module_Main_init)();
 
 type_node_t *graph = NULL;
 exception_stack_t exception_stack = NULL;
@@ -430,4 +431,9 @@ data_t __identity_helper(data_t d, char *type_name) {
   type_descriptor_t td = get_type_index(graph, type_name);
   __set_data_type_header(&d, td);
   return d;
+}
+
+int main(int argc, char *argv[]) {
+  init_type_graph();
+  __module__Main_init();
 }

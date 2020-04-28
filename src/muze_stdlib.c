@@ -297,7 +297,7 @@ data_t _post_dec(data_t x) {
 
 data_t __morph__integer_string(data_t in) {
   long old_val = (long)__get_data_member(in, 0);
-  int digits = 0;
+  int digits = 1;
   while (old_val % ((long)pow(10, digits)) < old_val) {
     digits++;
   }

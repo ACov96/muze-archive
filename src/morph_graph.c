@@ -298,11 +298,7 @@ char** shortest_path(type_node_t* graph, char* src, char* dest) {
   that can be traced back to get the shortest path.
   Returns NULL if no path found*/
 int* bfs(type_node_t* graph, int src, int dest) {	
-  //int len = sizeof(graph)/sizeof(graph[0]);
-  int v = 0;
-  while (graph[v]) {
-    v++;
-  }
+  int v = graph_size;
 
   int* q = malloc(sizeof(int) * v * v);
   int curr = 0;

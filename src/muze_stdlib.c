@@ -311,25 +311,35 @@ data_t __morph__string_integer(data_t in) {
   return alloc_int(strtol(str, &str, 10));
 }
 
-/* data_t __morph__real_string(data_t in) { */
-/*   char *str = malloc(64); // TODO: Make this dynamic */
-/*   sprintf(str, "%f", (double)in->members[0]); */
-/*   return alloc_str(str); */
-/* } */
+data_t __morph__real_string(data_t in) {
+  char *str = (char*)calloc(1024, sizeof(char)); // TODO: Make this dynamic
+  double val = (double)(unsigned long)__get_data_member(in, 0);
+  snprintf(str, 1023, "%f", val);
+  return alloc_str(str);
+}
 
-/* data_t __morph__string_real(data_t in) { */
-/*   char *str = ((char*)in->members[0]); */
-/*   return alloc_real(atof(str)); */
-/* } */
+data_t __morph__string_real(data_t in) {
+  char *str = (char*)__get_data_member(in, 0);
+  return alloc_real(atof(str));
+}
 
-/* data_t __morph__real_integer(data_t in) { */
-/*   long l = (long)((double)in->members[0]); */
-/*   return alloc_int(l); */
-/* } */
+data_t __morph__real_integer(data_t in) {
+  union {
+    double d;
+    unsigned long ul;
+  } u;
+  u.ul = __get_data_member(in, 0);
+  long l = (long)u.d;
+  return alloc_int(l);
+}
 
 data_t __morph__integer_real(data_t in) {
-  double d = (double)((unsigned long)__get_data_member(in, 0));
-  return alloc_real(d);
+  union {
+    double d;
+    unsigned long ul;
+  } u;
+  u.ul = __get_data_member(in, 0);
+  return alloc_real(u.d);
 }
 
 data_t __morph__integer_boolean(data_t in) {
@@ -420,7 +430,9 @@ void init_type_graph() {
   set_morph(graph, "boolean", "string", &__morph__boolean_string);
   set_morph(graph, "boolean", "integer", &__morph__boolean_integer);
   set_morph(graph, "integer", "real", &__morph__integer_real);
-  // set_morph(graph, "real", "integer", &__morph__real_integer);
+  set_morph(graph, "real", "integer", &__morph__real_integer);
+  set_morph(graph, "string", "real", &__morph__string_real);
+  set_morph(graph, "real", "string", &__morph__real_string);
 }
 
 void __activate_type(char *type) {

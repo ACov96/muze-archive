@@ -1052,7 +1052,6 @@ char* gen_lval_expr(context_t ctx, expr_t lval, reg_t out) {
       ADD_INSTR("movq", read_inst);
     } else if (sl->is_mod) {
       // We are directly in a module's scope, which means we are probably an init block
-      printf("in the init block case of gen_lval\n");
       ADD_INSTR("push", "%r10");
       ADD_INSTR("push", "%rdi");
       ADD_INSTR("push", "%rsi");

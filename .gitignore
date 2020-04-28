@@ -20,3 +20,16 @@ TAGS
 # who even knows
 *.nfs*
 
+.deps/
+.dir-locals.el
+Makefile
+Makefile.in
+aclocal.m4
+autom4te.cache/
+config.status
+configure
+libmuze.a
+muzec
+src/.deps/
+src/.dirstamp
+tools/

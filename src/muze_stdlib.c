@@ -396,29 +396,20 @@ type_descriptor_t __get_data_type_header(data_t d) {
 
 void init_type_graph() {
   graph = morph_graph();
-  for (mini_type_t *t = (mini_type_t*)&__TYPE_GRAPH;
-       (unsigned long)t < (unsigned long)(&__TYPE_GRAPH_END);
-       t++) {
-    char *type_name = (*t)->name;
-    graph = add_type(graph, type_name);
-  }
-  for (mini_type_t *t = (mini_type_t*)&__TYPE_GRAPH;
-       (unsigned long)t < (unsigned long)(&__TYPE_GRAPH_END);
-       t++) {
-    char *type_name = (*t)->name;
-    unsigned long num_morphs = (*t)->morph_length;
-    for (unsigned long i = 0; i < num_morphs; i++) {
-      graph = add_morph(graph, type_name, (*t)->morphs[i].dest, (*t)->morphs[i].morph_fun);
-    }
-  }
 
+  // Loop over .type_graph segment and load in the compiled types
   for (mini_type_t *t = (mini_type_t*)&__TYPE_GRAPH;
        (unsigned long)t < (unsigned long)(&__TYPE_GRAPH_END);
        t++) {
     char *type_name = (*t)->name;
     char *parent_name = (*t)->parent_name;
+    unsigned long num_morphs = (*t)->morph_length;
+    graph = add_type(graph, type_name);
     graph = add_morph(graph, parent_name, type_name, (*t)->parent_to_child_morph);
     graph = add_morph(graph, type_name, parent_name, (*t)->child_to_parent_morph);
+    for (unsigned long i = 0; i < num_morphs; i++) {
+      graph = add_morph(graph, type_name, (*t)->morphs[i].dest, (*t)->morphs[i].morph_fun);
+    }
   }
 
   // Add standard morphs and activate them

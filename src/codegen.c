@@ -11,7 +11,7 @@
 
 /* MACROS */
 #define WORD 8
-#define MODULE_MIN_SIZE 16
+#define MODULE_MIN_SIZE 2
 #define NO_OPERANDS ""
 #define EMPTY_BUFFER ""
 #define CREATE_BUFFER char *buf = ""
@@ -20,10 +20,10 @@
 
 #define INT_LITERAL(I) (concat("$", itoa(I)))
 
-#define ADD_BLOCK(B) \
-  do { \
-    buf = concat(buf, B);      \
-    buf = concat(buf, "\n");   \
+#define ADD_BLOCK(B)                            \
+  do {                                          \
+    buf = concat(buf, B);                       \
+    buf = concat(buf, "\n");                    \
   } while(0)
 
 #define ADD_LABEL(L) buf = concat(buf, L);      \
@@ -46,6 +46,7 @@
 /* TYPES */
 typedef struct label_st        *label_t;
 typedef struct string_label_st *string_label_t;
+typedef struct file_no_st      *file_no_t;
 typedef char                   *reg_t;
 
 struct label_st {
@@ -58,18 +59,25 @@ struct string_label_st {
   char    *label;
 };
 
+struct file_no_st {
+  char *file_name;
+  unsigned number;
+};
+
 /* GLOBALS */
 type_node_t *graph;
 ll_t labels = NULL;
 ll_t strings = NULL;
+ll_t file_no_map = NULL;
 unsigned int curr_label = 0;
+unsigned int curr_fileno = 1;
 reg_t arg_registers[6] = {
-                        "%rdi",
-                        "%rsi",
-                        "%rdx",
-                        "%rcx",
-                        "%r8",
-                        "%r9"
+  "%rdi",
+  "%rsi",
+  "%rdx",
+  "%rcx",
+  "%r8",
+  "%r9"
 };
 char *entrypoint = NULL;
 
@@ -80,6 +88,9 @@ int get_id_offset(char *id, decl_t decl);
 char* register_or_get_string_label(char *str);
 void populate_decl_into_ctx(context_t ctx, decl_t decl);
 void set_entrypoint(root_t root);
+bool has_main(root_t root);
+void build_file_no_map(root_t root);
+unsigned get_file_no(char *file_name);
 
 // Generator functions
 char* gen_label(char *label);
@@ -88,7 +99,9 @@ char* gen_type_graph_segment();
 char* gen_mod(context_t ctx, mod_t mod);
 char* gen_fun(context_t ctx, fun_decl_t fun);
 char* gen_type(context_t ctx, type_decl_t type);
+char* gen_type_constructor(context_t ctx, type_decl_t type);
 char* gen_morph(context_t ctx, char *type_name, morph_t morph);
+char* gen_identity_morph(char *src, char *dest);
 char* gen_stmt(context_t ctx, stmt_t stmt);
 char* gen_expr_stmt(context_t ctx, expr_stmt_t expr);
 char* gen_expr(context_t ctx, expr_t expr, reg_t out);
@@ -106,6 +119,8 @@ char* gen_unary_expr(context_t ctx, unary_t unary, reg_t out);
 char* gen_manage_types(type_decl_t t, int enable);
 char* gen_try_catch_stmt(context_t ctx, try_stmt_t try_catch);
 char* gen_throw_stmt(context_t ctx, throw_stmt_t throw);
+char* gen_array_dimensions(context_t ctx, expr_list_t dimensions, reg_t out);
+char* gen_record(context_t ctx, rec_t r, reg_t out);
 
 /* HELPERS */
 unsigned int count_consts_and_vars(decl_t decl) {
@@ -120,11 +135,54 @@ unsigned int count_consts_and_vars(decl_t decl) {
 
 void populate_decl_into_ctx(context_t ctx, decl_t decl) {
   // TODO: This only considers name types, not records or morphs
-  for (const_decl_t c = decl->constants; c; c = c->next)
-    ctx_add_constant(ctx, c->name, c->ty->u.name_ty);
-  for (var_decl_t v = decl->vars; v; v = v->next)
-    for (id_list_t id = v->names; id; id = id->next)
-      ctx_add_variable(ctx, id->name, v->type->u.name_ty);
+  for (const_decl_t c = decl->constants; c; c = c->next) {	
+    //ctx_add_constant(ctx, c->name, c->ty->u.name_ty);
+    switch (c->ty->kind) {
+    case NAME_TY:
+      ctx_add_constant(ctx, c->name, c->ty->u.name_ty);
+      break;
+    case ARRAY_TY:
+      ctx_add_constant(ctx, c->name, "array");
+      break;
+    case REC_TY:
+      ctx_add_constant(ctx, c->name, "record");
+      break;
+    case ENUM_TY:
+      ctx_add_constant(ctx, c->name, "enum");
+      break;
+    case MORPH_TY:
+      ctx_add_constant(ctx, c->name, "morph");
+      break;
+    default: 
+      GEN_ERROR("unrecognized constant type");
+      break;
+    }
+  }
+  for (var_decl_t v = decl->vars; v; v = v->next) {
+    for (id_list_t id = v->names; id; id = id->next) {
+      //ctx_add_variable(ctx, id->name, v->type->u.name_ty);
+      switch (v->type->kind) {
+      case NAME_TY:
+        ctx_add_variable(ctx, id->name, v->type->u.name_ty);
+        break;
+      case ARRAY_TY:
+        ctx_add_variable(ctx, id->name, "array");
+        break;
+      case REC_TY:
+        ctx_add_variable(ctx, id->name, "record");
+        break;
+      case ENUM_TY:
+        ctx_add_variable(ctx, id->name, "enum");
+        break;
+      case MORPH_TY:
+        ctx_add_variable(ctx, id->name, "morph");
+        break;
+      default: 
+        GEN_ERROR("unrecognized variable type");
+        break;
+      }
+    }	
+  }
 }
 
 int get_id_offset(char *id, decl_t decl) {
@@ -174,6 +232,34 @@ void set_entrypoint(root_t root) {
   }
 }
 
+void build_file_no_map(root_t root) {
+  unsigned curr = 1;
+  for (mod_t mod = root->mods; mod; mod = mod->next) {
+    file_no_t file_no = malloc(sizeof(struct file_no_st));
+    file_no->file_name = mod->file_name;
+    file_no->number = curr;
+    curr++;
+    if (!file_no_map) {
+      file_no_map = ll_new();
+      file_no_map->val = file_no;
+    } else {
+      ll_append(file_no_map, file_no);
+    }
+  }
+}
+
+unsigned get_file_no(char *file_name) {
+  for (ll_t curr = file_no_map; curr; curr = curr->next) {
+    file_no_t file_no = (file_no_t) curr->val;
+    if (strcmp(file_name, file_no->file_name) == 0)
+      return file_no->number;
+  }
+  char *file_no_err;
+  asprintf(&file_no_err, "Cannot find mapping for file name %s", file_name);
+  GEN_ERROR(file_no_err);
+  return 0;
+}
+
 /* GENERATORS */
 char* gen_label(char *label) {
   char *new_label = NULL;
@@ -217,59 +303,160 @@ char* gen_mod(context_t ctx, mod_t mod) {
   populate_decl_into_ctx(ctx, mod->decl);
 
   for (type_decl_t t = mod->decl->types; t; t = t->next)
+    ctx_add_type(ctx, t);
+
+  for (type_decl_t t = mod->decl->types; t; t = t->next)
     ADD_BLOCK(gen_type(ctx, t));
 
   // Allocate module block
-  ADD_LABEL(concat("__module__", concat(ctx_get_scope_name(ctx), "_init")));
+  char *module_label = concat("__module__", concat(ctx_get_scope_name(ctx), "_init"));
+  ADD_INSTR(".globl", module_label);
+  char *type_directive = NULL;
+  asprintf(&type_directive, "%s, @function", module_label);
+  ADD_INSTR(".type", type_directive);
+  ADD_LABEL(module_label);
+
+  /* if (ctx_is_global(ctx)) { */
+  /*   char *dwarf_file_directive; */
+  /*   asprintf(&dwarf_file_directive, ".file %d \"%s\"", get_file_no(mod->file_name), mod->file_name); */
+  /*   ADD_INSTR(dwarf_file_directive, NO_OPERANDS); */
+  /* } */
 
   // Populate module block with constants and variables
   int mod_size = MODULE_MIN_SIZE;
-  for (const_decl_t c = mod->decl->constants; c; c = c->next) {
-    mod_size += WORD;
-  }
-  for (var_decl_t v = mod->decl->vars; v; v = v->next) {
-    // TODO: This is incorrect and should loop over the id list
-    mod_size += WORD;
-  }
-  ADD_INSTR("push", "%r10");
-  ADD_INSTR("push", "%rdi");
-  ADD_INSTR("movq", concat(INT_LITERAL(mod_size), ", %rdi"));
-  ADD_INSTR("call", "malloc");
-  ADD_INSTR("pop", "%rdi");
-  ADD_INSTR("movq", "%rax, %r10");
-  ADD_INSTR("push", "%r10");
+  for (const_decl_t c = mod->decl->constants; c; c = c->next)
+    mod_size++;
+    
+  for (var_decl_t v = mod->decl->vars; v; v = v->next)
+    for (id_list_t id = v->names; id; id = id->next)
+      mod_size++;
 
+  ADD_INSTR("push", "%rbp");
+  ADD_INSTR("movq", "%rsp, %rbp");
+  ADD_INSTR("push", "%rdi");
+  ADD_INSTR("push", "%r10");
+  ADD_INSTR("movq", concat(INT_LITERAL(mod_size), ", %rdi"));
+  ADD_INSTR("call", "__create_new_data");
+  ADD_INSTR("pop", "%r10");
+
+  // Store the old referencing environment as the first data member
+  ADD_INSTR("movq", "%rax, %rdi");
+  ADD_INSTR("movq", "%r10, %rsi");
+  ADD_INSTR("movq", "$0, %rdx");
+  ADD_INSTR("call", "__set_data_member");
+  ADD_INSTR("movq", "%rdi, %r10");
   int offset = 1;
+
+  // Add constants to the referencing environment
   for (const_decl_t c = mod->decl->constants; c; c = c->next) {
     assign_t assign = c->assign;
     ADD_INSTR("push", "%r10");
-    ADD_INSTR("push", "%rdi");
-    ADD_INSTR("push", "%rsi");
     ADD_BLOCK(gen_expr(ctx, assign->expr, "%rdi"));
-    char *type_label = register_or_get_string_label(c->ty->u.name_ty);
+    char *type_label = NULL;
+    char *array_type = NULL;
+    switch(c->ty->kind) {
+    case NAME_TY:
+      type_label = register_or_get_string_label(c->ty->u.name_ty);
+      break;
+    case ARRAY_TY:
+      // check if array is typed
+      if (c->ty->u.array_ty->type) {
+        array_type = concat("array of ", c->ty->u.array_ty->type->u.name_ty);
+        type_label = register_or_get_string_label(array_type);
+        ADD_INSTR("movq", concat(concat("$", type_label), ", %rdi"));
+        ADD_INSTR("call", "__add_type");
+      } else {
+        type_label = register_or_get_string_label("array");
+      }
+      break;
+    case REC_TY:
+      type_label = register_or_get_string_label("record");
+      break;
+    case ENUM_TY:
+      type_label = register_or_get_string_label("enum");
+      break;
+    default:
+      GEN_ERROR("Unrecognized variable type");
+      break;
+    }
     ADD_INSTR("movq", concat(concat("$", type_label), ", %rsi"));
-    ADD_INSTR("call", "__morph");
-    ADD_INSTR("pop", "%rsi");
-    ADD_INSTR("pop", "%rdi");
-    ADD_INSTR("pop", "%r10");
-    ADD_INSTR("movq", concat("%rax, ", concat(itoa(offset * WORD), "(%r10)")));
-    offset++;
-  }
-  for (var_decl_t v = mod->decl->vars; v; v = v->next) {
-    assign_t assign = v->assign;
     ADD_INSTR("push", "%r10");
-    ADD_INSTR("push", "%rdi");
-    ADD_INSTR("push", "%rsi");
-    ADD_BLOCK(gen_expr(ctx, assign->expr, "%rdi"));
-    char *type_label = register_or_get_string_label(v->type->u.name_ty);
-    ADD_INSTR("movq", concat(concat("$", type_label), ", %rsi"));
     ADD_INSTR("call", "__morph");
-    ADD_INSTR("pop", "%rsi");
-    ADD_INSTR("pop", "%rdi");
+    ADD_INSTR("movq", "%rax, %rsi");
+    ADD_INSTR("movq", concat(INT_LITERAL(offset), ", %rdx"));
     ADD_INSTR("pop", "%r10");
-    ADD_INSTR("movq", concat("%rax, ", concat(itoa(offset * WORD), "(%r10)")));
+    ADD_INSTR("movq", "%r10, %rdi");
+    ADD_INSTR("push", "%r10");
+    ADD_INSTR("call", "__set_data_member");
+    ADD_INSTR("pop", "%r10");
     offset++;
   }
+
+  ADD_INSTR("push", "%r10");
+  ADD_INSTR("push", "%rdi");
+  ADD_INSTR("push", "%rsi");
+  for (var_decl_t v = mod->decl->vars; v; v = v->next) {
+    char *type_label = NULL;
+    char *array_type = NULL;
+    switch(v->type->kind) {
+    case NAME_TY: {
+      ADD_BLOCK(gen_expr(ctx, v->assign->expr, "%rdi"));
+      type_label = register_or_get_string_label(v->type->u.name_ty);
+      break;
+    }
+    case ARRAY_TY: {
+      // check if array is typed
+      if (v->type->u.array_ty->type) {
+        array_type = concat("array of ", v->type->u.array_ty->type->u.name_ty);
+        type_label = register_or_get_string_label(array_type);
+        ADD_INSTR("movq", concat(concat("$", type_label), ", %rdi"));
+        ADD_INSTR("push", "%r10");
+        ADD_INSTR("call", "__add_type");
+        ADD_INSTR("pop", "%r10");
+      } else {
+        type_label = register_or_get_string_label("array");
+      }
+      // if the the array was declared but not initialized, then allocate space for it 
+      if (v->type->u.array_ty->dimensions && !v->assign) {
+        ADD_BLOCK(gen_array_dimensions(ctx, v->type->u.array_ty->dimensions, "%rdi"));
+        ADD_INSTR("movq", concat(concat("$", type_label), ", %rsi"));
+        ADD_INSTR("push", "%r10");
+        ADD_INSTR("call", "init_default_array");
+        ADD_INSTR("pop", "%r10");
+        ADD_INSTR("movq", "%rax, %rdi");
+      }
+      break;
+    }
+    case REC_TY: {
+      ADD_BLOCK(gen_record(ctx, v->type->u.rec_ty, "%rdi"));
+      type_label = register_or_get_string_label("record");
+      break;
+    }
+    case ENUM_TY: {
+      type_label = register_or_get_string_label("enum");
+      break;
+    }
+    default: {
+      GEN_ERROR("Unrecognized variable type");
+      break;
+    }
+    }
+    ADD_INSTR("push", "%r10");
+    ADD_INSTR("movq", concat(concat("$", type_label), ", %rsi"));
+    ADD_INSTR("call", "__morph");
+    ADD_INSTR("movq", "%rax, %rsi");
+    ADD_INSTR("movq", concat(INT_LITERAL(offset), ", %rdx"));
+    ADD_INSTR("pop", "%r10");
+    ADD_INSTR("movq", "%r10, %rdi");
+    ADD_INSTR("push", "%r10");
+    ADD_INSTR("call", "__set_data_member");
+    ADD_INSTR("pop", "%r10");
+    offset++;
+  }
+  ADD_INSTR("pop", "%rsi");
+  ADD_INSTR("pop", "%rdi");
+  ADD_INSTR("pop", "%r10");
+
 
   // Enable all types defined in this scope
   ADD_BLOCK(gen_manage_types(mod->decl->types, 1));
@@ -285,6 +472,7 @@ char* gen_mod(context_t ctx, mod_t mod) {
   ADD_INSTR("pop", "%r10");
   ADD_INSTR("movq", "%r10, %rax");
   ADD_INSTR("pop", "%r10");
+  ADD_INSTR("leave", NO_OPERANDS);
   ADD_INSTR("ret", NO_OPERANDS);
 
   // Define sub modules
@@ -297,6 +485,87 @@ char* gen_mod(context_t ctx, mod_t mod) {
     ctx_set_func(func_ctx);
     ADD_BLOCK(gen_fun(func_ctx, f));
   }
+  RETURN_BUFFER;
+}
+
+char* gen_array_dimensions(context_t ctx, expr_list_t dimensions, reg_t out) {
+  CREATE_BUFFER;
+  ADD_INSTR("push", "%r10");
+  ADD_INSTR("push", "%rdi");
+  ADD_INSTR("push", "%rsi");
+  ADD_INSTR("push", "%rdx");
+  int num_dims = 0;
+  int idx = 0;
+  expr_list_t curr_dim = dimensions;
+  // get number of dimensions
+  for (; curr_dim; curr_dim = curr_dim->next)
+    num_dims++;
+  //allocate space for the dimensions array
+  ADD_INSTR("movq", concat(concat("$", itoa(num_dims)), ", %rdi"));
+  ADD_INSTR("call", "alloc_array");
+  ADD_INSTR("movq", "%rax, %rdi");
+  ADD_INSTR("push", "%rdi");
+  // populate array with dimensions
+  curr_dim = dimensions;
+  for (; curr_dim; curr_dim = curr_dim->next) {
+    ADD_BLOCK(gen_expr(ctx, curr_dim->expr, "%rsi"));
+    ADD_INSTR("movq", concat(concat("$", itoa(idx)), ", %rdx"));
+    ADD_INSTR("call", "__set_data_member");
+    idx++;
+  }
+  ADD_INSTR("pop", "%rax");
+  ADD_INSTR("pop", "%rdx");
+  ADD_INSTR("pop", "%rsi");
+  ADD_INSTR("pop", "%rdi");
+  ADD_INSTR("pop", "%r10");
+  ADD_INSTR("movq", concat("%rax, ", out));
+
+  RETURN_BUFFER;
+}
+
+char* gen_record(context_t ctx, rec_t r, reg_t out) {
+  CREATE_BUFFER;
+  int size = 0;
+  int i = 0;
+  char *str_label= NULL;
+  id_list_t id = NULL;
+  rec_field_t curr = r->fields;
+
+  for (; curr; curr = curr->next){
+    id = curr->name;
+    for (; id; id = id->next)
+      size++;
+  }
+  // generate an array of the record fields  
+  //ADD_BLOCK(gen_record_fields(ctx, v->type->u.rec_ty->fields, ))
+  ADD_INSTR("movq", concat(concat("$", itoa(size)), ", %rdi"));
+  ADD_INSTR("call", "__create_new_data");
+  ADD_INSTR("movq", "%rax, %rdi");
+  ADD_INSTR("push", "%rdi");
+  curr = r->fields;
+  for (; curr; curr = curr->next) {
+    id = curr->name;
+    for (; id; id = id->next) {
+      str_label = concat("$", register_or_get_string_label(id->name));
+      ADD_INSTR("movq", concat(str_label, ", %rdi"));
+      ADD_INSTR("call", "alloc_str");
+      ADD_INSTR("movq", "%rax, %rsi");
+      ADD_INSTR("movq", concat(concat("$", itoa(i)), ", %rdx"));
+      ADD_INSTR("pop", "%rdi");
+      ADD_INSTR("call", "__set_data_member");
+      ADD_INSTR("push", "%rdi");
+      i++;
+    }
+  }
+  ADD_INSTR("pop", "%rsi");
+  // allocate space for the record (size+1)
+  // the field array will be placed in the 0th index of the record's members array.
+  // the field array will be used to translate field names to indices in members array.
+  ADD_INSTR("movq", concat(concat("$", itoa(size+1)), ", %rdi"));
+  ADD_INSTR("call", "alloc_record");
+  ADD_INSTR("movq", "%rax, %rdi");
+  // if record is being initialized, populate the fields
+
   RETURN_BUFFER;
 }
 
@@ -318,6 +587,9 @@ char* gen_fun(context_t ctx, fun_decl_t fun) {
   // TODO: Generate child modules
 
   for (type_decl_t t = fun->decl->types; t; t = t->next)
+    ctx_add_type(ctx, t);
+  
+  for (type_decl_t t = fun->decl->types; t; t = t->next)
     ADD_BLOCK(gen_type(ctx, t));
   
   // Generate child functions
@@ -338,6 +610,7 @@ char* gen_fun(context_t ctx, fun_decl_t fun) {
 
   // Initialize activation record
   ADD_LABEL(ctx_get_scope_name(ctx));
+  ADD_INSTR(".cfi_startproc", NO_OPERANDS);
   ADD_INSTR("push", "%rbp");
   ADD_INSTR("movq", "%rsp, %rbp");
   ADD_INSTR("sub", concat(space_str, ", %rsp"));
@@ -409,11 +682,15 @@ char* gen_fun(context_t ctx, fun_decl_t fun) {
   ADD_INSTR("movq", "$0, %rax");
   ADD_INSTR("leave", NO_OPERANDS);
   ADD_INSTR("ret", NO_OPERANDS);
+  ADD_INSTR(".cfi_endproc", NO_OPERANDS);
   RETURN_BUFFER;
 }
 
 char* gen_stmt(context_t ctx, stmt_t stmt) {
   CREATE_BUFFER;
+  char *loc_directive = NULL;
+  asprintf(&loc_directive, ".loc %d %d", curr_fileno, stmt->pos->line_no);
+  // ADD_INSTR(loc_directive, NO_OPERANDS);
   switch(stmt->kind) {
   case EXPR_STMT:
     ADD_BLOCK(gen_expr_stmt(ctx, stmt->u.expr_stmt));
@@ -457,9 +734,31 @@ char* gen_expr_stmt(context_t ctx, expr_stmt_t expr) {
 
 char* gen_expr(context_t ctx, expr_t expr, reg_t out) {
   CREATE_BUFFER;
+  char *idx = NULL;
   switch(expr->kind) {
   case ID_EX:
-    ADD_BLOCK(gen_id_expr(ctx, expr->u.id_ex, out));
+    // check expression for accessors (subscripts/fields)
+    if (expr->accessors) {
+      switch(expr->accessors->kind) {
+      case SUBSCRIPT:
+        ADD_BLOCK(gen_array_dimensions(ctx, expr->accessors->u.subscript_expr, "%rdi"));
+        ADD_BLOCK(gen_id_expr(ctx, expr->u.id_ex, "%rsi"));
+        ADD_INSTR("push", "%rsi");
+        ADD_INSTR("call", "calc_index");
+        ADD_INSTR("pop", "%rsi");
+        ADD_INSTR("movq", "%rsi, %rdi");
+        ADD_INSTR("movq", "%rax, %rsi");
+        ADD_INSTR("call", "__get_data_member");
+        ADD_INSTR("movq", concat("%rax, ", out));
+        break;
+      case FIELD:
+        break;
+      default:
+        break;
+      }
+    } 
+    else
+      ADD_BLOCK(gen_id_expr(ctx, expr->u.id_ex, out));
     break;
   case LITERAL_EX:
     ADD_BLOCK(gen_literal_expr(ctx, expr->u.literal_ex, out));
@@ -493,7 +792,7 @@ char* gen_call_expr(context_t ctx, call_t call, reg_t out) {
   CREATE_BUFFER;
 
   // Put arguments in registers
-  for (expr_list_t curr_arg = call->args; curr_arg; curr_arg = curr_arg->next) {
+  for (expr_list_t curr_arg = call->args; curr_arg; curr_arg = curr_arg->next) {  
     reg_t curr_reg = arg_registers[arg_idx];
     ADD_INSTR("push", curr_reg);
     ADD_BLOCK(gen_expr(ctx, curr_arg->expr, "%rax"));
@@ -509,6 +808,7 @@ char* gen_call_expr(context_t ctx, call_t call, reg_t out) {
       ADD_INSTR("pop", "%rdi");
       ADD_INSTR("pop", "%r10");
     }
+
     ADD_INSTR("movq", concat("%rax, ", curr_reg));
     
     arg_idx++;
@@ -551,8 +851,13 @@ char* gen_literal_expr(context_t ctx, literal_t literal, reg_t out) {
   char *int_literal = NULL;
   char *real_literal = NULL;
   char *bool_literal = NULL;
+  // for use with array literal
+  int len = 0; // length of array
+  int i = 0; // index in array
+  expr_list_t curr = NULL;
   CREATE_BUFFER;
   ADD_INSTR("push", "%rdi");
+  ADD_INSTR("push", "%rsi");
   ADD_INSTR("push", "%r10");
   switch(literal->kind) {
   case STRING_LIT:
@@ -576,12 +881,52 @@ char* gen_literal_expr(context_t ctx, literal_t literal, reg_t out) {
     ADD_INSTR("movq", concat(bool_literal, ", %rdi"));
     ADD_INSTR("call", "alloc_bool");
     break;
+  case ARRAY_LIT:
+    // get length of array
+    curr = literal->u.array_lit;
+    for (; curr; curr = curr->next)
+      len++;
+    // store length of array in %rdi
+    ADD_INSTR("movq", concat("$", concat(itoa(len), ", %rdi")));
+    // allocate space for array
+    ADD_INSTR("call", "alloc_array");
+    // move the pointer to the array to %rdi
+    ADD_INSTR("movq", "%rax, %rdi"); 
+    // populate array 
+    curr = literal->u.array_lit;
+    for (; curr; curr = curr->next) {
+      ADD_BLOCK(gen_expr(ctx, curr->expr, "%rsi"));
+      ADD_INSTR("movq", concat("$", concat(itoa(i), ", %rdx")));
+      ADD_INSTR("call", "__set_data_member");
+      i++;
+    }
+    ADD_INSTR("movq", "%rdi, %rax"); 
+    break;
+  case RECORD_LIT:
+    // get the size of the record
+    curr = literal->u.record_lit;
+    for (; curr; curr = curr->next)
+      len++;
+    ADD_INSTR("movq", concat("$", concat(itoa(len), ", %rdi")));
+    ADD_INSTR("call", "alloc_record");
+    ADD_INSTR("movq", "%rax, %rdi");
+    curr = literal->u.record_lit;
+    for (; curr; curr = curr->next) {
+      ADD_BLOCK(gen_expr(ctx, curr->expr, "%rsi"));
+      ADD_INSTR("movq", concat("$", concat(itoa(i), ", %rdx")));
+      ADD_INSTR("call", "__set_data_member");
+      i++;
+    }
+    ADD_INSTR("movq", "%rdi, %rax"); 
+    break;
   case NULL_LIT:
     ADD_INSTR("movq", concat("$0, ", out));
+    break;
   default:
     GEN_ERROR("Unknown literal");
   }
   ADD_INSTR("pop", "%r10");
+  ADD_INSTR("pop", "%rsi");
   ADD_INSTR("pop", "%rdi");
   ADD_INSTR("movq", concat("%rax, ", out));
   RETURN_BUFFER;
@@ -609,20 +954,46 @@ char* gen_id_expr(context_t ctx, char *id, reg_t out) {
     ADD_INSTR("movq", read_inst);
   } else if (sl->is_mod) {
     // We are directly in a module's scope, which means we are probably an init block
-    sprintf(read_inst, "%d(%%r10), %s", WORD * (sl->offset + 1), out);
-    ADD_INSTR("movq", read_inst);
+    ADD_INSTR("push", "%r10");
+    ADD_INSTR("push", "%rdi");
+    ADD_INSTR("push", "%rsi");
+    ADD_INSTR("movq", "%r10, %rdi");
+    ADD_INSTR("movq", concat(INT_LITERAL(sl->offset + 1), ", %rsi"));
+    ADD_INSTR("call", "__get_data_member");
+    ADD_INSTR("pop", "%rsi");
+    ADD_INSTR("pop", "%rdi");
+    ADD_INSTR("pop", "%r10");
+    ADD_INSTR("movq", concat("%rax, ", out));
   } else {
     // Dealing with a variable that's in a more global scope
     ADD_INSTR("push", "%rax");
     ADD_INSTR("movq", "-8(%rbp), %rax");
     for (link = sl; link->next && !link->next->is_mod; link = link->next) {
-      ADD_INSTR("movq", "(%rax), %rax");
+      if (link->is_mod) {
+        ADD_INSTR("push", "%r10");
+        ADD_INSTR("push", "%rdi");
+        ADD_INSTR("push", "%rsi");
+        ADD_INSTR("movq", "%rax, %rdi");
+        ADD_INSTR("movq", "$0, %rsi");
+        ADD_INSTR("call", "__get_data_member");
+        ADD_INSTR("pop", "%rsi");
+        ADD_INSTR("pop", "%rdi");
+        ADD_INSTR("pop", "%r10");
+      } else {
+        ADD_INSTR("movq", "(%rax), %rax");
+      }
     }
-    if (link->next && link->next->is_mod)
-      sprintf(read_inst, "%d(%%rax), %s", WORD * (sl->offset + 1), out);
-    else
+    if (link->next && link->next->is_mod) {
+      ADD_INSTR("push", "%r10");
+      ADD_INSTR("movq", "%rax, %rdi");
+      ADD_INSTR("movq", concat(INT_LITERAL(sl->offset + 1), ", %rsi"));
+      ADD_INSTR("call", "__get_data_member");
+      ADD_INSTR("movq", concat("%rax, ", out));
+      ADD_INSTR("pop", "%r10");
+    } else {
       sprintf(read_inst, "-%d(%%rax), %s", WORD * (sl->offset + 1), out);
-    ADD_INSTR("movq", read_inst);
+      ADD_INSTR("movq", read_inst);
+    }
     ADD_INSTR("pop", "%rax");
   }
   RETURN_BUFFER;
@@ -633,10 +1004,29 @@ char* gen_assign_stmt(context_t ctx, assign_stmt_t assign) {
   ADD_INSTR("push", "%r10");
   ADD_INSTR("push", "%rdi");
   ADD_INSTR("push", "%rsi");
-  ADD_BLOCK(gen_expr(ctx, assign->assign->expr, "%rdi"));
-  ADD_BLOCK(gen_lval_expr(ctx, assign->lval, "%rsi"));
-  /* ADD_INSTR("movq", "%rdi, (%rsi)"); */
-  ADD_INSTR("call", "__assign_simple");
+  ADD_INSTR("push", "%rdx");
+  // check lval for accessors (subscripts/fields)
+  if (assign->lval->accessors) {
+    switch(assign->lval->accessors->kind) {
+    case SUBSCRIPT:
+      ADD_BLOCK(gen_lval_expr(ctx, assign->lval, "%rdx"));
+      ADD_INSTR("push", "%rdx");
+      ADD_BLOCK(gen_array_dimensions(ctx, assign->lval->accessors->u.subscript_expr, "%rsi"));
+      ADD_BLOCK(gen_expr(ctx, assign->assign->expr, "%rdi"));
+      ADD_INSTR("pop", "%rdx");
+      ADD_INSTR("call", "__assign_array_member");
+      break;
+    case FIELD:
+      break;
+    default:
+      break;
+    }
+  } else{
+    ADD_BLOCK(gen_lval_expr(ctx, assign->lval, "%rsi"));
+    ADD_BLOCK(gen_expr(ctx, assign->assign->expr, "%rdi"));
+    ADD_INSTR("call", "__assign_simple");
+  }
+  ADD_INSTR("pop", "%rdx");
   ADD_INSTR("pop", "%rsi");
   ADD_INSTR("pop", "%rdi");
   ADD_INSTR("pop", "%r10");
@@ -647,9 +1037,10 @@ char* gen_lval_expr(context_t ctx, expr_t lval, reg_t out) {
   static_link_t sl = NULL;
   static_link_t link = NULL;
   char read_inst[64];
+  char *idx = NULL;
   CREATE_BUFFER;
   switch(lval->kind) {
-  case ID_EX:
+  case ID_EX: {
     sl = ctx_get_id_offset(ctx, lval->u.id_ex);
     if (sl == NULL) {
       GEN_ERROR(concat("Cannot find l-value ", lval->u.id_ex)); 
@@ -661,31 +1052,38 @@ char* gen_lval_expr(context_t ctx, expr_t lval, reg_t out) {
       ADD_INSTR("movq", read_inst);
     } else if (sl->is_mod) {
       // We are directly in a module's scope, which means we are probably an init block
-      sprintf(read_inst, "%d(%%r10), %s", WORD * (sl->offset + 1), out);
-      ADD_INSTR("movq", read_inst);
+      ADD_INSTR("push", "%r10");
+      ADD_INSTR("push", "%rdi");
+      ADD_INSTR("push", "%rsi");
+      ADD_INSTR("movq", "%r10, %rdi");
+      ADD_INSTR("movq", concat(INT_LITERAL(sl->offset + 1), ", %rsi"));
+      ADD_INSTR("call", "__get_data_member");
+      ADD_INSTR("movq", concat("%rax, ", out));
+      ADD_INSTR("pop", "%rsi");
+      ADD_INSTR("pop", "%rdi");
+      ADD_INSTR("pop", "%r10");
     } else {
       // Dealing with a variable that's in a more global scope
       ADD_INSTR("movq", "-8(%rbp), %rax");
       for (link = sl; link->next && !link->next->is_mod; link = link->next) {
         ADD_INSTR("movq", "(%rax), %rax");
       }
-      if (link->next && link->next->is_mod)
-        sprintf(read_inst, "%d(%%rax), %s", WORD * (sl->offset + 1), out);
-      else
+      if (link->next && link->next->is_mod) {
+        ADD_INSTR("push", "%r10");
+        ADD_INSTR("push", "%rdi");
+        ADD_INSTR("movq", "%r10, %rdi");
+        ADD_INSTR("movq", concat(INT_LITERAL(sl->offset + 1), ", %rsi"));
+        ADD_INSTR("call", "__get_data_member");
+        ADD_INSTR("pop", "%rdi");
+        ADD_INSTR("pop", "%r10");
+      }
+      else {
         sprintf(read_inst, "-%d(%%rax), %s", WORD * (sl->offset + 1), out);
-      ADD_INSTR("movq", read_inst);
+        ADD_INSTR("movq", read_inst);
+      }
     }
-
-    /* /\* if (sl == NULL) { *\/ */
-    /* /\*   GEN_ERROR(concat("Cannot find l-value ", lval->u.id_ex)); *\/ */
-    /* /\* } else if (sl->levels > 0) { *\/ */
-    /* /\*   for (int i = 0; i < sl->levels; i++) { *\/ */
-    /* /\*     ADD_INSTR("movq", "(%rax), %rax"); *\/ */
-    /* /\*   } *\/ */
-    /* /\* } *\/ */
-    /* sprintf(read_inst, "-%d(%%rax), ", WORD * (sl->offset + 1)); */
-    /* ADD_INSTR("leaq", concat(read_inst, out)); */
     break;
+  }
   case LITERAL_EX:
   case UNARY_EX:
   case BINARY_EX:
@@ -928,21 +1326,20 @@ char* gen_unary_expr(context_t ctx, unary_t unary, reg_t out) {
 
 char* gen_text_segment(root_t root) {
   CREATE_BUFFER;
+  char *curr_file = root->mods->file_name;
+  char *file_directive;
+  asprintf(&file_directive, "\"%s\"", curr_file);
+  // ADD_INSTR(".file", file_directive);
   ADD_INSTR(".section", ".text");
-  ADD_INSTR(".global", "main");
-
-  // Generate main method 
-  ADD_LABEL("main");
-  ADD_INSTR("call", "init_type_graph");
-  ADD_INSTR("push", "%r10");
-  ADD_INSTR("call", "__module__Main_init");
-  ADD_INSTR("movq", "%rax, %r10");
-  ADD_INSTR("pop", "%r10");
-  ADD_INSTR("ret", NO_OPERANDS);
-
   for (mod_t mod = root->mods; mod; mod = mod->next) {
+    if (strcmp(mod->file_name, curr_file) != 0) {
+      curr_file = mod->file_name;
+      asprintf(&file_directive, "\"%s\"", curr_file);
+      // ADD_INSTR(".file", file_directive);
+    }
     context_t ctx = ctx_new();
     ctx_set_mod(ctx);
+    ctx_set_global(ctx, true);
     ADD_BLOCK(gen_mod(ctx, mod));
   }
   RETURN_BUFFER;
@@ -951,6 +1348,7 @@ char* gen_text_segment(root_t root) {
 char* gen_type(context_t ctx, type_decl_t type) {
   char *type_label = concat("__type__", type->name);
   char *type_name_label = register_or_get_string_label(type->name);
+  char *parent_name_label = register_or_get_string_label(type->type->u.name_ty);
   int morph_count = 0;
   for (morph_t morph = type->morphs; morph; morph = morph->next)
     morph_count++;
@@ -958,6 +1356,9 @@ char* gen_type(context_t ctx, type_decl_t type) {
   ADD_INSTR(".section", ".data");
   ADD_LABEL(type_label);
   ADD_INSTR(".quad", type_name_label);
+  ADD_INSTR(".quad", parent_name_label);
+  ADD_INSTR(".quad", concat("__morph__", concat(type->type->u.name_ty, concat("__", type->name))));
+  ADD_INSTR(".quad", concat("__morph__", concat(type->name, concat("__", type->type->u.name_ty))));
   ADD_INSTR(".quad", itoa(morph_count));
   for (morph_t morph = type->morphs; morph; morph = morph->next) {
     char *target_label = register_or_get_string_label(morph->target);
@@ -967,9 +1368,58 @@ char* gen_type(context_t ctx, type_decl_t type) {
   ADD_INSTR(".section", ".type_graph");
   ADD_INSTR(".quad", type_label);
   ADD_INSTR(".section", ".text");
+  ADD_BLOCK(gen_identity_morph(type->name, type->type->u.name_ty));
+  ADD_BLOCK(gen_identity_morph(type->type->u.name_ty, type->name));
+  ADD_BLOCK(gen_type_constructor(ctx, type));
   for (morph_t morph = type->morphs; morph; morph = morph->next) {
     ADD_BLOCK(gen_morph(ctx, type->name, morph));
   }
+  RETURN_BUFFER;
+}
+
+char* gen_type_constructor(context_t ctx, type_decl_t type) {
+  // TODO: This assumes no morph chains as the "base type". Also doesn't work for non-primitive types
+  CREATE_BUFFER;
+  ADD_LABEL(concat("__type__constructor__", type->name));
+  ADD_INSTR("push", "%rbp");
+  ADD_INSTR("movq", "%rsp, %rbp");
+  ADD_INSTR("push", "%r10");
+  if (strcmp(type->type->u.name_ty, "integer") == 0) {
+    ADD_INSTR("movq", "$0, %rdi");
+    ADD_INSTR("call", "alloc_int");
+  } else if (strcmp(type->type->u.name_ty, "string") == 0) {
+    char *str_label = register_or_get_string_label("");
+    ADD_INSTR("movq", concat("$", concat(str_label, ", %rdi")));
+    ADD_INSTR("call", "alloc_string");
+  } else if (strcmp(type->type->u.name_ty, "real") == 0) {
+    ADD_INSTR("movq", "$0, %rdi");
+    ADD_INSTR("call", "alloc_real");
+  } else if (strcmp(type->type->u.name_ty, "boolean") == 0) {
+    ADD_INSTR("movq", "$1, %rdi");
+    ADD_INSTR("call", "alloc_bool");
+  } else {
+    ADD_INSTR("call", concat("__type__constructor__", type->type->u.name_ty));
+  }
+  ADD_INSTR("movq", "%rax, %rdi");
+  ADD_INSTR("call", concat("__morph__", concat(type->name, concat("__", type->type->u.name_ty))));
+  ADD_INSTR("pop", "%r10");
+  ADD_INSTR("leave", NO_OPERANDS);
+  ADD_INSTR("ret", NO_OPERANDS);
+  RETURN_BUFFER;
+}
+
+char* gen_identity_morph(char *src, char *dest) {
+  char *dest_label = register_or_get_string_label(dest);
+  CREATE_BUFFER;
+  ADD_LABEL(concat("__morph__", concat(src, concat("__", dest))));
+  ADD_INSTR("push", "%rbp");
+  ADD_INSTR("movq", "%rsp, %rbp");
+  ADD_INSTR("push", "%r10");
+  ADD_INSTR("movq", concat(concat("$", dest_label), ", %rsi"));
+  ADD_INSTR("call", "__identity_helper");
+  ADD_INSTR("pop", "%r10");
+  ADD_INSTR("leave", NO_OPERANDS);
+  ADD_INSTR("ret", NO_OPERANDS);
   RETURN_BUFFER;
 }
 
@@ -993,10 +1443,47 @@ char* gen_morph(context_t ctx, char *type_name, morph_t morph) {
   /* TODO: Allocate space for "this" and "that" or whatever variables 
    * we decided on. This will probably require creating a new context.
    */
+  context_t new_ctx = ctx_new();
+  ctx_set_parent(new_ctx, ctx);
+  ctx_add_variable(new_ctx, "this", type_name);
+  ctx_add_variable(new_ctx, "that", morph->target);
 
-  for (stmt_t s = morph->defn; s; s = s->next) {
-    ADD_BLOCK(gen_stmt(ctx, s));
+  ADD_INSTR("push", "%rbp");
+  ADD_INSTR("movq", "%rsp, %rbp");
+  ADD_INSTR("sub", "$16, %rsp");
+  ADD_INSTR("push", "%r10");
+
+  // Prepare "this" variable
+  ADD_INSTR("call", concat("__type__constructor__", type_name));
+  ADD_INSTR("movq", "%rax, -8(%rbp)");
+
+  type_decl_t target_type_decl = (type_decl_t) ctx_get_type(ctx, morph->target);
+  if (target_type_decl == NULL) {
+    GEN_ERROR(concat("Cannot find declaration for type ", morph->target)); 
   }
+  // Prepare "that" variable
+  if (strcmp(target_type_decl->type->u.name_ty, "integer") == 0) {
+    ADD_INSTR("movq", "$0, %rdi");
+    ADD_INSTR("call", "alloc_integer");
+  } else if (strcmp(target_type_decl->type->u.name_ty, "string") == 0) {
+    char *str_label = register_or_get_string_label("");
+    ADD_INSTR("movq", concat("$", concat(str_label, ", %rdi")));
+    ADD_INSTR("call", "alloc_string");
+  } else if (strcmp(target_type_decl->type->u.name_ty, "real") == 0) {
+    ADD_INSTR("movq", "$0, %rdi");
+    ADD_INSTR("call", "alloc_real");
+  } else if (strcmp(target_type_decl->type->u.name_ty, "boolean") == 0) {
+    ADD_INSTR("movq", "$1, %rdi");
+    ADD_INSTR("call", "alloc_bool");
+  } else {
+    ADD_INSTR("call", concat("__type__constructor__", morph->target));
+  }
+  ADD_INSTR("pop", "%r10");
+  ADD_INSTR("movq", "%rax, -16(%rbp)");
+  for (stmt_t s = morph->defn; s; s = s->next) {
+    ADD_BLOCK(gen_stmt(new_ctx, s));
+  }
+  ADD_INSTR("movq", "-8(%rbp), %rax");
   ADD_INSTR("ret", NO_OPERANDS);
   RETURN_BUFFER;
 }
@@ -1065,15 +1552,28 @@ char* gen_throw_stmt(context_t ctx, throw_stmt_t throw) {
   RETURN_BUFFER;
 }
 
+bool has_main(root_t root) {
+  for (mod_t mod = root->mods; mod; mod = mod->next)
+    if (strcmp("Main", mod->name) == 0)
+      return true;
+  return false;
+}
+
 char* codegen(root_t root, type_node_t *g) {
   graph = g;
+  build_file_no_map(root);
   CREATE_BUFFER;
 
   // Generate text segment
   ADD_BLOCK(gen_text_segment(root));
 
   // Generate data segment
-  ADD_BLOCK(gen_data_segment());
+  char *data_segment = remove_empty_lines(gen_data_segment());
+
+  // data_segment will have 2 \n characters if it is empty
+  if (count_char_occurences(data_segment, '\n') > 3) {
+    ADD_BLOCK(data_segment);
+  }
 
   RETURN_BUFFER;
 }

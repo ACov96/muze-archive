@@ -1,5 +1,7 @@
 #pragma once
 
+#include "util.h"
+
 typedef struct root_st          *root_t;
 typedef struct mod_st           *mod_t;
 typedef struct decl_st          *decl_t;
@@ -14,6 +16,9 @@ typedef struct fun_decl_st      *extern_decl_t; // ALIAS
 typedef struct const_st         *const_t;
 typedef struct type_st          *type_t;
 typedef struct morph_st         *morph_t;
+typedef struct subscript_list_st  *subscript_list_t;
+typedef struct lval_st						*lval_t;
+typedef struct accessor_list_st   *accessor_list_t;
 // typedef struct var_st           *var_t;
 // typedef struct fun_st           *fun_t;
 
@@ -32,10 +37,13 @@ typedef struct morph_chain_st   *morph_chain_t;
 typedef struct boolean_st       *boolean_t;
 typedef struct enum_st          *enum_t;
 typedef struct rec_st           *rec_t;
+typedef struct rec_field_st    *rec_field_t;
 typedef struct arg_st           *arg_t;
+typedef struct array_type_st    *array_type_t;
 
 //statments
 typedef struct stmt_st          *stmt_t;
+typedef struct pos_st           *pos_t;
 typedef struct stmt_list_st     *stmt_list_t;
 typedef struct assign_stmt_st   *assign_stmt_t;
 typedef struct cond_stmt_st     *cond_stmt_t;
@@ -50,6 +58,12 @@ typedef struct throw_stmt_st	*throw_stmt_t;
 #include <stdbool.h>
 #include "util.h"
 #include "symbol.h"
+
+// Position information
+struct pos_st {
+  int line_no;
+  int col_no;
+};
 
 // Entry node in the AST
 struct root_st {
@@ -72,6 +86,8 @@ struct mod_st {
   mod_t next; // NULLABLE
 
   symbol_t symbol;
+
+  char *file_name; // Name of the file that this module is defined
 };
 
 
@@ -161,26 +177,41 @@ struct type_decl_st {
 };
 
 
+// record type
 struct rec_st {
+  rec_field_t fields;
+};
+
+
+struct rec_field_st {
+  // name of the field(s)
+  id_list_t name;
+  // type of the field
+  type_t type;
+  // next field
+  rec_field_t next;
 };
 
 
 // A "type expression", something which evaluates to a concrete type
 struct type_st {
   enum {
-// Not sure about these, seems like they all fall under the category of
-// 'named type'
-//    STRING_TY, INTEGER_TY, REAL_TY, BOOLEAN_TY, ARRAY_TY, HASH_TY, LIST_TY,
-    NAME_TY, REC_TY, ENUM_TY, MORPH_TY
+    NAME_TY, ARRAY_TY, REC_TY, ENUM_TY, MORPH_TY
   } kind;
   union {
     char *name_ty;
+    array_type_t array_ty;
     rec_t rec_ty;
     enum_t enum_ty;
     morph_chain_t morph_ty;
   } u;
 };
 
+
+struct array_type_st {
+  expr_list_t dimensions;
+  type_t type;
+};
 
 // A specific path to follow for a morph
 struct morph_chain_st {
@@ -252,6 +283,8 @@ struct expr_st {
     range_t       range_ex;
     morph_expr_t  morph_ex;
   } u;
+
+  accessor_list_t accessors;
 };
 
 // One operand expression
@@ -267,7 +300,10 @@ struct unary_st {
     POST_DEC_OP
   } op;
 
-  // The operand
+  // The operand. 
+  // Probably need to change this from an expr to an lval at some point 
+  // so the operand can have accessors associated with it. -TD
+  //lval_t lval;
   expr_t expr;
 };
 
@@ -322,7 +358,7 @@ struct literal_st {
   // Tagged union of literal possibilities
   enum {
     STRING_LIT, INTEGER_LIT, REAL_LIT,
-    BOOLEAN_LIT, NULL_LIT
+    BOOLEAN_LIT, NULL_LIT, ARRAY_LIT, RECORD_LIT
   } kind;
 
   union {
@@ -331,6 +367,8 @@ struct literal_st {
     char *string_lit;
     char *integer_lit;
     char *real_lit;
+    expr_list_t array_lit;
+    expr_list_t record_lit;
     enum {
       TRUE_BOOL,
       FALSE_BOOL
@@ -376,6 +414,8 @@ struct stmt_st {
     try_stmt_t	   try_stmt;
     throw_stmt_t   throw_stmt;
   } u;
+
+  pos_t pos;
 
   stmt_t next;
 };
@@ -434,6 +474,16 @@ struct expr_list_st {
   expr_list_t next;
 };
 
+struct accessor_list_st {
+	union{expr_list_t	subscript_expr; char* field_id;} u;
+	enum{SUBSCRIPT, FIELD} kind;
+	accessor_list_t next;
+};
+
+struct lval_st {
+	expr_t expr;
+	accessor_list_t accessors;
+};
 
 // prototypes
 root_t parse(ll_t ll_tokens);

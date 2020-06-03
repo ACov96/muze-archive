@@ -5,7 +5,7 @@
 #include "ast.h"
 #include "muze_stdlib.h"
 
-#define NUM_PRIMITIVES 4
+#define NUM_PRIMITIVES 6
 
 struct type_node_st {
   char* name;
@@ -35,8 +35,8 @@ int* bfs(type_node_t* graph, int src, int dest);
 
 /* Global variables */ 
 int next_index = 0;  // next available index in the morph graph
-int graph_size = NUM_PRIMITIVES; // number of types in the graph
-char* primitive_types[] = {"integer", "real", "string", "boolean"};
+int graph_size = 0; // number of types in the graph
+char* primitive_types[] = {"integer", "real", "string", "boolean", "array", "record"};
 
 
 /*Function called from main to build morph graph*/
@@ -95,7 +95,7 @@ type_node_t* mg_register_types(type_node_t *graph, type_decl_t types) {
 
 /* Morph graph constructor. Returns morph graph with primitives types and morphs added */
 type_node_t* morph_graph() {
-  type_node_t* graph = malloc(sizeof(struct type_node_st)*NUM_PRIMITIVES);
+  type_node_t* graph = NULL; // malloc(sizeof(struct type_node_st)*NUM_PRIMITIVES);
 
   // Add primitive types to graph
   for (int i = 0; i < NUM_PRIMITIVES; i++){
@@ -153,6 +153,12 @@ type_node_t type_node(char* name, int index) {
 /* Add a new type to the given graph */
 type_node_t* add_type(type_node_t* graph, char* type_name) {	 
   type_node_t node = type_node(type_name, next_index); 
+  graph_size++;
+  graph = (type_node_t*)realloc(graph, graph_size * sizeof(struct type_node_st));
+  if (graph == NULL) {
+    fprintf(stderr, "Unable to add %s to the graph.\n", type_name);
+    exit(1);
+  }
   graph[node->index] = node;
   next_index++;
   return graph;
@@ -271,7 +277,7 @@ char** shortest_path(type_node_t* graph, char* src, char* dest) {
     path_length++;
   }
         
-  char** final_path = malloc((sizeof(char*) * path_length) + 2);
+  char** final_path = malloc((sizeof(char*) * (path_length + 2)));
  
   int i = path_length + 1;
   final_path[i] = NULL;
@@ -292,11 +298,7 @@ char** shortest_path(type_node_t* graph, char* src, char* dest) {
   that can be traced back to get the shortest path.
   Returns NULL if no path found*/
 int* bfs(type_node_t* graph, int src, int dest) {	
-  //int len = sizeof(graph)/sizeof(graph[0]);
-  int v = 0;
-  while (graph[v]) {
-    v++;
-  }
+  int v = graph_size;
 
   int* q = malloc(sizeof(int) * v * v);
   int curr = 0;
@@ -330,9 +332,8 @@ int* bfs(type_node_t* graph, int src, int dest) {
           dist[index] = dist[c] + 1;
           pred[index] = c;
 
-          if (index == dest) {
+          if (index == dest)
             return pred;
-          }
                                 
           q[p] = index;
           p++;

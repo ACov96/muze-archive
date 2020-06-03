@@ -1,0 +1,29 @@
+mod Main
+var
+  a : array[3,3] of string;
+  b : array[2,2] of string;
+begin
+  a[0,0] = "a1";
+  a[0,1] = "a2";
+  a[0,2] = "a3";
+  a[1,0] = "a4";
+  a[1,1] = "a5";
+  a[1,2] = "a6";
+  a[2,0] = "a7";
+  a[2,1] = "a8";
+  a[2,2] = "a9";
+  b[0,0] = "b1";
+  b[0,1] = "b2";
+  b[1,0] = "b3";
+  b[1,1] = "b4";
+
+  print(a[0,0]);
+  print(a[0,1]);
+  print(a[0,2]);
+  print(a[1,0]);
+  print(a[2,1]);
+
+  print(b[1,0]);
+  print(b[0,0]);
+
+dom Main

@@ -1,0 +1,6 @@
+mod Main
+  type fahrenheit = real;
+  var f : fahrenheit = 0;
+begin
+  print(f);
+dom Main

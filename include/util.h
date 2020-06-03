@@ -58,4 +58,6 @@ char* remove_empty_lines(char* s);
 
 unsigned long f_to_int(char *d);
 
-char *find_linker_script(char *executable_name);
+char *find_linker_script();
+
+unsigned long count_char_occurences(char *s, char c);

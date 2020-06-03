@@ -4,6 +4,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <ctype.h>
+#include <libgen.h>
 #include "lexer.h"
 #include "util.h"
 #include "limits.h"
@@ -33,11 +34,13 @@ token_t token_from_word(char* s);
 int line_no = 1;
 int col_no = 1;
 int tok_col = 1;
+char *curr_file_name = NULL;
 
 ll_t lex(char* file_name) {
   FILE *f = fopen(file_name, "r");
   if (f == NULL)
     error_and_exit("Cannot open file", line_no);
+  curr_file_name = file_name;
 
   char* content = file_to_string(f);
   return generate_token_list(content);
@@ -331,7 +334,9 @@ ll_t generate_token_list(char* s) {
 
     // Some weird character, error out
     else {
-      error_and_exit("Unrecognized character", line_no);
+      char *msg = "Unrecognized character  ";
+      msg[strlen(msg) - 1] = c;
+      error_and_exit(msg, line_no);
     }
   }
 
@@ -444,6 +449,8 @@ token_t token_from_word(char* s) {
   // Composite types
   else if (strcmp(buf, "rec") == 0)
     return new_token(REC, "rec");
+  else if (strcmp(buf, "cer") == 0)
+    return new_token(CER, "cer:w");
   else if (strcmp(buf, "array") == 0)
     return new_token(ARRAY, "array");
   else if (strcmp(buf, "tuple") == 0)
@@ -508,6 +515,7 @@ token_t _new_token(enum token t, char* val, int line_no, int col_no) {
   tok->line_no = line_no;
   tok->col_no = tok_col;
   tok_col = col_no;
+  tok->file_name = basename(curr_file_name);
   return tok;
 }
 

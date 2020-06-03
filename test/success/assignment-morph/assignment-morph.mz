@@ -1,0 +1,20 @@
+mod Main
+  type
+    fahrenheit = real;
+    mu celcius
+      this = that * (9.0 / 5.0) + 32.0;
+    um celcius
+
+    celcius = real;
+    mu fahrenheit
+      this = that * (5.0 / 9.0) - 32.0;
+    um fahrenheit
+  var
+    f : fahrenheit = 32.0;
+    c : celcius = f;
+begin
+  print(f);
+  c = c + 10;
+  f = c;
+  print(f);
+dom Main

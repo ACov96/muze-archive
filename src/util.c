@@ -43,9 +43,9 @@ void write_log(char *msg, ...) {
   va_list args;
 
   va_start(args, msg);
-  vfprintf(LOG_FILE, msg, args);
+  vfprintf(stdout, msg, args);
   va_end(args);
-  fprintf(LOG_FILE, "\n");
+  fprintf(stdout, "\n");
 }
 
 typedef struct err_queue_st *err_queue_t;
@@ -153,9 +153,14 @@ unsigned long f_to_int(char *d) {
   return u.l;
 }
 
-char *find_linker_script(char *executable_name) {
-  char sym_name[1024];
-  readlink("/proc/self/exe", sym_name, 1024);
-  char *dir = dirname(sym_name);
-  return concat(dir, "/../script/muze.ld");
+char *find_linker_script() {
+  return concat(PREFIX, "/share/muze/muze.ld");
+}
+
+unsigned long count_char_occurences(char *s, char c) {
+  unsigned long count = 0;
+  for (unsigned long i = 0; i < strlen(s); i++)
+    if (s[i] == c)
+      count++;
+  return count;
 }

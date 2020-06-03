@@ -72,6 +72,7 @@ extern const struct tokname_st token_names[];
 struct token_st {
   enum token tok;
   char* val;
+  char* file_name;
   int line_no;
   int col_no;
 };

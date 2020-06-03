@@ -1,7 +1,7 @@
 bin_PROGRAMS = muzec
 lib_LIBRARIES = libmuze.a
 
-AM_CPPFLAGS = -I${INCLUDE_DIR}
+AM_CPPFLAGS = -I${INCLUDE_DIR} -DPREFIX="\"$(prefix)\""
 
 # muzec
 muzec_SOURCES = \
@@ -23,8 +23,8 @@ src/muze_stdlib.c
 
 
 # Custom linker script
-scriptdir = $(prefix)/script
-script_DATA = config/muze.ld
+sharedir = $(prefix)/share/muze
+share_DATA = share/muze/muze.ld
 
 # Testing
 TESTS = test.sh
